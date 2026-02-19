@@ -116,6 +116,8 @@ Then select `Custom (SD)` in Reader font settings.
 - User guide: [`USER_GUIDE.md`](USER_GUIDE.md)
 - Code provenance map: [`CODE_PROVENANCE.md`](CODE_PROVENANCE.md)
 - Third-party notices and full legal text: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)
+- Wiki pages (repo-hosted): [`docs/wiki/Home.md`](docs/wiki/Home.md)
+- Prebuilt binaries release: <https://github.com/Einnovoeg/OmniPaper/releases/tag/v0.17.0>
 
 ## Third-Party Projects
 
