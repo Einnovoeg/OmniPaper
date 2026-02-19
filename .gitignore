@@ -1,0 +1,15 @@
+.pio
+.idea
+.DS_Store
+.vscode
+lib/EpdFont/fontsrc
+*.generated.h
+.vs
+build
+**/__pycache__/
+/compile_commands.json
+/.cache
+
+# Generated SD card font assets (exported binaries)
+/sdcard/fonts/*.epf
+/sdcard/fonts/*.u8g2

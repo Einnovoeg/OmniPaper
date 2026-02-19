@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OmniPaper</title>
+    <style>
+      :root {
+        --bg: #f5f6f8;
+        --panel: #ffffff;
+        --text: #24323f;
+        --muted: #66727d;
+        --line: #e4e9ef;
+        --accent: #1479c9;
+        --accent-strong: #0f5f9d;
+        --ok: #1f9d55;
+        --error: #c93c3c;
+      }
+      body {
+        margin: 0;
+        padding: 18px;
+        max-width: 840px;
+        margin-inline: auto;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      h1 {
+        font-size: 24px;
+        margin: 0 0 8px 0;
+      }
+      .subtle {
+        margin: 0;
+        color: var(--muted);
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 16px;
+        margin-top: 14px;
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 12px;
+      }
+      a.button,
+      button {
+        appearance: none;
+        border: 0;
+        border-radius: 8px;
+        background: var(--accent);
+        color: #fff;
+        text-decoration: none;
+        padding: 10px 14px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      a.button:hover,
+      button:hover {
+        background: var(--accent-strong);
+      }
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .info-row:last-child {
+        border-bottom: 0;
+      }
+      .label {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        background: #e8f2fa;
+        border: 1px solid #d6e8f8;
+        border-radius: 999px;
+        padding: 7px 12px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .chip:hover {
+        background: #d9ebfb;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      input[type="text"] {
+        flex: 1;
+        min-width: 220px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        font-size: 14px;
+        padding: 9px 10px;
+      }
+      .message {
+        margin-top: 10px;
+        font-size: 13px;
+        min-height: 1.1em;
+      }
+      .ok {
+        color: var(--ok);
+      }
+      .error {
+        color: var(--error);
+      }
+      footer {
+        text-align: center;
+        color: var(--muted);
+        margin: 20px 0 8px 0;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>OmniPaper</h1>
+    <p class="subtle">Hotspot web UI for file transfer and quick app launch.</p>
+
+    <div class="toolbar">
+      <a class="button" href="/">Home</a>
+      <a class="button" href="/files">File Manager</a>
+    </div>
+
+    <div class="card">
+      <h2>Device Status</h2>
+      <div class="info-row">
+        <span class="label">Version</span>
+        <span id="version">-</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Mode</span>
+        <span id="mode">-</span>
+      </div>
+      <div class="info-row">
+        <span class="label">IP Address</span>
+        <span id="ip-address">-</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Free Memory</span>
+        <span id="free-heap">-</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Uptime</span>
+        <span id="uptime">-</span>
+      </div>
+    </div>
+
+    <div id="reader-card" class="card">
+      <h2>Open EPUB</h2>
+      <p class="subtle">Start the reader directly from a full SD path (example: <code>/books/book.epub</code>).</p>
+      <div class="row">
+        <input id="reader-path" type="text" placeholder="/books/book.epub" />
+        <button id="open-reader-btn" type="button">Open Reader</button>
+      </div>
+      <div id="reader-msg" class="message"></div>
+    </div>
+
+    <div id="apps-card" class="card">
+      <h2>Quick Launch</h2>
+      <div id="app-list" class="chips"></div>
+      <div id="launch-msg" class="message"></div>
+    </div>
+
+    <footer>OmniPaper</footer>
+
+    <script>
+      async function fetchJson(url, options) {
+        const response = await fetch(url, options);
+        const text = await response.text();
+        if (!response.ok) {
+          throw new Error(text || ('Request failed: ' + response.status));
+        }
+        try {
+          return text ? JSON.parse(text) : {};
+        } catch (error) {
+          throw new Error('Invalid JSON response');
+        }
+      }
+
+      function showMessage(targetId, text, isError) {
+        const el = document.getElementById(targetId);
+        el.textContent = text;
+        el.className = 'message ' + (isError ? 'error' : 'ok');
+      }
+
+      async function refreshStatus() {
+        try {
+          const data = await fetchJson('/api/status');
+          document.getElementById('version').textContent = data.version || 'N/A';
+          document.getElementById('mode').textContent = data.mode || 'N/A';
+          document.getElementById('ip-address').textContent = data.ip || 'N/A';
+        document.getElementById('free-heap').textContent = data.freeHeap
+            ? Number(data.freeHeap).toLocaleString() + ' bytes'
+            : 'N/A';
+          document.getElementById('uptime').textContent =
+            typeof data.uptime === 'number' ? data.uptime + ' s' : 'N/A';
+          document.getElementById('apps-card').style.display = data.appLaunchAvailable ? '' : 'none';
+          document.getElementById('reader-card').style.display = data.readerOpenAvailable ? '' : 'none';
+        } catch (error) {
+          showMessage('launch-msg', 'Status error: ' + error.message, true);
+        }
+      }
+
+      async function loadApps() {
+        const appList = document.getElementById('app-list');
+        appList.innerHTML = '';
+        try {
+          const data = await fetchJson('/api/apps');
+          const apps = Array.isArray(data.apps) ? data.apps : [];
+          apps.forEach((app) => {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'chip';
+            chip.textContent = app.name || app.id;
+            chip.addEventListener('click', async () => {
+              try {
+                await fetch('/api/apps/launch', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                  body: new URLSearchParams({ id: app.id || '' }).toString(),
+                }).then(async (response) => {
+                  const text = await response.text();
+                  if (!response.ok) {
+                    throw new Error(text || ('Launch failed: ' + response.status));
+                  }
+                });
+                showMessage('launch-msg', 'Launch queued: ' + (app.name || app.id), false);
+              } catch (error) {
+                showMessage('launch-msg', error.message, true);
+              }
+            });
+            appList.appendChild(chip);
+          });
+          if (apps.length === 0) {
+            appList.textContent = 'No app shortcuts available.';
+          }
+        } catch (error) {
+          showMessage('launch-msg', 'Failed to load app list: ' + error.message, true);
+        }
+      }
+
+      async function openReaderFromPath() {
+        const path = document.getElementById('reader-path').value.trim();
+        if (!path) {
+          showMessage('reader-msg', 'Enter an EPUB path first.', true);
+          return;
+        }
+        try {
+          const response = await fetch('/api/reader/open', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ path }).toString(),
+          });
+          const text = await response.text();
+          if (!response.ok) {
+            throw new Error(text || ('Open reader failed: ' + response.status));
+          }
+          showMessage('reader-msg', text || 'Reader launch queued.', false);
+        } catch (error) {
+          showMessage('reader-msg', error.message, true);
+        }
+      }
+
+      document.getElementById('open-reader-btn').addEventListener('click', openReaderFromPath);
+      document.getElementById('reader-path').addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          openReaderFromPath();
+        }
+      });
+
+      refreshStatus();
+      loadApps();
+      setInterval(refreshStatus, 5000);
+    </script>
+  </body>
+</html>
