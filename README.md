@@ -83,6 +83,10 @@ pio run -e m5paper_epd_diag --target upload --upload-port /dev/cu.usbserial-XXXX
 pio run -e m5paper_alive_diag --target upload --upload-port /dev/cu.usbserial-XXXX
 ```
 
+Web-based and downloadable flashing tools (macOS/Linux/Windows):
+- [`docs/wiki/Flashing-Guide.md`](docs/wiki/Flashing-Guide.md)
+- Prebuilt binaries: <https://github.com/Einnovoeg/OmniPaper/releases/latest>
+
 ## New Repository Prep
 
 For publishing to a new GitHub repository:

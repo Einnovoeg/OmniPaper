@@ -20,6 +20,10 @@ Flash:
 - `pio run -e m5papers3 --target upload --upload-port /dev/cu.usbmodemXXXX`
 - `pio run -e lilygo_epd47 --target upload --upload-port /dev/cu.usbmodemXXXX`
 
+Web and downloadable flashing tools (Chrome/Edge web flasher, esptool, Windows Flash Download Tool):
+- `docs/wiki/Flashing-Guide.md`
+- Latest release binaries: `https://github.com/Einnovoeg/OmniPaper/releases/latest`
+
 ## 1. Quick Start
 
 1. Insert SD card.
