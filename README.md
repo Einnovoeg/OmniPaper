@@ -118,6 +118,7 @@ Then select `Custom (SD)` in Reader font settings.
 ## Documentation
 
 - User guide: [`USER_GUIDE.md`](USER_GUIDE.md)
+- Contributor credits: [`CONTRIBUTORS.md`](CONTRIBUTORS.md)
 - Code provenance map: [`CODE_PROVENANCE.md`](CODE_PROVENANCE.md)
 - Third-party notices and full legal text: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)
 - Wiki pages (repo-hosted): [`docs/wiki/Home.md`](docs/wiki/Home.md)
@@ -131,6 +132,7 @@ Libraries/frameworks and upstream projects used in this firmware include:
 - M5Unified: <https://github.com/m5stack/M5Unified>
 - M5GFX: <https://github.com/m5stack/M5GFX>
 - LilyGo-EPD47: <https://github.com/Xinyuan-LilyGO/LilyGo-EPD47>
+- EPDiy (for EpdFont data/script provenance): <https://github.com/vroland/epdiy>
 - AS7331: <https://github.com/RobTillaart/AS7331>
 - ArduinoJson: <https://github.com/bblanchon/ArduinoJson>
 - QRCode: <https://github.com/ricmoo/QRCode>
@@ -151,6 +153,7 @@ App/component source projects:
 - ESP32 Bus Pirate diagnostics source: <https://github.com/geo-tp/ESP32-Bus-Pirate>
 - M5Cardputer Interactive SSH Client reference: <https://github.com/SUB0PT1MAL/M5Cardputer_Interactive_SSH_Client>
 - M5Paper trackpad reference: <https://github.com/hollyhockberry/m5paper-trackpad>
+- XTC format info reference: <https://gist.github.com/CrazyCoder/b125f26d6987c0620058249f59f1327d>
 
 ## Function Catalog With Source Repositories
 

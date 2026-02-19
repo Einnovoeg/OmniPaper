@@ -11,6 +11,7 @@ OmniPaper is derived from CrossPoint Reader and related open-source projects, th
 | CrossPoint Reader (upstream base project) | https://github.com/daveallie/crosspoint-reader | MIT |
 | open-x4 community SDK | https://github.com/open-x4-epaper/community-sdk | MIT |
 | LilyGo-EPD47 | https://github.com/Xinyuan-LilyGO/LilyGo-EPD47 | MIT |
+| EPDiy (font-structure / script provenance) | https://github.com/vroland/epdiy | LGPL-3.0 (upstream project license) |
 | M5Unified | https://github.com/m5stack/M5Unified | MIT |
 | M5GFX | https://github.com/m5stack/M5GFX | MIT |
 | Arduino-ESP32 Core | https://github.com/espressif/arduino-esp32 | LGPL-2.1-or-later |
@@ -43,17 +44,22 @@ OmniPaper is derived from CrossPoint Reader and related open-source projects, th
 | M5Paper-ePub-reader (reference) | https://github.com/Lefucjusz/M5Paper-ePub-reader | GPL-3.0 |
 | m5paper-sos (reference) | https://github.com/inajob/m5paper-sos | MIT |
 | portal (reference) | https://github.com/paperportal/portal | No explicit license file observed in repository snapshot |
+| XTC format info gist (reference) | https://gist.github.com/CrazyCoder/b125f26d6987c0620058249f59f1327d | Reference only (format documentation) |
+| poly1305-donna (transitive through LibSSH-ESP32) | https://github.com/floodyberry/poly1305-donna | Public Domain (as noted in upstream source header) |
 
 ## Notes
 
 - MIT/LGPL/OFL/UFL/public-domain notices below are copied from the local source/distribution copies used in this project.
 - Adapted components are documented with their source repositories above and in `CODE_PROVENANCE.md`.
 - Direct adaptation currently includes:
+  - EPDiy-derived font-data structure and conversion script provenance in `lib/EpdFont/EpdFontData.h` and `lib/EpdFont/scripts/fontconvert.py`
   - trackpad gesture timing logic from `hollyhockberry/m5paper-trackpad` into `src/activities/apps/TrackpadActivity.cpp`
-  - SSH workflow adaptation from `SUB0PT1MAL/M5Cardputer_Interactive_SSH_Client` into `src/activities/apps/SshClientActivity.cpp`
+  - SSH UI workflow reference from `SUB0PT1MAL/M5Cardputer_Interactive_SSH_Client` with local implementation in `src/activities/apps/SshClientActivity.cpp`
   - keyboard host mode workflow adaptation informed by `robo8080/M5Paper_Keyboard` and `m5stack/M5Paper_FactoryTest` into `src/activities/apps/KeyboardHostActivity.cpp`
+- Repositories listed above with no explicit license (for example Poodle, Sudoku gist, portal, and M5Cardputer_Interactive_SSH_Client) are treated as reference sources only; OmniPaper implementations are local and do not copy source files from those repositories.
 - If you redistribute firmware binaries that include LGPL components (arduinoWebSockets, Arduino-ESP32 Core), LGPL obligations apply (including providing corresponding source and license text).
 - If you redistribute firmware binaries that include LibSSH-ESP32, LGPL-2.1 obligations apply for that component as well.
+- `poly1305-donna` attribution is included because LibSSH-ESP32 contains upstream references to that implementation in bundled source headers.
 - For Poodle and Sudoku entries above, this repository uses local implementations and cites upstream gameplay/reference sources in `CODE_PROVENANCE.md`.
 - Arduino-ESP32 Core package metadata in this build environment declares `LGPL-2.1-or-later`; LGPL notice text is included below in this document.
 
