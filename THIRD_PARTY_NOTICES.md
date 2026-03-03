@@ -47,6 +47,27 @@ OmniPaper is derived from CrossPoint Reader and related open-source projects, th
 | XTC format info gist (reference) | https://gist.github.com/CrazyCoder/b125f26d6987c0620058249f59f1327d | Reference only (format documentation) |
 | poly1305-donna (transitive through LibSSH-ESP32) | https://github.com/floodyberry/poly1305-donna | Public Domain (as noted in upstream source header) |
 
+## Explicit Author Credit (Direct Code Use)
+
+The following components have code included or adapted in OmniPaper. Credit is owed to the original authors and upstream contributors listed below and in each project's contributor graph:
+
+| Component | Original authors/copyright holders to credit | Contributor graph |
+|---|---|---|
+| CrossPoint-reader | Dave Allie and CrossPoint contributors | https://github.com/daveallie/crosspoint-reader/graphs/contributors |
+| open-x4 community SDK | Open X4 E-Paper contributors | https://github.com/open-x4-epaper/community-sdk/graphs/contributors |
+| M5Unified | M5Stack and contributors | https://github.com/m5stack/M5Unified/graphs/contributors |
+| M5GFX | M5Stack and contributors | https://github.com/m5stack/M5GFX/graphs/contributors |
+| EPDiy-derived files | Volker Roland and EPDiy contributors | https://github.com/vroland/epdiy/graphs/contributors |
+| LibSSH-ESP32 | ewpa maintainers, plus upstream libssh authors listed in source headers | https://github.com/ewpa/LibSSH-ESP32/graphs/contributors |
+| Expat | Expat authors listed in MIT notice and source headers | https://github.com/libexpat/libexpat/graphs/contributors |
+| miniz | Rich Geldreich and contributors | https://github.com/richgel999/miniz/graphs/contributors |
+| picojpeg | Rich Geldreich | https://github.com/richgel999/picojpeg |
+| AS7331 | Rob Tillaart | https://github.com/RobTillaart/AS7331 |
+| ArduinoJson | Benoit Blanchon | https://github.com/bblanchon/ArduinoJson |
+| QRCode | Richard Moore | https://github.com/ricmoo/QRCode |
+| arduinoWebSockets | Markus Sattler (Links2004) and contributors | https://github.com/Links2004/arduinoWebSockets |
+| SdFat | Bill Greiman and contributors | https://github.com/greiman/SdFat |
+
 ## Notes
 
 - MIT/LGPL/OFL/UFL/public-domain notices below are copied from the local source/distribution copies used in this project.

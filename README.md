@@ -7,8 +7,6 @@ This project directly uses code from upstream projects (not just "inspiration").
 - `THIRD_PARTY_NOTICES.md` for license notices and legal text
 - `CONTRIBUTORS.md` for contributor and project credits
 
-Support this project: <https://buymeacoffee.com/einnovoeg>
-
 ## Primary Target: M5PaperS3
 
 OmniPaper now defaults to the `m5papers3` PlatformIO environment.
@@ -81,7 +79,8 @@ pio run -e lilygo_epd47 --target upload --upload-port /dev/cu.usbmodemXXXX
 ```
 
 Prebuilt binaries and release assets:
-- <https://github.com/Einnovoeg/OmniPaper/releases/latest>
+- <https://github.com/<OWNER_OR_ORG>/OmniPaper/releases/latest>
+- Replace `<OWNER_OR_ORG>` with your GitHub account or organization name.
 
 Flashing tools/instructions (web + desktop):
 - `docs/wiki/Flashing-Guide.md`
@@ -89,7 +88,15 @@ Flashing tools/instructions (web + desktop):
 ## Dependencies
 
 - Build/runtime dependency list: `DEPENDENCIES.md`
+- Compliance process/checklist: `LICENSE_COMPLIANCE.md`
 - Tooling is managed by PlatformIO from `platformio.ini`
+
+## Attribution And License Compliance
+
+- This firmware includes and adapts third-party code from the repositories listed in `CODE_PROVENANCE.md`.
+- Full third-party legal notices and license texts are provided in `THIRD_PARTY_NOTICES.md`.
+- Upstream contributor credits are listed in `CONTRIBUTORS.md`.
+- Components with no explicit upstream code license are treated as **reference-only** sources; no direct code copying from those sources is included in this repository.
 
 ## Source Credits (Exact Repositories)
 

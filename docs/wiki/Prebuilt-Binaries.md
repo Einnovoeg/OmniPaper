@@ -1,7 +1,8 @@
 # Prebuilt Binaries
 
 Latest prebuilt firmware release:
-- [OmniPaper v0.17.0](https://github.com/Einnovoeg/OmniPaper/releases/tag/v0.17.0)
+- [OmniPaper v0.17.0](https://github.com/<OWNER_OR_ORG>/OmniPaper/releases/tag/v0.17.0)
+- Replace `<OWNER_OR_ORG>` with your GitHub account or organization name.
 
 Included assets:
 - `omnipaper-v0.17.0-m5paper-firmware.bin`

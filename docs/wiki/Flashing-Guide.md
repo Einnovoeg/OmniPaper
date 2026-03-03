@@ -3,7 +3,8 @@
 ## Firmware Files
 
 Get prebuilt binaries here:
-- https://github.com/Einnovoeg/OmniPaper/releases/latest
+- https://github.com/<OWNER_OR_ORG>/OmniPaper/releases/latest
+- Replace `<OWNER_OR_ORG>` with your GitHub account or organization name.
 
 For each board, use the matching `*-firmware.bin`:
 - `omnipaper-v0.17.0-m5paper-firmware.bin`

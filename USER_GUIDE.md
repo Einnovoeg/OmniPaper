@@ -24,7 +24,8 @@ Other targets:
 - `pio run -e lilygo_epd47 --target upload --upload-port /dev/cu.usbmodemXXXX`
 
 Prebuilt binaries:
-- <https://github.com/Einnovoeg/OmniPaper/releases/latest>
+- <https://github.com/<OWNER_OR_ORG>/OmniPaper/releases/latest>
+- Replace `<OWNER_OR_ORG>` with your GitHub account or organization name.
 
 Web/desktop flashing tools:
 - `docs/wiki/Flashing-Guide.md`
