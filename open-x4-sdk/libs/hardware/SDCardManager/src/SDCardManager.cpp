@@ -2,7 +2,16 @@
 #include <SPI.h>
 
 namespace {
-#ifdef PLATFORM_M5PAPER
+#if defined(PLATFORM_M5PAPERS3)
+// M5PaperS3 microSD pin map (official docs):
+// CS=GPIO47, SCK=GPIO39, MOSI=GPIO38, MISO=GPIO40.
+constexpr uint8_t SD_CS = 47;
+constexpr uint8_t SD_SCK = 39;
+constexpr uint8_t SD_MISO = 40;
+constexpr uint8_t SD_MOSI = 38;
+constexpr uint32_t SPI_FQ = 25000000;
+#elif defined(PLATFORM_M5PAPER)
+// Legacy M5Paper (ESP32) microSD pin map.
 constexpr uint8_t SD_CS = 4;
 constexpr uint8_t SD_SCK = 14;
 constexpr uint8_t SD_MISO = 13;
@@ -19,7 +28,8 @@ SDCardManager SDCardManager::instance;
 SDCardManager::SDCardManager() : sd() {}
 
 bool SDCardManager::begin() {
-#ifdef PLATFORM_M5PAPER
+#if defined(PLATFORM_M5PAPERS3) || defined(PLATFORM_M5PAPER)
+  // Use explicit SPI pin routing on M5 e-paper boards.
   SPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
   pinMode(SD_CS, OUTPUT);
   digitalWrite(SD_CS, HIGH);
@@ -53,7 +63,6 @@ std::vector<String> SDCardManager::listFiles(const char* path, const int maxFile
     return ret;
   }
   if (!root.isDirectory()) {
-    Serial.printf("[%lu] [SD] Path is not a directory\n", millis());
     root.close();
     return ret;
   }
@@ -99,7 +108,6 @@ String SDCardManager::readFile(const char* path) {
 
 bool SDCardManager::readFileToStream(const char* path, Print& out, const size_t chunkSize) {
   if (!initialized) {
-    Serial.printf("[%lu] [SD] Path is not a directory\n", millis());
     Serial.println("SDCardManager: not initialized; cannot read file");
     return false;
   }
@@ -130,7 +138,6 @@ size_t SDCardManager::readFileToBuffer(const char* path, char* buffer, const siz
   if (!buffer || bufferSize == 0)
     return 0;
   if (!initialized) {
-    Serial.printf("[%lu] [SD] Path is not a directory\n", millis());
     Serial.println("SDCardManager: not initialized; cannot read file");
     buffer[0] = '\0';
     return 0;
@@ -164,7 +171,6 @@ size_t SDCardManager::readFileToBuffer(const char* path, char* buffer, const siz
 
 bool SDCardManager::writeFile(const char* path, const String& content) {
   if (!initialized) {
-    Serial.printf("[%lu] [SD] Path is not a directory\n", millis());
     Serial.println("SDCardManager: not initialized; cannot write file");
     return false;
   }
@@ -176,7 +182,6 @@ bool SDCardManager::writeFile(const char* path, const String& content) {
 
   FsFile f;
   if (!openFileForWrite("SD", path, f)) {
-    Serial.printf("[%lu] [SD] Path is not a directory\n", millis());
     Serial.printf("Failed to open file for write: %s\n", path);
     return false;
   }
@@ -188,7 +193,6 @@ bool SDCardManager::writeFile(const char* path, const String& content) {
 
 bool SDCardManager::ensureDirectoryExists(const char* path) {
   if (!initialized) {
-    Serial.printf("[%lu] [SD] Path is not a directory\n", millis());
     Serial.println("SDCardManager: not initialized; cannot create directory");
     return false;
   }
@@ -198,7 +202,6 @@ bool SDCardManager::ensureDirectoryExists(const char* path) {
     FsFile dir = sd.open(path);
     if (dir && dir.isDirectory()) {
       dir.close();
-    Serial.printf("[%lu] [SD] Path is not a directory\n", millis());
       Serial.printf("Directory already exists: %s\n", path);
       return true;
     }
@@ -207,11 +210,9 @@ bool SDCardManager::ensureDirectoryExists(const char* path) {
 
   // Create the directory
   if (sd.mkdir(path)) {
-    Serial.printf("[%lu] [SD] Path is not a directory\n", millis());
     Serial.printf("Created directory: %s\n", path);
     return true;
   } else {
-    Serial.printf("[%lu] [SD] Path is not a directory\n", millis());
     Serial.printf("Failed to create directory: %s\n", path);
     return false;
   }

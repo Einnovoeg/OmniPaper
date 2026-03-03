@@ -1,11 +1,11 @@
 #include "SensorsActivity.h"
 
 #include <Arduino.h>
-#include <cmath>
 #include <WiFi.h>
 #include <Wire.h>
 
 #include <array>
+#include <cmath>
 
 #ifdef PLATFORM_M5PAPER
 #include <M5Unified.h>
@@ -19,11 +19,10 @@
 namespace {
 constexpr unsigned long kUpdateIntervalMs = 5000;
 
-const char* boolLabel(bool value) { return value ? "YES" : "NO"; }
-
 bool readSht30(float& tempC, float& humidity) {
   constexpr uint8_t kAddr = 0x44;
   uint8_t data[6];
+
 #ifdef PLATFORM_M5PAPER
   if (!M5.In_I2C.start(kAddr << 1, false, 100000)) {
     return false;
@@ -68,11 +67,7 @@ bool readSht30(float& tempC, float& humidity) {
     for (int i = 0; i < len; i++) {
       crc ^= buf[i];
       for (int b = 0; b < 8; b++) {
-        if (crc & 0x80) {
-          crc = (crc << 1) ^ 0x31;
-        } else {
-          crc <<= 1;
-        }
+        crc = (crc & 0x80) ? static_cast<uint8_t>((crc << 1) ^ 0x31) : static_cast<uint8_t>(crc << 1);
       }
     }
     return crc;
@@ -89,7 +84,26 @@ bool readSht30(float& tempC, float& humidity) {
   humidity = 100.0f * (static_cast<float>(rawH) / 65535.0f);
   return true;
 }
+
+#ifdef PLATFORM_M5PAPER
+bool readImu(float& ax, float& ay, float& az, float& gx, float& gy, float& gz) {
+  if (!M5.Imu.isEnabled()) {
+    return false;
+  }
+
+  M5.Imu.update();
+  const m5::imu_data_t data = M5.Imu.getImuData();
+
+  ax = data.accel.x;
+  ay = data.accel.y;
+  az = data.accel.z;
+  gx = data.gyro.x;
+  gy = data.gyro.y;
+  gz = data.gyro.z;
+  return true;
 }
+#endif
+}  // namespace
 
 SensorsActivity::SensorsActivity(GfxRenderer& renderer, MappedInputManager& mappedInput, HalGPIO& gpio, Mode mode,
                                  const std::function<void()>& onExit)
@@ -124,11 +138,12 @@ void SensorsActivity::updateData() {
   lastUpdate = millis();
   snapshot.uptimeMs = millis();
   snapshot.batteryPercent = gpio.getBatteryPercentage();
+  snapshot.batteryMv = 0;
+  snapshot.charging = false;
 
 #ifdef PLATFORM_M5PAPER
   snapshot.batteryMv = M5.Power.getBatteryVoltage();
-#else
-  snapshot.batteryMv = 0;
+  snapshot.charging = (M5.Power.isCharging() == m5::Power_Class::is_charging);
 #endif
 
   if (WiFi.status() == WL_CONNECTED) {
@@ -137,9 +152,10 @@ void SensorsActivity::updateData() {
     snapshot.wifiRssi = 0;
   }
 
-  // Temperature/humidity: use placeholders unless external sensor exists
   snapshot.temperatureC = NAN;
   snapshot.humidity = NAN;
+  snapshot.hasSht30 = false;
+  snapshot.hasImu = false;
 
   if (mode == Mode::BuiltIn) {
     float t = 0.0f;
@@ -147,7 +163,26 @@ void SensorsActivity::updateData() {
     if (readSht30(t, h)) {
       snapshot.temperatureC = t;
       snapshot.humidity = h;
+      snapshot.hasSht30 = true;
     }
+
+#ifdef PLATFORM_M5PAPER
+    float ax = 0.0f;
+    float ay = 0.0f;
+    float az = 0.0f;
+    float gx = 0.0f;
+    float gy = 0.0f;
+    float gz = 0.0f;
+    if (readImu(ax, ay, az, gx, gy, gz)) {
+      snapshot.hasImu = true;
+      snapshot.accelX = ax;
+      snapshot.accelY = ay;
+      snapshot.accelZ = az;
+      snapshot.gyroX = gx;
+      snapshot.gyroY = gy;
+      snapshot.gyroZ = gz;
+    }
+#endif
   }
 
   if (mode == Mode::External) {
@@ -186,8 +221,7 @@ void SensorsActivity::render() {
   renderer.clearScreen();
   renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
 
-  const int titleY = 16;
-  renderer.drawCenteredText(UI_12_FONT_ID, titleY, mode == Mode::BuiltIn ? "Sensors (Built-In)" : "Sensors (External)");
+  renderer.drawCenteredText(UI_12_FONT_ID, 16, mode == Mode::BuiltIn ? "Sensors (Built-In)" : "Sensors (External)");
 
   if (mode == Mode::BuiltIn) {
     renderBuiltIn();
@@ -201,40 +235,53 @@ void SensorsActivity::render() {
 
 void SensorsActivity::renderBuiltIn() {
   const int x = 40;
-  int y = 70;
+  int y = 62;
 
-  char line[64];
+  char line[96];
 
   snprintf(line, sizeof(line), "Battery: %d%%", snapshot.batteryPercent);
   renderer.drawText(UI_12_FONT_ID, x, y, line);
-  y += 30;
+  y += 28;
 
   if (snapshot.batteryMv > 0) {
     snprintf(line, sizeof(line), "Battery Voltage: %d mV", snapshot.batteryMv);
-    renderer.drawText(UI_12_FONT_ID, x, y, line);
-    y += 30;
+    renderer.drawText(UI_10_FONT_ID, x, y, line);
+    y += 22;
   }
 
+  snprintf(line, sizeof(line), "Charging: %s", snapshot.charging ? "Yes" : "No");
+  renderer.drawText(UI_10_FONT_ID, x, y, line);
+  y += 22;
+
   snprintf(line, sizeof(line), "WiFi: %s", WiFi.status() == WL_CONNECTED ? "Connected" : "Disconnected");
-  renderer.drawText(UI_12_FONT_ID, x, y, line);
-  y += 30;
+  renderer.drawText(UI_10_FONT_ID, x, y, line);
+  y += 22;
 
   if (WiFi.status() == WL_CONNECTED) {
     snprintf(line, sizeof(line), "RSSI: %d dBm", snapshot.wifiRssi);
-    renderer.drawText(UI_12_FONT_ID, x, y, line);
-    y += 30;
+    renderer.drawText(UI_10_FONT_ID, x, y, line);
+    y += 22;
   }
 
   snprintf(line, sizeof(line), "Uptime: %lu s", snapshot.uptimeMs / 1000);
-  renderer.drawText(UI_12_FONT_ID, x, y, line);
-  y += 30;
+  renderer.drawText(UI_10_FONT_ID, x, y, line);
+  y += 22;
 
-  if (!std::isnan(snapshot.temperatureC) && !std::isnan(snapshot.humidity)) {
-    char envLine[64];
-    snprintf(envLine, sizeof(envLine), "Temp: %.1f C  Humidity: %.1f%%", snapshot.temperatureC, snapshot.humidity);
-    renderer.drawText(UI_12_FONT_ID, x, y, envLine);
+  if (snapshot.hasSht30 && !std::isnan(snapshot.temperatureC) && !std::isnan(snapshot.humidity)) {
+    snprintf(line, sizeof(line), "SHT30: %.1f C  %.1f%% RH", snapshot.temperatureC, snapshot.humidity);
+    renderer.drawText(UI_10_FONT_ID, x, y, line);
+    y += 22;
   } else {
-    renderer.drawText(SMALL_FONT_ID, x, y + 10, "Temp/Humidity: Not available");
+    renderer.drawText(SMALL_FONT_ID, x, y + 4, "SHT30: Not available");
+    y += 20;
+  }
+
+  if (snapshot.hasImu) {
+    snprintf(line, sizeof(line), "IMU Acc: %.2f %.2f %.2f", snapshot.accelX, snapshot.accelY, snapshot.accelZ);
+    renderer.drawText(SMALL_FONT_ID, x, y, line);
+    y += 18;
+    snprintf(line, sizeof(line), "IMU Gyr: %.2f %.2f %.2f", snapshot.gyroX, snapshot.gyroY, snapshot.gyroZ);
+    renderer.drawText(SMALL_FONT_ID, x, y, line);
   }
 }
 

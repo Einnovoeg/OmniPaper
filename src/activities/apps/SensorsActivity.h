@@ -21,8 +21,19 @@ class SensorsActivity final : public Activity {
   struct SensorSnapshot {
     float temperatureC = 0.0f;
     float humidity = 0.0f;
+    bool hasSht30 = false;
+
+    bool hasImu = false;
+    float accelX = 0.0f;
+    float accelY = 0.0f;
+    float accelZ = 0.0f;
+    float gyroX = 0.0f;
+    float gyroY = 0.0f;
+    float gyroZ = 0.0f;
+
     int batteryPercent = 0;
     int batteryMv = 0;
+    bool charging = false;
     int wifiRssi = 0;
     unsigned long uptimeMs = 0;
   };

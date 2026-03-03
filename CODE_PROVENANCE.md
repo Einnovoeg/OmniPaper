@@ -42,6 +42,14 @@ Enhancements added in this fork include:
 - Added apps/network tools for M5Paper
   - `src/activities/apps/*`
   - `src/activities/network/*`
+- M5PaperS3 board definition and migration updates (pins/input/sleep)
+  - `boards/m5stack_papers3.json`
+  - `lib/hal/HalGPIO.cpp`
+  - `open-x4-sdk/libs/hardware/SDCardManager/src/SDCardManager.cpp`
+  - `open-x4-sdk/libs/hardware/M5PaperInputAdapter/*`
+  - `src/activities/apps/SensorsActivity.cpp`
+  - `src/activities/apps/HardwareTestActivity.cpp`
+  - `src/activities/apps/DashboardActivity.cpp`
 
 ## 2. Third-Party Code Included in This Firmware
 
@@ -56,6 +64,7 @@ Enhancements added in this fork include:
 | picojpeg | https://github.com/richgel999/picojpeg | Public Domain | Vendored source code | `lib/picojpeg/` |
 | M5Unified | https://github.com/m5stack/M5Unified | MIT | Dependency-managed source code at build time | `platformio.ini` (`lib_deps`) |
 | M5GFX | https://github.com/m5stack/M5GFX | MIT | Dependency-managed source code at build time | `platformio.ini` (`lib_deps`) |
+| M5Stack PaperS3 Docs | https://docs.m5stack.com/en/core/PaperS3 and https://docs.m5stack.com/en/arduino/m5papers3/program | Documentation | Hardware pin/API references used for migration (SD pins, touch/RTC/battery/IMU/wakeup APIs) | migration notes + board config |
 | Arduino-ESP32 Core | https://github.com/espressif/arduino-esp32 | LGPL-2.1-or-later | Framework source code used at build/runtime (WiFi/HTTP/BLE/Update APIs) | PlatformIO framework package |
 | AS7331 | https://github.com/RobTillaart/AS7331 | MIT | Dependency-managed source code at build time | `platformio.ini` (`lib_deps`) |
 | ArduinoJson | https://github.com/bblanchon/ArduinoJson | MIT | Dependency-managed source code at build time | `platformio.ini` (`lib_deps`) |
@@ -106,6 +115,7 @@ Primary sources used for this project:
 - EPDiy: <https://github.com/vroland/epdiy>
 - M5Unified: <https://github.com/m5stack/M5Unified>
 - M5GFX: <https://github.com/m5stack/M5GFX>
+- M5Stack PaperS3 Docs: <https://docs.m5stack.com/en/core/PaperS3> and <https://docs.m5stack.com/en/arduino/m5papers3/program>
 - AS7331: <https://github.com/RobTillaart/AS7331>
 - ArduinoJson: <https://github.com/bblanchon/ArduinoJson>
 - QRCode: <https://github.com/ricmoo/QRCode>

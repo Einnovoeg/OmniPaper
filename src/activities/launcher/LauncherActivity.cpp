@@ -272,8 +272,13 @@ void LauncherActivity::render() {
 
   if (menuState == MenuState::Main) {
     renderMainMenu();
+#if defined(PLATFORM_M5PAPERS3)
+    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 20,
+                              "Swipe: Move   Tap bottom-center: Select");
+#else
     renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 20,
                               "Arrows: Move   Confirm: Select");
+#endif
   } else {
     switch (menuState) {
       case MenuState::Sensors:
@@ -297,8 +302,13 @@ void LauncherActivity::render() {
       default:
         break;
     }
+#if defined(PLATFORM_M5PAPERS3)
+    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 20,
+                              "Swipe: Move   Tap center: Select   Tap top-right: Back");
+#else
     renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 20,
                               "Up/Down: Move   Confirm: Select   Back: Return");
+#endif
   }
 
   ScreenComponents::drawDeviceInfoOverlay(renderer, SETTINGS.infoOverlayPosition);

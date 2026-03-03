@@ -293,7 +293,12 @@ void enterDeepSleepForSeconds(const uint64_t seconds) {
   const uint64_t us = seconds * 1000000ULL;
   Serial.printf("[%lu] [SLP] Entering timed deep sleep (%llu seconds)\n", millis(),
                 static_cast<unsigned long long>(seconds));
+#if defined(PLATFORM_M5PAPERS3)
+  // PaperS3 deep-sleep wake is reliable via timer and power key.
+  M5.Power.deepSleep(us, false);
+#else
   M5.Power.deepSleep(us, true);
+#endif
 }
 #endif
 

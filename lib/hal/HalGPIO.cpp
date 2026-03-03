@@ -71,15 +71,17 @@ void forceBootRefresh() {
 
 void HalGPIO::begin() {
 #ifdef PLATFORM_M5PAPER
-  // Keep EPD and SD deselected/high before M5GFX autodetect.
+#if !defined(PLATFORM_M5PAPERS3)
+  // Legacy M5Paper (ESP32): keep EPD and SD deselected before autodetect.
   pinMode(GPIO_NUM_2, OUTPUT);
   digitalWrite(GPIO_NUM_2, HIGH);
   pinMode(GPIO_NUM_4, OUTPUT);
   digitalWrite(GPIO_NUM_4, HIGH);
   pinMode(GPIO_NUM_15, OUTPUT);
   digitalWrite(GPIO_NUM_15, HIGH);
+#endif
 
-  // Initialize M5Paper core (buttons, touch, power)
+  // Initialize M5Paper-family core (buttons, touch, power)
   auto cfg = M5.config();
   // Lock fallback to the selected M5Paper family target so autodetect mismatches do not break input/display.
 #ifdef PLATFORM_M5PAPERS3
@@ -102,11 +104,8 @@ void HalGPIO::begin() {
     M5.Touch.begin(&M5.Display);
   }
 
-  // Explicit button pin modes for raw GPIO fallback reads.
-#ifdef PLATFORM_M5PAPERS3
-  pinMode(GPIO_NUM_42, INPUT_PULLUP);
-  pinMode(GPIO_NUM_41, INPUT_PULLUP);
-#else
+  // Explicit button pin modes for legacy M5Paper raw GPIO fallback reads.
+#if !defined(PLATFORM_M5PAPERS3)
   pinMode(GPIO_NUM_37, INPUT_PULLUP);
   pinMode(GPIO_NUM_38, INPUT_PULLUP);
   pinMode(GPIO_NUM_39, INPUT_PULLUP);
@@ -137,8 +136,14 @@ unsigned long HalGPIO::getHeldTime() const { return inputMgr.getHeldTime(); }
 
 void HalGPIO::startDeepSleep() {
 #ifdef PLATFORM_M5PAPER
-  // Use M5Unified power flow to configure board-specific wake sources.
+#if defined(PLATFORM_M5PAPERS3)
+  // PaperS3 uses ESP32-S3 + PMIC; deep sleep wake is most reliable via power key.
+  // Touch wake for PaperS3 is light-sleep-only in current M5Unified.
+  M5.Power.deepSleep(0, false);
+#else
+  // Legacy M5Paper supports touch wake in deep sleep.
   M5.Power.deepSleep(0, true);
+#endif
 #else
   // Ensure that the power button has been released to avoid immediately turning back on if you're holding it
   while (inputMgr.isPressed(BTN_POWER)) {
@@ -170,8 +175,13 @@ int HalGPIO::getBatteryPercentage() const {
 
 bool HalGPIO::isUsbConnected() const {
 #ifdef PLATFORM_M5PAPER
-  // M5Paper doesn't expose a simple USB-detect pin; assume connected for debugging
+#if defined(PLATFORM_M5PAPERS3)
+  // USB-CDC is available only when a host has opened the interface.
+  return static_cast<bool>(Serial);
+#else
+  // Legacy M5Paper doesn't expose a simple USB-detect pin.
   return true;
+#endif
 #else
   // U0RXD/GPIO20 reads HIGH when USB is connected
   return digitalRead(UART0_RXD) == HIGH;

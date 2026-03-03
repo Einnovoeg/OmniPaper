@@ -5,8 +5,8 @@
 #include <Wire.h>
 #include <cmath>
 
-#include "MappedInputManager.h"
 #include "CrossPointSettings.h"
+#include "MappedInputManager.h"
 #include "fontIds.h"
 #include "util/TimeUtils.h"
 
@@ -64,7 +64,7 @@ bool readSht30Quick(float& tempC, float& humidity) {
   humidity = 100.0f * (static_cast<float>(rawH) / 65535.0f);
   return true;
 }
-}
+}  // namespace
 
 HardwareTestActivity::HardwareTestActivity(GfxRenderer& renderer, MappedInputManager& mappedInput, HalGPIO& gpio,
                                            const std::function<void()>& onExit)
@@ -101,12 +101,12 @@ void HardwareTestActivity::render() {
 
   renderer.drawCenteredText(UI_12_FONT_ID, 16, "Hardware Test");
 
-  int y = 60;
+  int y = 52;
   auto drawState = [&](const char* label, bool pressed) {
     char line[64];
     snprintf(line, sizeof(line), "%s: %s", label, pressed ? "ON" : "off");
-    renderer.drawText(UI_12_FONT_ID, 40, y, line);
-    y += 26;
+    renderer.drawText(SMALL_FONT_ID, 30, y, line);
+    y += 16;
   };
 
   drawState("Back", mappedInput.isPressed(MappedInputManager::Button::Back));
@@ -119,37 +119,64 @@ void HardwareTestActivity::render() {
 
 #ifdef PLATFORM_M5PAPER
   const auto detail = M5.Touch.getDetail();
-  char touchLine[64];
+  char touchLine[80];
   snprintf(touchLine, sizeof(touchLine), "Touch: %s (%d,%d)", detail.isPressed() ? "ON" : "off", detail.x, detail.y);
-  renderer.drawText(UI_12_FONT_ID, 40, y + 10, touchLine);
+  renderer.drawText(SMALL_FONT_ID, 30, y + 4, touchLine);
 #endif
 
-  y += 40;
+  y += 24;
 
-  std::tm localTime {};
-  char timeLine[64];
+  std::tm localTime{};
+  char line[96];
   if (TimeUtils::getLocalTimeWithOffset(localTime, SETTINGS.timezoneOffsetMinutes)) {
-    snprintf(timeLine, sizeof(timeLine), "RTC: %04d/%02d/%02d %02d:%02d:%02d", localTime.tm_year + 1900,
+    snprintf(line, sizeof(line), "RTC: %04d/%02d/%02d %02d:%02d:%02d", localTime.tm_year + 1900,
              localTime.tm_mon + 1, localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec);
   } else {
-    snprintf(timeLine, sizeof(timeLine), "RTC: Not set (sync in Time app)");
+    snprintf(line, sizeof(line), "RTC: Not set (sync in Time app)");
   }
-  renderer.drawText(SMALL_FONT_ID, 40, y, timeLine);
-  y += 18;
+  renderer.drawText(SMALL_FONT_ID, 30, y, line);
+  y += 16;
+
+  const int batteryPct = gpio.getBatteryPercentage();
+  snprintf(line, sizeof(line), "Battery: %d%%", batteryPct);
+  renderer.drawText(SMALL_FONT_ID, 30, y, line);
+  y += 16;
+
+#ifdef PLATFORM_M5PAPER
+  const int16_t mv = M5.Power.getBatteryVoltage();
+  const bool charging = (M5.Power.isCharging() == m5::Power_Class::is_charging);
+  snprintf(line, sizeof(line), "Battery mV: %d  Charging: %s", mv, charging ? "Yes" : "No");
+  renderer.drawText(SMALL_FONT_ID, 30, y, line);
+  y += 16;
+#endif
 
   const bool sdOk = SdMan.ready();
-  renderer.drawText(SMALL_FONT_ID, 40, y, sdOk ? "SD: OK" : "SD: ERROR");
-  y += 18;
+  renderer.drawText(SMALL_FONT_ID, 30, y, sdOk ? "SD: OK" : "SD: ERROR");
+  y += 16;
 
   float tempC = NAN;
   float humidity = NAN;
   if (readSht30Quick(tempC, humidity)) {
-    char shtLine[64];
-    snprintf(shtLine, sizeof(shtLine), "SHT30: %.1fC %.1f%%", tempC, humidity);
-    renderer.drawText(SMALL_FONT_ID, 40, y, shtLine);
+    snprintf(line, sizeof(line), "SHT30: %.1fC %.1f%%", tempC, humidity);
+    renderer.drawText(SMALL_FONT_ID, 30, y, line);
+    y += 16;
   } else {
-    renderer.drawText(SMALL_FONT_ID, 40, y, "SHT30: Not detected/readable");
+    renderer.drawText(SMALL_FONT_ID, 30, y, "SHT30: Not detected/readable");
+    y += 16;
   }
+
+#ifdef PLATFORM_M5PAPER
+  if (M5.Imu.isEnabled()) {
+    M5.Imu.update();
+    const m5::imu_data_t imu = M5.Imu.getImuData();
+    snprintf(line, sizeof(line), "IMU Acc: %.2f %.2f %.2f", imu.accel.x, imu.accel.y, imu.accel.z);
+    renderer.drawText(SMALL_FONT_ID, 30, y, line);
+    y += 16;
+    snprintf(line, sizeof(line), "IMU Gyr: %.2f %.2f %.2f", imu.gyro.x, imu.gyro.y, imu.gyro.z);
+    renderer.drawText(SMALL_FONT_ID, 30, y, line);
+    y += 16;
+  }
+#endif
 
   renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24, "Back: Menu");
   renderer.displayBuffer();

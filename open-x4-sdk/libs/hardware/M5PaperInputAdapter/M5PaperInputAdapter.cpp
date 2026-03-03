@@ -1,147 +1,148 @@
 #include "M5PaperInputAdapter.h"
+
 #include <Arduino.h>
+#include <cstdlib>
 
-// Button area definitions for touch interaction on 960x540 display
+// Virtual touch zones for the 960x540 launcher/UI canvas.
 const M5PaperInputAdapter::ButtonArea M5PaperInputAdapter::BUTTON_AREAS[NUM_BUTTON_AREAS] = {
-  {40, 480, 80, 40, BTN_LEFT},    // Bottom left area
-  {480, 480, 80, 40, BTN_CONFIRM}, // Bottom center area  
-  {840, 480, 80, 40, BTN_RIGHT},  // Bottom right area
-  {40, 240, 80, 40, BTN_UP},      // Middle left area
-  {840, 240, 80, 40, BTN_DOWN},    // Middle right area
-  {880, 40, 80, 40, BTN_BACK}     // Top right area
+    {40, 480, 80, 40, BTN_LEFT},      // Bottom-left
+    {480, 480, 80, 40, BTN_CONFIRM},  // Bottom-center
+    {840, 480, 80, 40, BTN_RIGHT},    // Bottom-right
+    {40, 240, 80, 40, BTN_UP},        // Mid-left
+    {840, 240, 80, 40, BTN_DOWN},     // Mid-right
+    {880, 40, 80, 40, BTN_BACK}       // Top-right
 };
 
-const char* M5PaperInputAdapter::BUTTON_NAMES[] = {
-  "BACK", "CONFIRM", "LEFT", "RIGHT", "UP", "DOWN", "POWER"
-};
+const char* M5PaperInputAdapter::BUTTON_NAMES[] = {"BACK", "CONFIRM", "LEFT", "RIGHT", "UP", "DOWN", "POWER"};
 
-M5PaperInputAdapter::M5PaperInputAdapter() 
-  : currentState(0), lastState(0), pressedEvents(0), releasedEvents(0),
-    lastDebounceTime(0), buttonPressStart(0), buttonPressFinish(0),
-    touchActive(false), lastTouchActive(false), touchTapDetected(false),
-    touchX(0), touchY(0), lastTouchX(0), lastTouchY(0), touchStartTime(0) {
-}
+M5PaperInputAdapter::M5PaperInputAdapter()
+    : currentState(0),
+      lastState(0),
+      pressedEvents(0),
+      releasedEvents(0),
+      buttonPressStart(0),
+      buttonPressFinish(0),
+      touchActive(false),
+      lastTouchActive(false),
+      touchTapDetected(false),
+      touchX(0),
+      touchY(0),
+      lastTouchX(0),
+      lastTouchY(0),
+      touchStartX(0),
+      touchStartY(0),
+      touchStartTime(0),
+      pendingTouchEventMask(0) {}
 
 void M5PaperInputAdapter::begin() {
-  // Initialize M5Paper buttons (handled by M5.begin())
-  // Touch controller will be initialized separately
-  
   currentState = 0;
   lastState = 0;
   pressedEvents = 0;
   releasedEvents = 0;
+  pendingTouchEventMask = 0;
+
+  // Ensure touch is available on whichever M5Paper-family display was selected.
+  if (!M5.Touch.isEnabled() && M5.Display.touch()) {
+    M5.Touch.begin(&M5.Display);
+  }
 }
 
 void M5PaperInputAdapter::update() {
-  // Refresh M5 button state
   M5.update();
 
-  // Store last state
   lastState = currentState;
   lastTouchActive = touchActive;
   lastTouchX = touchX;
   lastTouchY = touchY;
-  
-  // Update button states
-  updateButtonStates();
-  
-  // Update touch states
+
   updateTouchState();
-  
-  // Calculate events
-  uint8_t stateChanges = currentState ^ lastState;
+  updateButtonStates();
+
+  const uint8_t stateChanges = currentState ^ lastState;
   pressedEvents = stateChanges & currentState;
   releasedEvents = stateChanges & lastState;
-  
-  // Handle button timing
+
   if (wasAnyPressed()) {
     buttonPressStart = millis();
   }
   if (wasAnyReleased()) {
     buttonPressFinish = millis();
   }
+
+  // Gesture-generated directions are one-shot events.
+  pendingTouchEventMask = 0;
 }
 
-uint8_t M5PaperInputAdapter::getState() {
-  return currentState;
-}
+uint8_t M5PaperInputAdapter::getState() { return currentState; }
 
-bool M5PaperInputAdapter::isPressed(uint8_t buttonIndex) const {
-  if (!isValidButtonIndex(buttonIndex)) return false;
+bool M5PaperInputAdapter::isPressed(const uint8_t buttonIndex) const {
+  if (!isValidButtonIndex(buttonIndex)) {
+    return false;
+  }
   return (currentState >> buttonIndex) & 0x01;
 }
 
-bool M5PaperInputAdapter::wasPressed(uint8_t buttonIndex) const {
-  if (!isValidButtonIndex(buttonIndex)) return false;
+bool M5PaperInputAdapter::wasPressed(const uint8_t buttonIndex) const {
+  if (!isValidButtonIndex(buttonIndex)) {
+    return false;
+  }
   return (pressedEvents >> buttonIndex) & 0x01;
 }
 
-bool M5PaperInputAdapter::wasAnyPressed() const {
-  return pressedEvents != 0;
-}
+bool M5PaperInputAdapter::wasAnyPressed() const { return pressedEvents != 0; }
 
-bool M5PaperInputAdapter::wasReleased(uint8_t buttonIndex) const {
-  if (!isValidButtonIndex(buttonIndex)) return false;
+bool M5PaperInputAdapter::wasReleased(const uint8_t buttonIndex) const {
+  if (!isValidButtonIndex(buttonIndex)) {
+    return false;
+  }
   return (releasedEvents >> buttonIndex) & 0x01;
 }
 
-bool M5PaperInputAdapter::wasAnyReleased() const {
-  return releasedEvents != 0;
-}
+bool M5PaperInputAdapter::wasAnyReleased() const { return releasedEvents != 0; }
 
-bool M5PaperInputAdapter::isPowerButtonPressed() const {
-  return isPressed(BTN_POWER);
-}
+bool M5PaperInputAdapter::isPowerButtonPressed() const { return isPressed(BTN_POWER); }
 
 unsigned long M5PaperInputAdapter::getHeldTime() const {
-  if (isPressed(BTN_CONFIRM) || isPressed(BTN_LEFT) || isPressed(BTN_RIGHT) || isPressed(BTN_POWER)) {
+  if (currentState != 0) {
     return millis() - buttonPressStart;
   }
   return 0;
 }
 
-bool M5PaperInputAdapter::isTouchPressed() const {
-  return touchActive;
-}
+bool M5PaperInputAdapter::isTouchPressed() const { return touchActive; }
 
-uint16_t M5PaperInputAdapter::getTouchX() const {
-  return touchX;
-}
+uint16_t M5PaperInputAdapter::getTouchX() const { return touchX; }
 
-uint16_t M5PaperInputAdapter::getTouchY() const {
-  return touchY;
-}
+uint16_t M5PaperInputAdapter::getTouchY() const { return touchY; }
 
-bool M5PaperInputAdapter::wasTapped() const {
-  return touchTapDetected;
-}
+bool M5PaperInputAdapter::wasTapped() const { return touchTapDetected; }
 
-const char* M5PaperInputAdapter::getButtonName(uint8_t buttonIndex) const {
+const char* M5PaperInputAdapter::getButtonName(const uint8_t buttonIndex) const {
   if (buttonIndex < 7) {
     return BUTTON_NAMES[buttonIndex];
   }
   return "UNKNOWN";
 }
 
-// Private helper methods
-
 uint8_t M5PaperInputAdapter::mapM5ButtonsToLogical() {
   uint8_t logicalState = 0;
 
+#if defined(PLATFORM_M5PAPERS3)
+  // PaperS3 has one physical power key. Map it to both POWER and CONFIRM so
+  // the UI remains operable even without touch.
+  if (M5.BtnPWR.isPressed()) {
+    logicalState |= (1 << BTN_POWER);
+    logicalState |= (1 << BTN_CONFIRM);
+  }
+#else
   bool rightPressed = M5.BtnA.isPressed();
   bool centerPressed = M5.BtnB.isPressed();
   bool leftPressed = M5.BtnC.isPressed();
 
-  // Use raw GPIO fallback where available for robustness.
-#if defined(PLATFORM_M5PAPERS3)
-  rightPressed = rightPressed || (digitalRead(GPIO_NUM_42) == LOW);
-  centerPressed = centerPressed || (digitalRead(GPIO_NUM_41) == LOW);
-#else
-  // M5Paper pin map (GPIO37/38/39) corresponds to right/center/left.
+  // Legacy M5Paper raw GPIO fallback.
   rightPressed = rightPressed || (digitalRead(GPIO_NUM_37) == LOW);
   centerPressed = centerPressed || (digitalRead(GPIO_NUM_38) == LOW);
   leftPressed = leftPressed || (digitalRead(GPIO_NUM_39) == LOW);
-#endif
 
   if (leftPressed) {
     logicalState |= (1 << BTN_LEFT);
@@ -152,23 +153,29 @@ uint8_t M5PaperInputAdapter::mapM5ButtonsToLogical() {
   if (rightPressed) {
     logicalState |= (1 << BTN_RIGHT);
   }
-  
-  // Map touch areas to logical buttons if touch is active
+
+  if (M5.BtnPWR.isPressed()) {
+    logicalState |= (1 << BTN_POWER);
+  }
+#endif
+
+  // Active touch in a virtual key zone acts as a held key.
   if (touchActive) {
-    uint8_t touchButton = getButtonFromTouch(touchX, touchY);
+    const uint8_t touchButton = getButtonFromTouch(touchX, touchY);
     if (touchButton < 7) {
       logicalState |= (1 << touchButton);
     }
   }
-  
+
+  // One-shot directional events from swipe gestures.
+  logicalState |= pendingTouchEventMask;
   return logicalState;
 }
 
 void M5PaperInputAdapter::updateTouchState() {
   touchTapDetected = false;
-  
-  const auto detail = M5.Touch.getDetail();
 
+  const auto detail = M5.Touch.getDetail();
   if (detail.isPressed()) {
     touchActive = true;
     touchX = detail.x;
@@ -176,53 +183,50 @@ void M5PaperInputAdapter::updateTouchState() {
 
     if (!lastTouchActive) {
       touchStartTime = millis();
+      touchStartX = touchX;
+      touchStartY = touchY;
     }
-  } else {
-    if (touchActive && lastTouchActive) {
-      // Touch released
-      touchActive = false;
+    return;
+  }
 
-      // Check if this was a tap (short duration)
-      unsigned long touchDuration = millis() - touchStartTime;
-      if (touchDuration < TAP_TIMEOUT) {
-        touchTapDetected = true;
-      }
+  // Touch released.
+  touchActive = false;
+  if (!lastTouchActive) {
+    return;
+  }
+
+  const unsigned long touchDuration = millis() - touchStartTime;
+  const int dx = static_cast<int>(lastTouchX) - static_cast<int>(touchStartX);
+  const int dy = static_cast<int>(lastTouchY) - static_cast<int>(touchStartY);
+  const int adx = std::abs(dx);
+  const int ady = std::abs(dy);
+
+  // Short low-travel release -> tap.
+  if (touchDuration <= TAP_TIMEOUT && adx <= TAP_MAX_TRAVEL && ady <= TAP_MAX_TRAVEL) {
+    touchTapDetected = true;
+    return;
+  }
+
+  // Swipe -> one directional key event.
+  if (adx >= SWIPE_MIN_DISTANCE || ady >= SWIPE_MIN_DISTANCE) {
+    if (adx > ady) {
+      pendingTouchEventMask |= static_cast<uint8_t>(1 << (dx > 0 ? BTN_RIGHT : BTN_LEFT));
     } else {
-      touchActive = false;
+      pendingTouchEventMask |= static_cast<uint8_t>(1 << (dy > 0 ? BTN_DOWN : BTN_UP));
     }
   }
 }
 
-void M5PaperInputAdapter::updateButtonStates() {
-  // Update button states by mapping M5Paper buttons
-  currentState = mapM5ButtonsToLogical();
-}
+void M5PaperInputAdapter::updateButtonStates() { currentState = mapM5ButtonsToLogical(); }
 
-bool M5PaperInputAdapter::isValidButtonIndex(uint8_t buttonIndex) const {
-  return buttonIndex < 7; // BTN_POWER is index 6
-}
+bool M5PaperInputAdapter::isValidButtonIndex(const uint8_t buttonIndex) const { return buttonIndex < 7; }
 
-bool M5PaperInputAdapter::isTouchInButtonArea(uint16_t x, uint16_t y, uint8_t buttonIndex) {
-  for (uint8_t i = 0; i < NUM_BUTTON_AREAS; i++) {
-    if (BUTTON_AREAS[i].logicalButton == buttonIndex) {
-      const ButtonArea& area = BUTTON_AREAS[i];
-      return (x >= area.x && x < (area.x + area.width) &&
-              y >= area.y && y < (area.y + area.height));
-    }
-  }
-  return false;
-}
-
-uint8_t M5PaperInputAdapter::getButtonFromTouch(uint16_t x, uint16_t y) {
-  // Check which button area the touch is in
+uint8_t M5PaperInputAdapter::getButtonFromTouch(const uint16_t x, const uint16_t y) {
   for (uint8_t i = 0; i < NUM_BUTTON_AREAS; i++) {
     const ButtonArea& area = BUTTON_AREAS[i];
-    if (x >= area.x && x < (area.x + area.width) &&
-        y >= area.y && y < (area.y + area.height)) {
+    if (x >= area.x && x < (area.x + area.width) && y >= area.y && y < (area.y + area.height)) {
       return area.logicalButton;
     }
   }
-  
-  // No virtual-button hit
   return UINT8_MAX;
 }

@@ -1,174 +1,93 @@
 # OmniPaper User Guide
 
-OmniPaper is an e-paper firmware with a launcher, reader, and device tools.
+## Scope
 
-## Supported Boards
+OmniPaper is an e-paper launcher + reader + utility firmware.
+Primary target: **M5PaperS3** (`m5papers3`).
 
-- `m5paper`: M5Stack M5Paper (ESP32) - full feature set
-- `m5papers3`: M5Stack M5PaperS3 (ESP32-S3) - full feature set
-- `lilygo_epd47`: LilyGo T5 4.7 Plus S3 - bring-up build (serial/AP/SD baseline)
+## Supported Targets
+
+- `m5papers3` (M5PaperS3) - primary/full feature set
+- `m5paper` (legacy M5Paper) - supported
+- `lilygo_epd47` (LilyGo T5 4.7 Plus S3) - bring-up target
 
 ## Build and Flash
 
 Build:
-- `pio run -e m5paper`
 - `pio run -e m5papers3`
-- `pio run -e lilygo_epd47`
 
-Flash:
-- `pio run -e m5paper --target upload --upload-port /dev/cu.usbserial-XXXX`
+Flash (M5PaperS3):
 - `pio run -e m5papers3 --target upload --upload-port /dev/cu.usbmodemXXXX`
+
+Other targets:
+- `pio run -e m5paper --target upload --upload-port /dev/cu.usbserial-XXXX`
 - `pio run -e lilygo_epd47 --target upload --upload-port /dev/cu.usbmodemXXXX`
 
-Web and downloadable flashing tools (Chrome/Edge web flasher, esptool, Windows Flash Download Tool):
+Prebuilt binaries:
+- <https://github.com/Einnovoeg/OmniPaper/releases/latest>
+
+Web/desktop flashing tools:
 - `docs/wiki/Flashing-Guide.md`
-- Latest release binaries: `https://github.com/Einnovoeg/OmniPaper/releases/latest`
 
-## 1. Quick Start
+## M5PaperS3 Controls
 
-1. Insert SD card.
-2. Boot device.
-3. Open `Reader` from the launcher.
-4. Choose a book from `Recent` or `Files`.
+M5PaperS3 uses touch-first controls in OmniPaper:
 
-Supported book formats:
-- `.epub`
-- `.txt`, `.md`
-- `.xtc`, `.xtch`
+- Main launcher
+  - Swipe to move selection
+  - Tap bottom-center zone to select
+- Submenus
+  - Swipe up/down to move
+  - Tap center zone to select
+  - Tap top-right zone to go back
+- Physical key
+  - PaperS3 has one physical key; OmniPaper maps it as power and confirm fallback
 
-## 2. Launcher Apps
+## Core Features
 
-Main launcher includes:
-- Reader
-- Dashboard
-- Sensors
-- Weather
-- Network
-- Games
-- Images
-- Tools
-- Settings
+- Reader: EPUB/TXT/XTC with progress and chapter navigation
+- Library: recent list + file browser + cover preview
+- Dashboard + Weather
+- Sensors menu: built-in + external scan + UV + diagnostics
+- Network menu: Wi-Fi tools, BLE scan, web portal, host keyboard, trackpad, SSH
+- Images menu: viewer + drawing
+- Tools menu: notes (on-screen keyboard), file manager, time, sleep timer, OTA
 - Calculator
 
-### Network Submenu
+## M5PaperS3 Hardware Integrations
 
-Network tools now include:
-- `WiFi Status`
-- `WiFi Scan`
-- `WiFi Tests`
-- `Channels`
-- `BLE Scan`
-- `Web Portal` (manual file-transfer portal in STA/AP mode)
-- `Host Keyboard` (BLE HID keyboard + USB serial text mode)
-- `Trackpad` (BLE HID mouse/scroll using touch gestures)
-- `SSH Client` (WiFi + SSH command execution)
+- Touch: `M5.Touch.getDetail()`
+- Battery/charging: `M5.Power.getBatteryLevel()`, `M5.Power.getBatteryVoltage()`, `M5.Power.isCharging()`
+- RTC: `M5.Rtc.*`
+- IMU (BMI270): `M5.Imu.*`
+- SD card pins (PaperS3): `CS=47`, `SCK=39`, `MOSI=38`, `MISO=40`
+- USB OTG/CDC status shown in Dashboard
 
-## 3. Library and Picker
+## Web UI (Idle Hotspot)
 
-## Tabs
-- `Recent`: recently opened books with metadata.
-- `Files`: file/folder browser.
+When enabled, launcher idle mode can start a hotspot web UI.
 
-## EPUB Picker with Cover Art
-The `Files` tab shows a cover preview panel for the selected book when available.
-- EPUB: uses cached thumbnail/cover from book metadata.
-- XTC/XTCH: uses generated thumbnail/cover.
-- TXT/MD: uses nearby cover image if available.
-
-## 4. Reader
-
-## Navigation
-- `Left/Right`: previous/next page.
-- `Confirm`: reader menu.
-- `Back`: return to library.
-
-## Chapter and Progress
-- Chapter menu and chapter jump supported.
-- Reading progress saved automatically.
-
-## Embedded Images in EPUB
-Inline EPUB images are supported in reading flow.
-- Supported inline source types: JPEG and BMP.
-- Unsupported image types are shown as a placeholder label.
-
-## 5. Fonts and UTF-8
-
-## User Provided Fonts
-Fonts are loaded from SD (`/fonts/*.epf`).
-You can provide a custom reader family and select it from Settings (`Custom (SD)`).
-
-Expected custom files:
-- `user_12_regular.epf`
-- `user_12_bold.epf`
-- `user_12_italic.epf`
-- `user_12_bolditalic.epf`
-- `user_14_regular.epf`
-- `user_16_regular.epf`
-- `user_18_regular.epf`
-
-## Full UTF Support
-Rendering path is UTF-8 end-to-end.
-Displayed character coverage depends on installed font glyphs.
-For broad multilingual coverage, install Unicode-capable SD font packs.
-
-## 6. Settings Highlights
-
-Reader settings include:
-- Font family (Bookerly, Noto Sans, Open Dyslexic, Custom SD)
-- Font size
-- Line spacing
-- Paragraph alignment
-- Hyphenation
-- Orientation
-- Margins
-
-System settings include:
-- Sleep timeout
-- Idle Hotspot Web UI (auto-host AP web portal on launcher)
-- OTA update
-- Cache controls
-- Network/account options
-
-Display settings include:
-- Status bar mode
-- Info Overlay position: `Off`, `Top`, `Bottom`, `Top Corners`, `Bottom Corners`
-  - Shows battery, WiFi, and RTC-backed date/time
-
-Power/sleep behavior:
-- Short power-button action is configurable in Controls settings.
-- Long power-button press enters sleep.
-- Timed sleep uses M5Unified power deep-sleep API with wake support.
-
-## 7. Idle Hotspot Web UI
-
-When enabled, the launcher can automatically host a hotspot web portal:
 - SSID: `OmniPaper`
-- URL: `http://omnipaper.local/` (or AP IP fallback)
+- URL: `http://omnipaper.local/` (or AP IP)
+- Functions: file upload/download/manage, quick app launch, open reader path
 
-Available from the web UI:
-- SD file management (`/files`) with upload/download/create/delete
-- Quick launch of selected apps
-- Open an EPUB directly by SD path
-  - Quick-launch app IDs include `host-keyboard`, `trackpad`, and `ssh-client`
-
-Toggle location:
+Toggle:
 - `Settings -> System -> Idle Hotspot Web UI`
 
-## 8. SD Card Layout
+## SD Layout
 
-Common paths:
-- `/.crosspoint/` internal cache and state
+- `/.crosspoint/` state/cache
 - `/fonts/` font packs
-- `/images/` image viewer source images
-- `/notes/` notes app data
-- `/games/poodle_words.txt` optional custom Poodle word list
-- `/logs/` generated diagnostics and UV logs
-- `/update/` OTA-from-SD firmware files
+- `/images/` image viewer files
+- `/notes/` notes files
+- `/games/poodle_words.txt` optional custom list
+- `/logs/` diagnostics/UV logs
+- `/update/` OTA update files
 
-## 9. Troubleshooting
+## Troubleshooting
 
-- Missing glyphs: install wider Unicode font pack and/or use `Custom (SD)` family.
-- Missing cover art in picker: open the book once to populate cache metadata/thumbnail.
-- EPUB image missing: image type may be unsupported (PNG/SVG/GIF currently shown as placeholder).
-- Slow rendering in image-heavy EPUB: expected due e-paper refresh and SD image decode.
-- Hardware validation: open `Settings -> Hardware Test` to verify buttons (including power), touch, RTC time, SD, and SHT30 readout.
+- Screen not updating: power-cycle, ensure battery/USB power is stable, verify correct target (`m5papers3`) and flash succeeded.
+- SD issues on PaperS3: confirm card formatting and that firmware was built with PaperS3 target.
+- Missing glyphs: use SD fonts and select `Custom (SD)` in settings.
+- Hardware diagnostics: `Settings -> Hardware Test`.
+

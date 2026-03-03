@@ -14,6 +14,10 @@
 #include "fontIds.h"
 #include "util/TimeUtils.h"
 
+#ifdef PLATFORM_M5PAPER
+#include <M5Unified.h>
+#endif
+
 DashboardActivity::DashboardActivity(GfxRenderer& renderer, MappedInputManager& mappedInput, HalGPIO& gpio,
                                      const std::function<void()>& onExit)
     : Activity("Dashboard", renderer, mappedInput), gpio(gpio), onExit(onExit) {}
@@ -174,6 +178,7 @@ void DashboardActivity::render() {
 
   renderer.drawCenteredText(UI_12_FONT_ID, 16, "Dashboard");
 
+  int y = 58;
   std::tm localTime {};
   if (TimeUtils::getLocalTimeWithOffset(localTime, SETTINGS.timezoneOffsetMinutes)) {
     char timeLine[32];
@@ -181,29 +186,47 @@ void DashboardActivity::render() {
     snprintf(timeLine, sizeof(timeLine), "%02d:%02d:%02d", localTime.tm_hour, localTime.tm_min, localTime.tm_sec);
     snprintf(dateLine, sizeof(dateLine), "%04d-%02d-%02d", localTime.tm_year + 1900, localTime.tm_mon + 1,
              localTime.tm_mday);
-    renderer.drawText(UI_12_FONT_ID, 40, 60, timeLine);
-    renderer.drawText(UI_10_FONT_ID, 40, 82, dateLine);
+    renderer.drawText(UI_12_FONT_ID, 40, y, timeLine);
+    y += 22;
+    renderer.drawText(UI_10_FONT_ID, 40, y, dateLine);
   } else {
-    renderer.drawText(UI_12_FONT_ID, 40, 60, "Time not synced");
+    renderer.drawText(UI_12_FONT_ID, 40, y, "Time not synced");
+    y += 22;
   }
 
-  const int battery = gpio.getBatteryPercentage();
-  char batteryLine[32];
-  snprintf(batteryLine, sizeof(batteryLine), "Battery: %d%%", battery);
-  renderer.drawText(UI_10_FONT_ID, 40, 110, batteryLine);
+  y += 8;
+  char line[96];
+  snprintf(line, sizeof(line), "Battery: %d%%", gpio.getBatteryPercentage());
+  renderer.drawText(UI_10_FONT_ID, 40, y, line);
+  y += 18;
+
+#ifdef PLATFORM_M5PAPER
+  const int16_t batteryMv = M5.Power.getBatteryVoltage();
+  const bool charging = (M5.Power.isCharging() == m5::Power_Class::is_charging);
+  snprintf(line, sizeof(line), "Battery mV: %d   Charging: %s", batteryMv, charging ? "Yes" : "No");
+  renderer.drawText(SMALL_FONT_ID, 40, y, line);
+  y += 16;
+#endif
 
   if (WiFi.status() == WL_CONNECTED) {
     const String ssid = WiFi.SSID();
-    String ip = WiFi.localIP().toString();
-    char wifiLine[64];
-    snprintf(wifiLine, sizeof(wifiLine), "WiFi: %s", ssid.c_str());
-    renderer.drawText(UI_10_FONT_ID, 40, 132, wifiLine);
-    renderer.drawText(UI_10_FONT_ID, 40, 150, ip.c_str());
+    const String ip = WiFi.localIP().toString();
+    snprintf(line, sizeof(line), "WiFi: %s", ssid.c_str());
+    renderer.drawText(SMALL_FONT_ID, 40, y, line);
+    y += 16;
+    renderer.drawText(SMALL_FONT_ID, 40, y, ip.c_str());
+    y += 16;
   } else {
-    renderer.drawText(UI_10_FONT_ID, 40, 132, "WiFi: disconnected");
+    renderer.drawText(SMALL_FONT_ID, 40, y, "WiFi: disconnected");
+    y += 16;
   }
 
-  int y = 190;
+#if defined(PLATFORM_M5PAPERS3)
+  renderer.drawText(SMALL_FONT_ID, 40, y, static_cast<bool>(Serial) ? "USB OTG/CDC: Connected" : "USB OTG/CDC: Idle");
+  y += 16;
+#endif
+
+  y += 6;
   if (fetching) {
     renderer.drawText(UI_10_FONT_ID, 40, y, "Weather: fetching...");
   } else if (!snapshot.valid) {
@@ -213,11 +236,10 @@ void DashboardActivity::render() {
       renderer.drawText(UI_10_FONT_ID, 40, y, "Weather: not loaded");
     }
   } else {
-    char weatherLine[64];
-    snprintf(weatherLine, sizeof(weatherLine), "Weather: %.1f C", snapshot.temperatureC);
-    renderer.drawText(UI_10_FONT_ID, 40, y, weatherLine);
+    snprintf(line, sizeof(line), "Weather: %.1f C", snapshot.temperatureC);
+    renderer.drawText(UI_10_FONT_ID, 40, y, line);
     y += 18;
-    std::string desc = weatherDescription(snapshot.weatherCode);
+    const std::string desc = weatherDescription(snapshot.weatherCode);
     renderer.drawText(UI_10_FONT_ID, 40, y, desc.c_str());
   }
 
