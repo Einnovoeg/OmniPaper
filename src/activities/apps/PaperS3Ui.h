@@ -31,6 +31,8 @@ inline FourCardLayout fourCardLayout(const GfxRenderer& renderer) {
   layout.rightX = layout.leftX + layout.cardWidth + kCardGap;
   layout.topY = kTopY;
 
+  // Leave room for touch hints and transient status text so card content does
+  // not collide with the PaperS3 footer affordances.
   const int footerReserve = 52;
   layout.cardHeight = (renderer.getScreenHeight() - kTopY - footerReserve - kCardGap) / 2;
   layout.bottomY = layout.topY + layout.cardHeight + kCardGap;

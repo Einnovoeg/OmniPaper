@@ -2,6 +2,16 @@
 .idea
 .DS_Store
 .vscode
+.venv
+.pytest_cache
+.ruff_cache
+.mypy_cache
+*.pyc
+*.pyo
+*.swp
+*.swo
+*.tmp
+*.log
 lib/EpdFont/fontsrc
 *.generated.h
 .vs

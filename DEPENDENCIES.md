@@ -7,6 +7,7 @@ This project is built with PlatformIO. Most dependencies are resolved automatica
 - PlatformIO Core 6.x (`pio` CLI)
 - Python 3.10+
 - Git
+- C++ toolchain provided by PlatformIO for the selected board environment
 - `scripts/compliance.py` for repository/release compliance checks and SPDX SBOM generation
 
 ## Framework / Platform
@@ -45,6 +46,7 @@ Resolved through PlatformIO and local vendored libraries, including:
 
 - microSD card (recommended for books/assets/fonts/logs)
 - Wi-Fi network for weather, OTA, OPDS, SSH, and web portal features
+- USB connection for flashing, serial logs, and PaperS3 USB OTG/CDC workflows
 
 ## Release Build Environments
 

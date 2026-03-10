@@ -7,6 +7,7 @@ import argparse
 import configparser
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -23,7 +24,6 @@ PLATFORMIO_PATH = ROOT / "platformio.ini"
 USERS_PREFIX = "/" + "Users/"
 VOLUMES_PREFIX = "/" + "Volumes/"
 DONATION_HOST = "buy" + "meacoffee.com/"
-PERSONAL_HANDLE = "ein" + "novoeg"
 OWNER_PLACEHOLDER = "<" + "OWNER_OR_ORG" + ">"
 
 REQUIRED_RELEASE_FILES = (
@@ -49,14 +49,6 @@ PII_SCAN_SKIP_PREFIXES = (
     "lib/miniz/",
     "lib/picojpeg/",
     "open-x4-sdk/",
-)
-
-PII_PATTERNS = (
-    (re.compile(re.escape(USERS_PREFIX) + r"[A-Za-z0-9._-]+"), "absolute macOS home path"),
-    (re.compile(re.escape(VOLUMES_PREFIX) + r"[A-Za-z0-9._ -]+"), "absolute mounted-volume path"),
-    (re.compile(re.escape(DONATION_HOST), re.IGNORECASE), "personal donation URL"),
-    (re.compile(r"\b" + re.escape(PERSONAL_HANDLE) + r"\b", re.IGNORECASE), "personal handle"),
-    (re.compile(re.escape(OWNER_PLACEHOLDER), re.IGNORECASE), "repository owner placeholder"),
 )
 
 URL_ALLOWLIST = {
@@ -125,6 +117,65 @@ class Component:
     @property
     def spdx_license(self) -> str:
         return SPDX_LICENSE_MAP.get(self.license_name, "NOASSERTION")
+
+
+def try_get_origin_owner() -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", "config", "--get", "remote.origin.url"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError:
+        return None
+
+    remote = result.stdout.strip()
+    if not remote:
+        return None
+
+    match = re.search(r"github\.com[:/](?P<owner>[^/]+)/[^/]+(?:\.git)?$", remote, re.IGNORECASE)
+    return match.group("owner") if match else None
+
+
+def iter_blocked_identifiers() -> list[str]:
+    blocked = {
+        OWNER_PLACEHOLDER,
+    }
+
+    # Avoid hardcoding any current maintainer identity in the repository. CI
+    # can supply the owner name through GitHub Actions, while local runs can
+    # infer it from the configured origin remote.
+    owner_from_env = os.environ.get("GITHUB_REPOSITORY_OWNER", "").strip()
+    if owner_from_env:
+        blocked.add(owner_from_env)
+
+    owner_from_remote = try_get_origin_owner()
+    if owner_from_remote:
+        blocked.add(owner_from_remote)
+
+    extra_identifiers = os.environ.get("OMNIPAPER_BLOCKED_IDENTIFIERS", "")
+    for identifier in extra_identifiers.split(","):
+        identifier = identifier.strip()
+        if identifier:
+            blocked.add(identifier)
+
+    return sorted(blocked)
+
+
+def build_pii_patterns() -> list[tuple[re.Pattern[str], str]]:
+    patterns: list[tuple[re.Pattern[str], str]] = [
+        (re.compile(re.escape(USERS_PREFIX) + r"[A-Za-z0-9._-]+"), "absolute macOS home path"),
+        (re.compile(re.escape(VOLUMES_PREFIX) + r"[A-Za-z0-9._ -]+"), "absolute mounted-volume path"),
+        (re.compile(re.escape(DONATION_HOST), re.IGNORECASE), "personal donation URL"),
+    ]
+
+    for identifier in iter_blocked_identifiers():
+        description = "repository owner placeholder" if identifier == OWNER_PLACEHOLDER else "blocked owner identifier"
+        patterns.append((re.compile(r"\b" + re.escape(identifier) + r"\b", re.IGNORECASE), description))
+
+    return patterns
 
 
 def normalize_url(url: str) -> str:
@@ -247,12 +298,13 @@ def check_required_files(errors: list[str]) -> None:
 
 
 def check_personal_identifiers(errors: list[str]) -> None:
+    pii_patterns = build_pii_patterns()
     for path in git_tracked_files():
         relative_path = path.relative_to(ROOT).as_posix()
         if should_skip_identifier_scan(relative_path) or is_probably_binary(path):
             continue
         text = load_text(path)
-        for pattern, description in PII_PATTERNS:
+        for pattern, description in pii_patterns:
             match = pattern.search(text)
             if match:
                 errors.append(

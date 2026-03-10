@@ -8,10 +8,12 @@ This document defines how OmniPaper satisfies third-party license obligations an
 - `THIRD_PARTY_NOTICES.md`: full third-party notices and license texts.
 - `CONTRIBUTORS.md`: upstream contributor credit links for direct code sources and referenced projects.
 - `DEPENDENCIES.md`: build-time and runtime dependency inventory.
-- `LICENSE`: OmniPaper project license (MIT).
+- `LICENSE`: OmniPaper first-party project license (MIT, preserving upstream MIT notice and adding OmniPaper contributors).
 - `RELEASING.md`: release bundle contents and release-gate commands.
 
 ## 2. Direct Code Sources
+
+OmniPaper's first-party code remains under MIT because the directly adapted upstream base (`CrossPoint-reader`) is MIT-licensed and the repository's original additions are distributed under the same permissive license. Bundled third-party components retain their own licenses and notices.
 
 OmniPaper includes or adapts code from these upstream projects:
 

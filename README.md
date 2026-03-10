@@ -37,6 +37,36 @@ Compared with legacy M5Paper, M5PaperS3 migration includes:
 - Games: Poodle, Sudoku
 - Idle hotspot web UI (toggle in settings) for file transfer and app launch
 
+## Install And Build
+
+### 1. Prerequisites
+
+- Git
+- Python 3.10+
+- PlatformIO Core 6.x (`pio`)
+- A USB data cable for the target board
+
+### 2. Get the source
+
+```bash
+git clone <your-fork-or-mirror-url>
+cd OmniPaper
+```
+
+### 3. Build the primary PaperS3 target
+
+```bash
+pio run -e m5papers3
+```
+
+### 4. Flash the board
+
+```bash
+pio run -e m5papers3 --target upload --upload-port /dev/cu.usbmodemXXXX
+```
+
+After flashing, the launcher should boot into the touch-first PaperS3 UI.
+
 ## Board Support
 
 | Board | PlatformIO env | Status |
@@ -86,6 +116,18 @@ Prebuilt binaries and release assets:
 Flashing tools/instructions (web + desktop):
 - `docs/wiki/Flashing-Guide.md`
 
+## Verification
+
+Recommended local verification before publishing:
+
+```bash
+python3 scripts/compliance.py check --release
+python3 scripts/compliance.py sbom --output build/omnipaper.spdx.json
+pio run -e m5papers3_release
+pio run -e m5paper_release
+./test/run_hyphenation_eval.sh
+```
+
 ## Dependencies
 
 - Build/runtime dependency list: `DEPENDENCIES.md`
@@ -116,5 +158,5 @@ App/game/tool source references used in this project are enumerated in:
 
 ## License
 
-- Project license: MIT (`LICENSE`)
+- Project license: MIT (`LICENSE`) for OmniPaper first-party code
 - Third-party notices/licenses: `THIRD_PARTY_NOTICES.md`

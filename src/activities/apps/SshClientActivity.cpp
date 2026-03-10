@@ -371,6 +371,8 @@ bool SshClientActivity::runCommand() {
   }
 
   char buffer[256];
+  // Drain both stdout and stderr without blocking so the UI can keep the
+  // command output responsive even on slower Wi-Fi links.
   while (!ssh_channel_is_closed(channel)) {
     int stdoutRead = ssh_channel_read_nonblocking(channel, buffer, sizeof(buffer), 0);
     if (stdoutRead > 0) {
@@ -394,7 +396,10 @@ bool SshClientActivity::runCommand() {
     }
   }
 
-  const int exitCode = ssh_channel_get_exit_status(channel);
+  uint32_t exitCode = 0;
+  if (ssh_channel_get_exit_state(channel, &exitCode, nullptr, nullptr) != SSH_OK) {
+    exitCode = 0;
+  }
   if (lastOutput.empty()) {
     lastOutput = "(no output)";
   }
