@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <vector>
@@ -33,7 +34,15 @@ class SensorsActivity final : public Activity {
 
     int batteryPercent = 0;
     int batteryMv = 0;
+    int32_t batteryCurrentMa = 0;
+    int vbusMv = 0;
     bool charging = false;
+    bool rtcAvailable = false;
+    bool speakerAvailable = false;
+    bool usbSerialOpen = false;
+    uint8_t touchCount = 0;
+    int touchX = 0;
+    int touchY = 0;
     int wifiRssi = 0;
     unsigned long uptimeMs = 0;
   };
@@ -50,5 +59,8 @@ class SensorsActivity final : public Activity {
   void scanI2c();
   void render();
   void renderBuiltIn();
+#if defined(PLATFORM_M5PAPERS3)
+  void renderPaperS3BuiltIn();
+#endif
   void renderExternal();
 };

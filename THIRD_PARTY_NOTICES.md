@@ -83,6 +83,7 @@ The following components have code included or adapted in OmniPaper. Credit is o
 - `poly1305-donna` attribution is included because LibSSH-ESP32 contains upstream references to that implementation in bundled source headers.
 - For Poodle and Sudoku entries above, this repository uses local implementations and cites upstream gameplay/reference sources in `CODE_PROVENANCE.md`.
 - Arduino-ESP32 Core package metadata in this build environment declares `LGPL-2.1-or-later`; LGPL notice text is included below in this document.
+- Tagged release bundles should ship this file together with `LICENSE`, `CODE_PROVENANCE.md`, `CONTRIBUTORS.md`, `LICENSE_COMPLIANCE.md`, and the generated SPDX SBOM.
 
 ## LibSSH-ESP32 Notices
 

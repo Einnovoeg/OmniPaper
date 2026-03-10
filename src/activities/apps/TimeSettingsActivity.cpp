@@ -163,7 +163,12 @@ void TimeSettingsActivity::render() {
     renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 44, statusMessage.c_str());
   }
 
+#if defined(PLATFORM_M5PAPERS3)
+  renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24,
+                            "Swipe: Select/Adjust   Bottom-center tap: Action   Top-right tap: Back");
+#else
   renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24,
                             "Up/Down: Select   Left/Right: TZ   Confirm: Action   Back: Menu");
+#endif
   renderer.displayBuffer();
 }

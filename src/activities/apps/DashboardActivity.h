@@ -41,4 +41,7 @@ class DashboardActivity final : public Activity {
   bool fetchWeather(const LocationInfo& loc, WeatherSnapshot& out);
   std::string weatherDescription(int code) const;
   void render();
+#if defined(PLATFORM_M5PAPERS3)
+  void renderPaperS3();
+#endif
 };

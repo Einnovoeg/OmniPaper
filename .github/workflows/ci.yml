@@ -1,11 +1,11 @@
 name: CI
 'on':
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
 
 jobs:
-  build:
+  compliance:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -14,7 +14,31 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.14'
+          python-version: '3.11'
+
+      - name: Run repository compliance checks
+        run: python3 scripts/compliance.py check
+
+      - name: Generate SPDX SBOM
+        run: python3 scripts/compliance.py sbom --output build/omnipaper-ci.spdx.json
+
+      - name: Upload compliance artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: omnipaper-compliance
+          path: build/omnipaper-ci.spdx.json
+
+  quality:
+    needs: compliance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
 
       - name: Install PlatformIO Core
         run: pip install --upgrade platformio
@@ -28,10 +52,38 @@ jobs:
           sudo apt-get install -y clang-format-21
 
       - name: Run cppcheck
-        run: pio check --fail-on-defect low --fail-on-defect medium --fail-on-defect high
+        run: pio check -e m5papers3 --fail-on-defect low --fail-on-defect medium --fail-on-defect high
 
       - name: Run clang-format
         run: PATH="/usr/lib/llvm-21/bin:$PATH" ./bin/clang-format-fix && git diff --exit-code || (echo "Please run 'bin/clang-format-fix' to fix formatting issues" && exit 1)
 
-      - name: Build CrossPoint
-        run: pio run
+  build:
+    needs: compliance
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env:
+          - m5papers3
+          - m5paper
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio-${{ matrix.env }}
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Build OmniPaper (${{ matrix.env }})
+        run: pio run -e ${{ matrix.env }}

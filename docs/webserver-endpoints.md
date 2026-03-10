@@ -83,7 +83,7 @@ curl http://omnipaper.local/api/status
 
 | Field      | Type   | Description                                               |
 | ---------- | ------ | --------------------------------------------------------- |
-| `version`  | string | CrossPoint firmware version                               |
+| `version`  | string | OmniPaper firmware version                                |
 | `ip`       | string | Device IP address                                         |
 | `mode`     | string | `"STA"` (connected to WiFi) or `"AP"` (access point mode) |
 | `rssi`     | number | WiFi signal strength in dBm (0 in AP mode)                |

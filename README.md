@@ -79,8 +79,9 @@ pio run -e lilygo_epd47 --target upload --upload-port /dev/cu.usbmodemXXXX
 ```
 
 Prebuilt binaries and release assets:
-- <https://github.com/<OWNER_OR_ORG>/OmniPaper/releases/latest>
-- Replace `<OWNER_OR_ORG>` with your GitHub account or organization name.
+- Open the repository's GitHub Releases page for the latest tagged firmware bundle.
+- Release bundles include board-specific firmware images, bootloader/partition files, `THIRD_PARTY_NOTICES.md`,
+  `CONTRIBUTORS.md`, `CODE_PROVENANCE.md`, `LICENSE_COMPLIANCE.md`, and an SPDX SBOM.
 
 Flashing tools/instructions (web + desktop):
 - `docs/wiki/Flashing-Guide.md`
@@ -89,6 +90,9 @@ Flashing tools/instructions (web + desktop):
 
 - Build/runtime dependency list: `DEPENDENCIES.md`
 - Compliance process/checklist: `LICENSE_COMPLIANCE.md`
+- Release runbook: `RELEASING.md`
+- Compliance checker: `python3 scripts/compliance.py check`
+- SPDX SBOM generation: `python3 scripts/compliance.py sbom --output build/omnipaper.spdx.json`
 - Tooling is managed by PlatformIO from `platformio.ini`
 
 ## Attribution And License Compliance
@@ -114,4 +118,3 @@ App/game/tool source references used in this project are enumerated in:
 
 - Project license: MIT (`LICENSE`)
 - Third-party notices/licenses: `THIRD_PARTY_NOTICES.md`
-

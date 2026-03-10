@@ -21,21 +21,61 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.14'
+          python-version: '3.11'
 
       - name: Install PlatformIO Core
         run: pip install --upgrade platformio
 
-      - name: Build CrossPoint
-        run: pio run -e gh_release
+      - name: Run release compliance gate
+        run: python3 scripts/compliance.py check --release
+
+      - name: Generate SPDX SBOM
+        run: python3 scripts/compliance.py sbom --output build/omnipaper-${{ github.ref_name }}.spdx.json
+
+      - name: Build OmniPaper release firmware
+        run: |
+          pio run -e m5papers3_release
+          pio run -e m5paper_release
+
+      - name: Assemble release bundle
+        run: |
+          rm -rf dist
+          mkdir -p dist
+
+          cp .pio/build/m5papers3_release/firmware.bin dist/omnipaper-${{ github.ref_name }}-m5papers3-firmware.bin
+          cp .pio/build/m5papers3_release/bootloader.bin dist/omnipaper-${{ github.ref_name }}-m5papers3-bootloader.bin
+          cp .pio/build/m5papers3_release/partitions.bin dist/omnipaper-${{ github.ref_name }}-m5papers3-partitions.bin
+          cp .pio/build/m5papers3_release/firmware.elf dist/omnipaper-${{ github.ref_name }}-m5papers3-firmware.elf
+          cp .pio/build/m5papers3_release/firmware.map dist/omnipaper-${{ github.ref_name }}-m5papers3-firmware.map
+
+          cp .pio/build/m5paper_release/firmware.bin dist/omnipaper-${{ github.ref_name }}-m5paper-firmware.bin
+          cp .pio/build/m5paper_release/bootloader.bin dist/omnipaper-${{ github.ref_name }}-m5paper-bootloader.bin
+          cp .pio/build/m5paper_release/partitions.bin dist/omnipaper-${{ github.ref_name }}-m5paper-partitions.bin
+          cp .pio/build/m5paper_release/firmware.elf dist/omnipaper-${{ github.ref_name }}-m5paper-firmware.elf
+          cp .pio/build/m5paper_release/firmware.map dist/omnipaper-${{ github.ref_name }}-m5paper-firmware.map
+
+          cp README.md dist/README.md
+          cp LICENSE dist/LICENSE
+          cp DEPENDENCIES.md dist/DEPENDENCIES.md
+          cp CODE_PROVENANCE.md dist/CODE_PROVENANCE.md
+          cp CONTRIBUTORS.md dist/CONTRIBUTORS.md
+          cp THIRD_PARTY_NOTICES.md dist/THIRD_PARTY_NOTICES.md
+          cp LICENSE_COMPLIANCE.md dist/LICENSE_COMPLIANCE.md
+          cp docs/wiki/Flashing-Guide.md dist/FLASHING.md
+          cp build/omnipaper-${{ github.ref_name }}.spdx.json dist/
+
+          printf "release_tag=%s\ncreated_utc=%s\nfirmware_targets=%s\n" \
+            "${{ github.ref_name }}" \
+            "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+            "m5papers3_release,m5paper_release" > dist/BUILD_INFO.txt
+
+          (
+            cd dist
+            sha256sum * > SHA256SUMS.txt
+          )
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: CrossPoint-${{ github.ref_name }}
-          path: |
-            .pio/build/gh_release/bootloader.bin
-            .pio/build/gh_release/firmware.bin
-            .pio/build/gh_release/firmware.elf
-            .pio/build/gh_release/firmware.map
-            .pio/build/gh_release/partitions.bin
+          name: OmniPaper-${{ github.ref_name }}
+          path: dist/

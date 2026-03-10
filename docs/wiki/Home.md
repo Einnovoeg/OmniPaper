@@ -13,8 +13,7 @@ OmniPaper is a multi-target e-paper firmware for:
 - [Troubleshooting](Troubleshooting)
 
 ## Latest Release
-- [v0.17.0 binaries](https://github.com/<OWNER_OR_ORG>/OmniPaper/releases/tag/v0.17.0)
+- Open the repository's GitHub Releases page for the latest tagged OmniPaper bundle.
 
 ## Source Repository
-- https://github.com/<OWNER_OR_ORG>/OmniPaper
-- Replace `<OWNER_OR_ORG>` with your GitHub account or organization name.
+- Use the repository that contains this wiki checkout.

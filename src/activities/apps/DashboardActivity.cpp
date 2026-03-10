@@ -11,12 +11,61 @@
 
 #include "CrossPointSettings.h"
 #include "MappedInputManager.h"
+#include "PaperS3Ui.h"
 #include "fontIds.h"
 #include "util/TimeUtils.h"
 
 #ifdef PLATFORM_M5PAPER
 #include <M5Unified.h>
 #endif
+
+namespace {
+#if defined(PLATFORM_M5PAPERS3)
+struct PaperS3DashboardState {
+  int16_t batteryMv = 0;
+  int32_t batteryCurrentMa = 0;
+  int16_t vbusMv = 0;
+  bool charging = false;
+  bool rtcReady = false;
+  bool imuReady = false;
+  bool speakerReady = false;
+  bool usbSerialOpen = false;
+  uint8_t touchCount = 0;
+  int touchX = 0;
+  int touchY = 0;
+};
+
+PaperS3DashboardState readPaperS3DashboardState() {
+  PaperS3DashboardState state;
+  state.batteryMv = M5.Power.getBatteryVoltage();
+  state.batteryCurrentMa = M5.Power.getBatteryCurrent();
+  state.vbusMv = M5.Power.getVBUSVoltage();
+  state.charging = (M5.Power.isCharging() == m5::Power_Class::is_charging);
+  state.rtcReady = M5.Rtc.isEnabled();
+  state.imuReady = M5.Imu.isEnabled();
+  state.speakerReady = M5.Speaker.isEnabled();
+  state.usbSerialOpen = static_cast<bool>(Serial);
+  state.touchCount = M5.Touch.getCount();
+  if (state.touchCount > 0) {
+    const auto detail = M5.Touch.getDetail();
+    state.touchX = detail.x;
+    state.touchY = detail.y;
+  }
+  return state;
+}
+
+std::string formatUtcOffset(const int16_t minutes) {
+  const int sign = (minutes < 0) ? -1 : 1;
+  const int absoluteMinutes = minutes * sign;
+  const int hours = absoluteMinutes / 60;
+  const int mins = absoluteMinutes % 60;
+
+  char buffer[24];
+  snprintf(buffer, sizeof(buffer), "UTC%c%02d:%02d", sign < 0 ? '-' : '+', hours, mins);
+  return std::string(buffer);
+}
+#endif
+}  // namespace
 
 DashboardActivity::DashboardActivity(GfxRenderer& renderer, MappedInputManager& mappedInput, HalGPIO& gpio,
                                      const std::function<void()>& onExit)
@@ -176,6 +225,11 @@ void DashboardActivity::render() {
   renderer.clearScreen();
   renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
 
+#if defined(PLATFORM_M5PAPERS3)
+  renderPaperS3();
+  return;
+#endif
+
   renderer.drawCenteredText(UI_12_FONT_ID, 16, "Dashboard");
 
   int y = 58;
@@ -246,3 +300,117 @@ void DashboardActivity::render() {
   renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24, "Confirm: Refresh   Back: Menu");
   renderer.displayBuffer();
 }
+
+#if defined(PLATFORM_M5PAPERS3)
+void DashboardActivity::renderPaperS3() {
+  const auto layout = PaperS3Ui::fourCardLayout(renderer);
+  const auto state = readPaperS3DashboardState();
+  const int smallLineStep = renderer.getLineHeight(SMALL_FONT_ID) + 4;
+
+  renderer.drawCenteredText(UI_12_FONT_ID, 16, "Dashboard");
+
+  // PaperS3 has enough screen area and onboard telemetry to make the landing
+  // screen a compact status board instead of a sparse legacy summary.
+  PaperS3Ui::drawCard(renderer, layout.leftX, layout.topY, layout.cardWidth, layout.cardHeight, "Clock");
+  PaperS3Ui::drawCard(renderer, layout.rightX, layout.topY, layout.cardWidth, layout.cardHeight, "Power");
+  PaperS3Ui::drawCard(renderer, layout.leftX, layout.bottomY, layout.cardWidth, layout.cardHeight, "Weather");
+  PaperS3Ui::drawCard(renderer, layout.rightX, layout.bottomY, layout.cardWidth, layout.cardHeight, "Device");
+
+  int x = PaperS3Ui::bodyX(layout.leftX);
+  int y = PaperS3Ui::bodyY(layout.topY);
+  std::tm localTime {};
+  if (TimeUtils::getLocalTimeWithOffset(localTime, SETTINGS.timezoneOffsetMinutes)) {
+    char line[96];
+    snprintf(line, sizeof(line), "%02d:%02d:%02d", localTime.tm_hour, localTime.tm_min, localTime.tm_sec);
+    renderer.drawText(UI_12_FONT_ID, x, y, line);
+    y += renderer.getLineHeight(UI_12_FONT_ID) + 6;
+    snprintf(line, sizeof(line), "%04d-%02d-%02d", localTime.tm_year + 1900, localTime.tm_mon + 1, localTime.tm_mday);
+    renderer.drawText(UI_10_FONT_ID, x, y, line);
+    y += renderer.getLineHeight(UI_10_FONT_ID) + 4;
+  } else {
+    renderer.drawText(UI_12_FONT_ID, x, y, "Time not synced");
+    y += renderer.getLineHeight(UI_12_FONT_ID) + 6;
+  }
+
+  const std::string tzLabel = formatUtcOffset(SETTINGS.timezoneOffsetMinutes);
+  renderer.drawText(SMALL_FONT_ID, x, y, tzLabel.c_str());
+  y += smallLineStep;
+  renderer.drawText(SMALL_FONT_ID, x, y, state.rtcReady ? "RTC mirror: Ready" : "RTC mirror: Off");
+
+  char line[128];
+  x = PaperS3Ui::bodyX(layout.rightX);
+  y = PaperS3Ui::bodyY(layout.topY);
+  snprintf(line, sizeof(line), "Battery: %d%%", gpio.getBatteryPercentage());
+  renderer.drawText(UI_12_FONT_ID, x, y, line);
+  y += renderer.getLineHeight(UI_12_FONT_ID) + 6;
+  snprintf(line, sizeof(line), "Voltage: %d mV", state.batteryMv);
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  snprintf(line, sizeof(line), "Current: %ld mA", static_cast<long>(state.batteryCurrentMa));
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  snprintf(line, sizeof(line), "Charging: %s", PaperS3Ui::yesNo(state.charging));
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  snprintf(line, sizeof(line), "VBUS: %d mV", state.vbusMv);
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+
+  x = PaperS3Ui::bodyX(layout.leftX);
+  y = PaperS3Ui::bodyY(layout.bottomY);
+  if (fetching) {
+    renderer.drawText(UI_12_FONT_ID, x, y, "Fetching weather...");
+    y += renderer.getLineHeight(UI_12_FONT_ID) + 6;
+  } else if (!snapshot.valid) {
+    renderer.drawText(UI_12_FONT_ID, x, y, "Weather unavailable");
+    y += renderer.getLineHeight(UI_12_FONT_ID) + 6;
+    if (!snapshot.location.empty()) {
+      const std::string message = renderer.truncatedText(SMALL_FONT_ID, snapshot.location.c_str(), layout.cardWidth - 24);
+      renderer.drawText(SMALL_FONT_ID, x, y, message.c_str());
+      y += smallLineStep;
+    }
+  } else {
+    const std::string location = renderer.truncatedText(UI_10_FONT_ID, snapshot.location.c_str(), layout.cardWidth - 24);
+    renderer.drawText(UI_10_FONT_ID, x, y, location.c_str());
+    y += renderer.getLineHeight(UI_10_FONT_ID) + 6;
+    snprintf(line, sizeof(line), "%.1f C", snapshot.temperatureC);
+    renderer.drawText(UI_12_FONT_ID, x, y, line);
+    y += renderer.getLineHeight(UI_12_FONT_ID) + 6;
+    const std::string desc = weatherDescription(snapshot.weatherCode);
+    renderer.drawText(SMALL_FONT_ID, x, y, desc.c_str());
+    y += smallLineStep;
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    const String ssid = WiFi.SSID();
+    const std::string ssidLine = renderer.truncatedText(SMALL_FONT_ID, ssid.c_str(), layout.cardWidth - 24);
+    renderer.drawText(SMALL_FONT_ID, x, y, ssidLine.c_str());
+    y += smallLineStep;
+    const String ip = WiFi.localIP().toString();
+    renderer.drawText(SMALL_FONT_ID, x, y, ip.c_str());
+  } else {
+    renderer.drawText(SMALL_FONT_ID, x, y, "WiFi: disconnected");
+  }
+
+  x = PaperS3Ui::bodyX(layout.rightX);
+  y = PaperS3Ui::bodyY(layout.bottomY);
+  snprintf(line, sizeof(line), "USB serial: %s", PaperS3Ui::openWaiting(state.usbSerialOpen));
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  snprintf(line, sizeof(line), "Touch points: %u", state.touchCount);
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  if (state.touchCount > 0) {
+    snprintf(line, sizeof(line), "Touch: (%d, %d)", state.touchX, state.touchY);
+    renderer.drawText(SMALL_FONT_ID, x, y, line);
+    y += smallLineStep;
+  }
+  snprintf(line, sizeof(line), "IMU: %s", PaperS3Ui::readyOff(state.imuReady));
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  snprintf(line, sizeof(line), "Speaker: %s", PaperS3Ui::readyOff(state.speakerReady));
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+
+  PaperS3Ui::drawFooter(renderer, "Bottom-center tap: Refresh   Top-right tap: Back");
+  renderer.displayBuffer();
+}
+#endif

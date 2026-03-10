@@ -7,6 +7,7 @@ This project is built with PlatformIO. Most dependencies are resolved automatica
 - PlatformIO Core 6.x (`pio` CLI)
 - Python 3.10+
 - Git
+- `scripts/compliance.py` for repository/release compliance checks and SPDX SBOM generation
 
 ## Framework / Platform
 
@@ -45,3 +46,7 @@ Resolved through PlatformIO and local vendored libraries, including:
 - microSD card (recommended for books/assets/fonts/logs)
 - Wi-Fi network for weather, OTA, OPDS, SSH, and web portal features
 
+## Release Build Environments
+
+- `m5papers3_release`
+- `m5paper_release`

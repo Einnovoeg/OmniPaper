@@ -24,8 +24,9 @@ Other targets:
 - `pio run -e lilygo_epd47 --target upload --upload-port /dev/cu.usbmodemXXXX`
 
 Prebuilt binaries:
-- <https://github.com/<OWNER_OR_ORG>/OmniPaper/releases/latest>
-- Replace `<OWNER_OR_ORG>` with your GitHub account or organization name.
+- Open the repository's GitHub Releases page for the latest firmware bundle.
+- Each tagged bundle includes firmware binaries, flashing notes, notices, contributor credits, provenance,
+  checksums, and the SPDX SBOM.
 
 Web/desktop flashing tools:
 - `docs/wiki/Flashing-Guide.md`
@@ -48,7 +49,7 @@ M5PaperS3 uses touch-first controls in OmniPaper:
 
 - Reader: EPUB/TXT/XTC with progress and chapter navigation
 - Library: recent list + file browser + cover preview
-- Dashboard + Weather
+- Dashboard + Weather + PaperS3 live device telemetry
 - Sensors menu: built-in + external scan + UV + diagnostics
 - Network menu: Wi-Fi tools, BLE scan, web portal, host keyboard, trackpad, SSH
 - Images menu: viewer + drawing
@@ -58,11 +59,14 @@ M5PaperS3 uses touch-first controls in OmniPaper:
 ## M5PaperS3 Hardware Integrations
 
 - Touch: `M5.Touch.getDetail()`
-- Battery/charging: `M5.Power.getBatteryLevel()`, `M5.Power.getBatteryVoltage()`, `M5.Power.isCharging()`
+- Battery/charging: `M5.Power.getBatteryLevel()`, `M5.Power.getBatteryVoltage()`, `M5.Power.getBatteryCurrent()`,
+  `M5.Power.isCharging()`
+- USB power sensing: `M5.Power.getVBUSVoltage()`
 - RTC: `M5.Rtc.*`
 - IMU (BMI270): `M5.Imu.*`
+- Speaker/buzzer path: available in `Settings -> Hardware Test` speaker chirp
 - SD card pins (PaperS3): `CS=47`, `SCK=39`, `MOSI=38`, `MISO=40`
-- USB OTG/CDC status shown in Dashboard
+- USB OTG/CDC session state shown in Dashboard and Sensors
 
 ## Web UI (Idle Hotspot)
 
@@ -91,4 +95,5 @@ Toggle:
 - SD issues on PaperS3: confirm card formatting and that firmware was built with PaperS3 target.
 - Missing glyphs: use SD fonts and select `Custom (SD)` in settings.
 - Hardware diagnostics: `Settings -> Hardware Test`.
-
+- PaperS3 quick health view: use `Dashboard`, `Sensors -> Built-In`, and `Hardware Test` to confirm touch, RTC, IMU,
+  battery current, VBUS, USB serial state, and speaker availability.

@@ -14,10 +14,22 @@
 #include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
+#include "PaperS3Ui.h"
 #include "fontIds.h"
 
 namespace {
 constexpr unsigned long kUpdateIntervalMs = 5000;
+
+std::string formatUptime(const unsigned long uptimeMs) {
+  const unsigned long totalSeconds = uptimeMs / 1000;
+  const unsigned long hours = totalSeconds / 3600;
+  const unsigned long minutes = (totalSeconds % 3600) / 60;
+  const unsigned long seconds = totalSeconds % 60;
+
+  char line[32];
+  snprintf(line, sizeof(line), "%luh %lum %lus", hours, minutes, seconds);
+  return std::string(line);
+}
 
 bool readSht30(float& tempC, float& humidity) {
   constexpr uint8_t kAddr = 0x44;
@@ -139,11 +151,32 @@ void SensorsActivity::updateData() {
   snapshot.uptimeMs = millis();
   snapshot.batteryPercent = gpio.getBatteryPercentage();
   snapshot.batteryMv = 0;
+  snapshot.batteryCurrentMa = 0;
+  snapshot.vbusMv = 0;
   snapshot.charging = false;
+  snapshot.rtcAvailable = false;
+  snapshot.speakerAvailable = false;
+  snapshot.usbSerialOpen = false;
+  snapshot.touchCount = 0;
+  snapshot.touchX = 0;
+  snapshot.touchY = 0;
 
 #ifdef PLATFORM_M5PAPER
   snapshot.batteryMv = M5.Power.getBatteryVoltage();
+  snapshot.batteryCurrentMa = M5.Power.getBatteryCurrent();
   snapshot.charging = (M5.Power.isCharging() == m5::Power_Class::is_charging);
+  snapshot.rtcAvailable = M5.Rtc.isEnabled();
+  snapshot.speakerAvailable = M5.Speaker.isEnabled();
+#if defined(PLATFORM_M5PAPERS3)
+  snapshot.vbusMv = M5.Power.getVBUSVoltage();
+  snapshot.usbSerialOpen = static_cast<bool>(Serial);
+  snapshot.touchCount = M5.Touch.getCount();
+  if (snapshot.touchCount > 0) {
+    const auto detail = M5.Touch.getDetail();
+    snapshot.touchX = detail.x;
+    snapshot.touchY = detail.y;
+  }
+#endif
 #endif
 
   if (WiFi.status() == WL_CONNECTED) {
@@ -221,6 +254,15 @@ void SensorsActivity::render() {
   renderer.clearScreen();
   renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
 
+#if defined(PLATFORM_M5PAPERS3)
+  if (mode == Mode::BuiltIn) {
+    renderPaperS3BuiltIn();
+    PaperS3Ui::drawFooter(renderer, "Top-right tap: Back");
+    renderer.displayBuffer();
+    return;
+  }
+#endif
+
   renderer.drawCenteredText(UI_12_FONT_ID, 16, mode == Mode::BuiltIn ? "Sensors (Built-In)" : "Sensors (External)");
 
   if (mode == Mode::BuiltIn) {
@@ -234,6 +276,11 @@ void SensorsActivity::render() {
 }
 
 void SensorsActivity::renderBuiltIn() {
+#if defined(PLATFORM_M5PAPERS3)
+  renderPaperS3BuiltIn();
+  return;
+#endif
+
   const int x = 40;
   int y = 62;
 
@@ -284,6 +331,95 @@ void SensorsActivity::renderBuiltIn() {
     renderer.drawText(SMALL_FONT_ID, x, y, line);
   }
 }
+
+#if defined(PLATFORM_M5PAPERS3)
+void SensorsActivity::renderPaperS3BuiltIn() {
+  const auto layout = PaperS3Ui::fourCardLayout(renderer);
+  const int smallLineStep = renderer.getLineHeight(SMALL_FONT_ID) + 4;
+  const std::string uptimeLabel = formatUptime(snapshot.uptimeMs);
+
+  renderer.drawCenteredText(UI_12_FONT_ID, 16, "Sensors (Built-In)");
+
+  PaperS3Ui::drawCard(renderer, layout.leftX, layout.topY, layout.cardWidth, layout.cardHeight, "Power");
+  PaperS3Ui::drawCard(renderer, layout.rightX, layout.topY, layout.cardWidth, layout.cardHeight, "Radio + System");
+  PaperS3Ui::drawCard(renderer, layout.leftX, layout.bottomY, layout.cardWidth, layout.cardHeight, "Environment");
+  PaperS3Ui::drawCard(renderer, layout.rightX, layout.bottomY, layout.cardWidth, layout.cardHeight, "Motion + Input");
+
+  char line[128];
+  int x = PaperS3Ui::bodyX(layout.leftX);
+  int y = PaperS3Ui::bodyY(layout.topY);
+  snprintf(line, sizeof(line), "Battery: %d%%", snapshot.batteryPercent);
+  renderer.drawText(UI_12_FONT_ID, x, y, line);
+  y += renderer.getLineHeight(UI_12_FONT_ID) + 6;
+  snprintf(line, sizeof(line), "Voltage: %d mV", snapshot.batteryMv);
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  snprintf(line, sizeof(line), "Current: %ld mA", static_cast<long>(snapshot.batteryCurrentMa));
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  snprintf(line, sizeof(line), "Charging: %s", PaperS3Ui::yesNo(snapshot.charging));
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  snprintf(line, sizeof(line), "VBUS: %d mV", snapshot.vbusMv);
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+
+  x = PaperS3Ui::bodyX(layout.rightX);
+  y = PaperS3Ui::bodyY(layout.topY);
+  snprintf(line, sizeof(line), "WiFi: %s", WiFi.status() == WL_CONNECTED ? "Connected" : "Disconnected");
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  if (WiFi.status() == WL_CONNECTED) {
+    snprintf(line, sizeof(line), "RSSI: %d dBm", snapshot.wifiRssi);
+    renderer.drawText(SMALL_FONT_ID, x, y, line);
+    y += smallLineStep;
+  }
+  snprintf(line, sizeof(line), "USB serial: %s", PaperS3Ui::openWaiting(snapshot.usbSerialOpen));
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  snprintf(line, sizeof(line), "Uptime: %s", uptimeLabel.c_str());
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+
+  x = PaperS3Ui::bodyX(layout.leftX);
+  y = PaperS3Ui::bodyY(layout.bottomY);
+  if (snapshot.hasSht30 && !std::isnan(snapshot.temperatureC) && !std::isnan(snapshot.humidity)) {
+    snprintf(line, sizeof(line), "Temp: %.1f C", snapshot.temperatureC);
+    renderer.drawText(SMALL_FONT_ID, x, y, line);
+    y += smallLineStep;
+    snprintf(line, sizeof(line), "Humidity: %.1f%% RH", snapshot.humidity);
+    renderer.drawText(SMALL_FONT_ID, x, y, line);
+    y += smallLineStep;
+  } else {
+    renderer.drawText(SMALL_FONT_ID, x, y, "SHT30: Not available");
+    y += smallLineStep;
+  }
+  snprintf(line, sizeof(line), "RTC: %s", PaperS3Ui::readyOff(snapshot.rtcAvailable));
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  snprintf(line, sizeof(line), "Speaker path: %s", PaperS3Ui::readyOff(snapshot.speakerAvailable));
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+
+  x = PaperS3Ui::bodyX(layout.rightX);
+  y = PaperS3Ui::bodyY(layout.bottomY);
+  snprintf(line, sizeof(line), "Touch points: %u", snapshot.touchCount);
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  if (snapshot.touchCount > 0) {
+    snprintf(line, sizeof(line), "Touch XY: (%d, %d)", snapshot.touchX, snapshot.touchY);
+    renderer.drawText(SMALL_FONT_ID, x, y, line);
+    y += smallLineStep;
+  }
+
+  if (snapshot.hasImu) {
+    snprintf(line, sizeof(line), "Acc: %.2f %.2f %.2f", snapshot.accelX, snapshot.accelY, snapshot.accelZ);
+    renderer.drawText(SMALL_FONT_ID, x, y, line);
+    y += smallLineStep;
+    snprintf(line, sizeof(line), "Gyr: %.2f %.2f %.2f", snapshot.gyroX, snapshot.gyroY, snapshot.gyroZ);
+    renderer.drawText(SMALL_FONT_ID, x, y, line);
+  } else {
+    renderer.drawText(SMALL_FONT_ID, x, y, "IMU: Not available");
+  }
+}
+#endif
 
 void SensorsActivity::renderExternal() {
   const int x = 40;

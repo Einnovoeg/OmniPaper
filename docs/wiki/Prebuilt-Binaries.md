@@ -1,18 +1,17 @@
 # Prebuilt Binaries
 
 Latest prebuilt firmware release:
-- [OmniPaper v0.17.0](https://github.com/<OWNER_OR_ORG>/OmniPaper/releases/tag/v0.17.0)
-- Replace `<OWNER_OR_ORG>` with your GitHub account or organization name.
+- Open the repository's GitHub Releases page for the latest tagged firmware bundle.
 
 Included assets:
-- `omnipaper-v0.17.0-m5paper-firmware.bin`
-- `omnipaper-v0.17.0-m5papers3-firmware.bin`
-- `omnipaper-v0.17.0-lilygo-epd47-firmware.bin`
-- `omnipaper-v0.17.0-m5paper-epd-diag-firmware.bin`
+- `omnipaper-<tag>-m5paper-firmware.bin`
+- `omnipaper-<tag>-m5papers3-firmware.bin`
 - board-specific `bootloader.bin` and `partitions.bin`
 - `SHA256SUMS.txt`
 - `FLASHING.md`
 - `BUILD_INFO.txt`
+- `THIRD_PARTY_NOTICES.md`, `CONTRIBUTORS.md`, `CODE_PROVENANCE.md`, `LICENSE_COMPLIANCE.md`
+- `omnipaper-<tag>.spdx.json`
 
 Verify downloads:
 ```bash

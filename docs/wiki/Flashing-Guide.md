@@ -3,20 +3,18 @@
 ## Firmware Files
 
 Get prebuilt binaries here:
-- https://github.com/<OWNER_OR_ORG>/OmniPaper/releases/latest
-- Replace `<OWNER_OR_ORG>` with your GitHub account or organization name.
+- Open the repository's GitHub Releases page for the latest tagged firmware bundle.
 
 For each board, use the matching `*-firmware.bin`:
-- `omnipaper-v0.17.0-m5paper-firmware.bin`
-- `omnipaper-v0.17.0-m5papers3-firmware.bin`
-- `omnipaper-v0.17.0-lilygo-epd47-firmware.bin`
+- `omnipaper-<tag>-m5paper-firmware.bin`
+- `omnipaper-<tag>-m5papers3-firmware.bin`
 
 ## Recommended (PlatformIO)
 Use your board environment:
 
 ```bash
 pio run -e m5paper_release --target upload --upload-port <PORT>
-pio run -e m5papers3 --target upload --upload-port <PORT>
+pio run -e m5papers3_release --target upload --upload-port <PORT>
 pio run -e lilygo_epd47 --target upload --upload-port <PORT>
 ```
 
@@ -57,12 +55,12 @@ python -m pip install --upgrade esptool
 
 macOS/Linux:
 ```bash
-python3 -m esptool --chip esp32 --port /dev/cu.usbserial-XXXX write_flash 0x10000 omnipaper-v0.17.0-m5paper-firmware.bin
+python3 -m esptool --chip esp32 --port /dev/cu.usbserial-XXXX write_flash 0x10000 omnipaper-<tag>-m5paper-firmware.bin
 ```
 
 Windows:
 ```powershell
-py -m esptool --chip esp32 --port COM5 write_flash 0x10000 omnipaper-v0.17.0-m5paper-firmware.bin
+py -m esptool --chip esp32 --port COM5 write_flash 0x10000 omnipaper-<tag>-m5paper-firmware.bin
 ```
 
 Adjust `--chip` and firmware filename for your target:
@@ -84,17 +82,17 @@ All firmware binaries are flashed at `0x10000` in this project.
 
 ### M5Paper
 ```bash
-python3 -m esptool --chip esp32 --port <PORT> write_flash 0x10000 omnipaper-v0.17.0-m5paper-firmware.bin
+python3 -m esptool --chip esp32 --port <PORT> write_flash 0x10000 omnipaper-<tag>-m5paper-firmware.bin
 ```
 
 ### M5PaperS3
 ```bash
-python3 -m esptool --chip esp32s3 --port <PORT> write_flash 0x10000 omnipaper-v0.17.0-m5papers3-firmware.bin
+python3 -m esptool --chip esp32s3 --port <PORT> write_flash 0x10000 omnipaper-<tag>-m5papers3-firmware.bin
 ```
 
 ### LilyGo-EPD47
 ```bash
-python3 -m esptool --chip esp32s3 --port <PORT> write_flash 0x10000 omnipaper-v0.17.0-lilygo-epd47-firmware.bin
+python3 -m esptool --chip esp32s3 --port <PORT> write_flash 0x10000 <custom-lilygo-build>.bin
 ```
 
 ## Optional full-flash recovery

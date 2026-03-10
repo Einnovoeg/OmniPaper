@@ -1,6 +1,6 @@
 # CONTRIBUTORS
 
-This file documents upstream author/contributor credit for OmniPaper.
+This file documents upstream author and contributor credit for OmniPaper.
 
 ## OmniPaper Repository Maintainers
 
@@ -17,33 +17,52 @@ Note:
 - open-x4 community SDK (Open X4 E-Paper contributors)
   - https://github.com/open-x4-epaper/community-sdk
   - https://github.com/open-x4-epaper/community-sdk/graphs/contributors
+- LilyGo-EPD47 (Xinyuan-LilyGO + contributors)
+  - https://github.com/Xinyuan-LilyGO/LilyGo-EPD47
+  - https://github.com/Xinyuan-LilyGO/LilyGo-EPD47/graphs/contributors
+- EPDiy (Volker Roland + contributors)
+  - https://github.com/vroland/epdiy
+  - https://github.com/vroland/epdiy/graphs/contributors
 - M5Unified (M5Stack + contributors)
   - https://github.com/m5stack/M5Unified
   - https://github.com/m5stack/M5Unified/graphs/contributors
 - M5GFX (M5Stack + contributors)
   - https://github.com/m5stack/M5GFX
   - https://github.com/m5stack/M5GFX/graphs/contributors
-- LilyGo-EPD47 (Xinyuan-LilyGO + contributors)
-  - https://github.com/Xinyuan-LilyGO/LilyGo-EPD47
-  - https://github.com/Xinyuan-LilyGO/LilyGo-EPD47/graphs/contributors
+- Arduino-ESP32 Core (Espressif + contributors)
+  - https://github.com/espressif/arduino-esp32
+  - https://github.com/espressif/arduino-esp32/graphs/contributors
+- AS7331 (Rob Tillaart + contributors)
+  - https://github.com/RobTillaart/AS7331
+  - https://github.com/RobTillaart/AS7331/graphs/contributors
+- ArduinoJson (Benoit Blanchon + contributors)
+  - https://github.com/bblanchon/ArduinoJson
+  - https://github.com/bblanchon/ArduinoJson/graphs/contributors
+- QRCode (Richard Moore + contributors)
+  - https://github.com/ricmoo/QRCode
+  - https://github.com/ricmoo/QRCode/graphs/contributors
+- arduinoWebSockets (Markus Sattler / Links2004 + contributors)
+  - https://github.com/Links2004/arduinoWebSockets
+  - https://github.com/Links2004/arduinoWebSockets/graphs/contributors
+- SdFat (Bill Greiman + contributors)
+  - https://github.com/greiman/SdFat
+  - https://github.com/greiman/SdFat/graphs/contributors
 - LibSSH-ESP32 (ewpa maintainers + libssh upstream contributors)
   - https://github.com/ewpa/LibSSH-ESP32
   - https://github.com/ewpa/LibSSH-ESP32/graphs/contributors
-- EPDiy (Volker Roland + contributors)
-  - https://github.com/vroland/epdiy
-  - https://github.com/vroland/epdiy/graphs/contributors
 - Expat (libexpat maintainers + contributors)
   - https://github.com/libexpat/libexpat
   - https://github.com/libexpat/libexpat/graphs/contributors
 - miniz (Rich Geldreich + contributors)
   - https://github.com/richgel999/miniz
   - https://github.com/richgel999/miniz/graphs/contributors
-- picojpeg (Rich Geldreich)
+- picojpeg (Rich Geldreich + contributors)
   - https://github.com/richgel999/picojpeg
+  - https://github.com/richgel999/picojpeg/graphs/contributors
 
-## Upstream Projects Referenced For Behavior/UI/Feature Design
+## Upstream Projects Referenced For Behavior, UI, Or Feature Design
 
-These are credited sources used for design/behavior reference in locally implemented code paths:
+These are credited sources used for design or behavior reference in locally implemented code paths:
 
 - ESP32 Bus Pirate: https://github.com/geo-tp/ESP32-Bus-Pirate
 - M5Paper_Keyboard: https://github.com/robo8080/M5Paper_Keyboard
@@ -59,8 +78,14 @@ These are credited sources used for design/behavior reference in locally impleme
 - m5panel: https://github.com/TAKeanice/m5panel
 - M5Sudoku: https://github.com/murraypaul/M5Sudoku
 - Poodle: https://github.com/k-natori/Poodle
+- portal: https://github.com/paperportal/portal
+- M5Cardputer Interactive SSH Client: https://github.com/SUB0PT1MAL/M5Cardputer_Interactive_SSH_Client
 - Sudoku gist: https://gist.github.com/palaniraja/d5a55f9bd1f990410c8a0099844cec91
 - XTC format gist: https://gist.github.com/CrazyCoder/b125f26d6987c0620058249f59f1327d
+
+## Documentation References
+
+- M5Stack PaperS3 hardware/programming docs: https://docs.m5stack.com/en/core/PaperS3 and https://docs.m5stack.com/en/arduino/m5papers3/program
 
 ## Compliance References
 
