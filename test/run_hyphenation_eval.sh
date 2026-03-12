@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="$ROOT_DIR/build/hyphenation_eval"
 BINARY="$BUILD_DIR/HyphenationEvaluationTest"
+CXX_BIN="${CXX:-c++}"
 
 mkdir -p "$BUILD_DIR"
 
@@ -27,6 +28,8 @@ CXXFLAGS=(
   -I"$ROOT_DIR/lib/Utf8"
 )
 
-c++ "${CXXFLAGS[@]}" "${SOURCES[@]}" -o "$BINARY"
+# Keep the runner portable across local machines and CI images that expose the
+# host compiler through a non-default CXX value.
+"$CXX_BIN" "${CXXFLAGS[@]}" "${SOURCES[@]}" -o "$BINARY"
 
 "$BINARY" "$@"

@@ -57,6 +57,9 @@ jobs:
       - name: Run clang-format
         run: PATH="/usr/lib/llvm-21/bin:$PATH" ./bin/clang-format-fix && git diff --exit-code || (echo "Please run 'bin/clang-format-fix' to fix formatting issues" && exit 1)
 
+      - name: Run hyphenation regression suite
+        run: ./test/run_hyphenation_eval.sh
+
   build:
     needs: compliance
     runs-on: ubuntu-latest
