@@ -110,8 +110,9 @@ pio run -e lilygo_epd47 --target upload --upload-port /dev/cu.usbmodemXXXX
 
 Prebuilt binaries and release assets:
 - Open the repository's GitHub Releases page for the latest tagged firmware bundle.
-- Release bundles include board-specific firmware images, bootloader/partition files, `THIRD_PARTY_NOTICES.md`,
-  `CONTRIBUTORS.md`, `CODE_PROVENANCE.md`, `LICENSE_COMPLIANCE.md`, and an SPDX SBOM.
+- Release bundles include board-specific firmware images, bootloader/partition files, `CHANGELOG.md`,
+  generated `RELEASE_NOTES.md`, `THIRD_PARTY_NOTICES.md`, `CONTRIBUTORS.md`, `CODE_PROVENANCE.md`,
+  `LICENSE_COMPLIANCE.md`, and an SPDX SBOM.
 
 Flashing tools/instructions (web + desktop):
 - `docs/wiki/Flashing-Guide.md`
@@ -127,6 +128,12 @@ pio run -e m5papers3_release
 pio run -e m5paper_release
 ./test/run_hyphenation_eval.sh
 ```
+
+## Versioning And Releases
+
+- OmniPaper uses bare semantic versions such as `0.17.0`; the Git tag, `platformio.ini` version, and `CHANGELOG.md` entry must match exactly.
+- Tagged releases publish separate firmware bundles for `m5papers3` and `m5paper`.
+- OTA release checks compile the repository slug from CI metadata or the local `origin` remote, so official release builds point at the correct OmniPaper GitHub release feed without committing maintainer-specific identifiers to the repository.
 
 ## Dependencies
 

@@ -16,6 +16,7 @@ lib/EpdFont/fontsrc
 *.generated.h
 .vs
 build
+dist
 **/__pycache__/
 /compile_commands.json
 /.cache

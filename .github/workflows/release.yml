@@ -4,9 +4,14 @@ on:
     tags:
       - '*'
 
+permissions:
+  contents: write
+
 jobs:
   build-release:
     runs-on: ubuntu-latest
+    env:
+      OMNIPAPER_GITHUB_REPOSITORY: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -32,6 +37,9 @@ jobs:
       - name: Generate SPDX SBOM
         run: python3 scripts/compliance.py sbom --output build/omnipaper-${{ github.ref_name }}.spdx.json
 
+      - name: Generate release notes
+        run: python3 scripts/extract_changelog.py --version "${{ github.ref_name }}" --output build/release-notes.md
+
       - name: Build OmniPaper release firmware
         run: |
           pio run -e m5papers3_release
@@ -56,6 +64,8 @@ jobs:
 
           cp README.md dist/README.md
           cp LICENSE dist/LICENSE
+          cp CHANGELOG.md dist/CHANGELOG.md
+          cp build/release-notes.md dist/RELEASE_NOTES.md
           cp DEPENDENCIES.md dist/DEPENDENCIES.md
           cp CODE_PROVENANCE.md dist/CODE_PROVENANCE.md
           cp CONTRIBUTORS.md dist/CONTRIBUTORS.md
@@ -69,6 +79,10 @@ jobs:
             "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
             "m5papers3_release,m5paper_release" > dist/BUILD_INFO.txt
 
+          printf "commit=%s\nota_repository=%s\n" \
+            "${{ github.sha }}" \
+            "${{ github.repository }}" >> dist/BUILD_INFO.txt
+
           (
             cd dist
             sha256sum * > SHA256SUMS.txt
@@ -79,3 +93,14 @@ jobs:
         with:
           name: OmniPaper-${{ github.ref_name }}
           path: dist/
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
+            gh release upload "${{ github.ref_name }}" dist/* --clobber
+            gh release edit "${{ github.ref_name }}" --title "OmniPaper ${{ github.ref_name }}" --notes-file dist/RELEASE_NOTES.md
+          else
+            gh release create "${{ github.ref_name }}" dist/* --title "OmniPaper ${{ github.ref_name }}" --notes-file dist/RELEASE_NOTES.md
+          fi

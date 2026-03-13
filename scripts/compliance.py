@@ -29,6 +29,7 @@ OWNER_PLACEHOLDER = "<" + "OWNER_OR_ORG" + ">"
 REQUIRED_RELEASE_FILES = (
     "README.md",
     "LICENSE",
+    "CHANGELOG.md",
     "DEPENDENCIES.md",
     "CODE_PROVENANCE.md",
     "CONTRIBUTORS.md",
@@ -364,11 +365,20 @@ def check_provenance_coverage(components: list[Component], errors: list[str]) ->
 
 
 def check_release_documentation(errors: list[str]) -> None:
+    version = load_version()
     compliance_text = load_text(ROOT / "LICENSE_COMPLIANCE.md")
+    release_text = load_text(ROOT / "RELEASING.md")
+    changelog_text = load_text(ROOT / "CHANGELOG.md")
     if "Release Checklist" not in compliance_text:
         errors.append("LICENSE_COMPLIANCE.md is missing the release checklist section.")
     if "scripts/compliance.py check" not in compliance_text:
         errors.append("LICENSE_COMPLIANCE.md does not document the compliance checker command.")
+    if "CHANGELOG.md" not in release_text:
+        errors.append("RELEASING.md does not document changelog handling.")
+    if "RELEASE_NOTES.md" not in release_text:
+        errors.append("RELEASING.md does not document generated release notes.")
+    if not re.search(rf"^## \[{re.escape(version)}\] - \d{{4}}-\d{{2}}-\d{{2}}$", changelog_text, re.MULTILINE):
+        errors.append(f"CHANGELOG.md does not contain a dated entry for the current version {version}.")
 
 
 def run_checks(release_mode: bool) -> int:

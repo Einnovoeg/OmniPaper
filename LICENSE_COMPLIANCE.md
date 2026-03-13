@@ -9,6 +9,7 @@ This document defines how OmniPaper satisfies third-party license obligations an
 - `CONTRIBUTORS.md`: upstream contributor credit links for direct code sources and referenced projects.
 - `DEPENDENCIES.md`: build-time and runtime dependency inventory.
 - `LICENSE`: OmniPaper first-party project license (MIT, preserving upstream MIT notice and adding OmniPaper contributors).
+- `CHANGELOG.md`: versioned release history used to generate release notes.
 - `RELEASING.md`: release bundle contents and release-gate commands.
 
 ## 2. Direct Code Sources
@@ -90,9 +91,10 @@ Before publishing firmware binaries:
 
 1. Run `python3 scripts/compliance.py check --release`.
 2. Generate the SPDX SBOM with `python3 scripts/compliance.py sbom --output build/omnipaper.spdx.json`.
-3. Confirm `CODE_PROVENANCE.md`, `THIRD_PARTY_NOTICES.md`, and `CONTRIBUTORS.md` reflect any newly copied, adapted, or referenced third-party code.
-4. Confirm release artifacts include `LICENSE`, `DEPENDENCIES.md`, `CODE_PROVENANCE.md`, `THIRD_PARTY_NOTICES.md`, `CONTRIBUTORS.md`, `LICENSE_COMPLIANCE.md`, `FLASHING.md`, `SHA256SUMS.txt`, `BUILD_INFO.txt`, and the generated SPDX SBOM.
-5. Confirm the published binaries still correspond to source available in this repository for LGPL-covered components.
+3. Generate release notes from the matching changelog entry with `python3 scripts/extract_changelog.py --version <version> --output build/release-notes.md`.
+4. Confirm `CODE_PROVENANCE.md`, `THIRD_PARTY_NOTICES.md`, and `CONTRIBUTORS.md` reflect any newly copied, adapted, or referenced third-party code.
+5. Confirm release artifacts include `LICENSE`, `CHANGELOG.md`, `RELEASE_NOTES.md`, `DEPENDENCIES.md`, `CODE_PROVENANCE.md`, `THIRD_PARTY_NOTICES.md`, `CONTRIBUTORS.md`, `LICENSE_COMPLIANCE.md`, `FLASHING.md`, `SHA256SUMS.txt`, `BUILD_INFO.txt`, and the generated SPDX SBOM.
+6. Confirm the published binaries still correspond to source available in this repository for LGPL-covered components.
 
 ## 7. Verification Commands
 

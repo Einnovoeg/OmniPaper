@@ -14,6 +14,7 @@ OmniPaper is a multi-target e-paper firmware for:
 
 ## Latest Release
 - Open the repository's GitHub Releases page for the latest tagged OmniPaper bundle.
+- Release bundles include the changelog, generated release notes, compliance notices, checksums, and board-specific firmware images.
 
 ## Source Repository
 - Use the repository that contains this wiki checkout.

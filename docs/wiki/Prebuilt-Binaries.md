@@ -2,6 +2,7 @@
 
 Latest prebuilt firmware release:
 - Open the repository's GitHub Releases page for the latest tagged firmware bundle.
+- Each tagged bundle includes `CHANGELOG.md`, generated `RELEASE_NOTES.md`, `SHA256SUMS.txt`, and the SPDX SBOM alongside the board-specific firmware files.
 
 Included assets:
 - `omnipaper-<tag>-m5paper-firmware.bin`

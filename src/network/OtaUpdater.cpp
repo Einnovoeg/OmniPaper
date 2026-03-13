@@ -2,14 +2,22 @@
 
 #include <ArduinoJson.h>
 
+#include <cstdio>
+#include <string>
+
 #include "esp_http_client.h"
 #include "esp_https_ota.h"
 #include "esp_wifi.h"
 
 namespace {
-constexpr char latestReleaseUrl[] = "https://api.github.com/repos/crosspoint-reader/crosspoint-reader/releases/latest";
+#ifndef OMNIPAPER_GITHUB_REPOSITORY
+#define OMNIPAPER_GITHUB_REPOSITORY ""
+#endif
 
-/* This is buffer and size holder to keep upcoming data from latestReleaseUrl */
+constexpr char githubApiBaseUrl[] = "https://api.github.com/repos/";
+constexpr char legacyFirmwareAssetName[] = "firmware.bin";
+
+/* This buffer stores the GitHub Releases API response for the current OTA check. */
 char* local_buf;
 int output_len;
 
@@ -24,6 +32,48 @@ extern esp_err_t esp_crt_bundle_attach(void* conf);
 
 esp_err_t http_client_set_header_cb(esp_http_client_handle_t http_client) {
   return esp_http_client_set_header(http_client, "User-Agent", "OmniPaper-ESP32-" CROSSPOINT_VERSION);
+}
+
+std::string getReleaseRepository() { return OMNIPAPER_GITHUB_REPOSITORY; }
+
+std::string buildLatestReleaseUrl(const std::string& repository) {
+  return std::string(githubApiBaseUrl) + repository + "/releases/latest";
+}
+
+bool endsWith(const std::string& value, const std::string& suffix) {
+  if (suffix.size() > value.size()) {
+    return false;
+  }
+
+  return value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
+std::string expectedFirmwareAssetSuffix() {
+#if defined(PLATFORM_M5PAPERS3)
+  return "-m5papers3-firmware.bin";
+#elif defined(PLATFORM_M5PAPER)
+  return "-m5paper-firmware.bin";
+#else
+  return "-firmware.bin";
+#endif
+}
+
+std::string normalizeVersion(std::string version) {
+  if (!version.empty() && (version.front() == 'v' || version.front() == 'V')) {
+    version.erase(0, 1);
+  }
+
+  const auto firstNonVersionChar = version.find_first_not_of("0123456789.");
+  if (firstNonVersionChar != std::string::npos) {
+    version.erase(firstNonVersionChar);
+  }
+
+  return version;
+}
+
+bool parseSemanticVersion(const std::string& rawVersion, int& major, int& minor, int& patch) {
+  const auto normalized = normalizeVersion(rawVersion);
+  return sscanf(normalized.c_str(), "%d.%d.%d", &major, &minor, &patch) == 3;
 }
 
 esp_err_t event_handler(esp_http_client_event_t* event) {
@@ -63,9 +113,25 @@ OtaUpdater::OtaUpdaterError OtaUpdater::checkForUpdate() {
   JsonDocument filter;
   esp_err_t esp_err;
   JsonDocument doc;
+  const auto releaseRepository = getReleaseRepository();
+  if (releaseRepository.empty()) {
+    Serial.printf("[%lu] [OTA] GitHub release repository is not configured for this build\n", millis());
+    return NO_UPDATE;
+  }
+
+  const auto latestReleaseUrl = buildLatestReleaseUrl(releaseRepository);
+  const auto expectedAssetSuffix = expectedFirmwareAssetSuffix();
+  updateAvailable = false;
+  latestVersion.clear();
+  otaUrl.clear();
+  otaSize = 0;
+  processedSize = 0;
+  totalSize = 0;
+  local_buf = NULL;
+  output_len = 0;
 
   esp_http_client_config_t client_config = {
-      .url = latestReleaseUrl,
+      .url = latestReleaseUrl.c_str(),
       .event_handler = event_handler,
       /* Default HTTP client buffer size 512 byte only */
       .buffer_size = 8192,
@@ -134,19 +200,39 @@ OtaUpdater::OtaUpdaterError OtaUpdater::checkForUpdate() {
   }
 
   latestVersion = doc["tag_name"].as<std::string>();
+  JsonObject fallbackAsset;
 
   for (int i = 0; i < doc["assets"].size(); i++) {
-    if (doc["assets"][i]["name"] == "firmware.bin") {
-      otaUrl = doc["assets"][i]["browser_download_url"].as<std::string>();
-      otaSize = doc["assets"][i]["size"].as<size_t>();
-      totalSize = otaSize;
-      updateAvailable = true;
-      break;
+    const JsonObject asset = doc["assets"][i].as<JsonObject>();
+    if (!asset["name"].is<const char*>()) {
+      continue;
     }
+
+    const std::string assetName = asset["name"].as<std::string>();
+    if (assetName == legacyFirmwareAssetName) {
+      fallbackAsset = asset;
+    }
+
+    if (!endsWith(assetName, expectedAssetSuffix)) {
+      continue;
+    }
+
+    otaUrl = asset["browser_download_url"].as<std::string>();
+    otaSize = asset["size"].as<size_t>();
+    totalSize = otaSize;
+    updateAvailable = true;
+    break;
+  }
+
+  if (!updateAvailable && !fallbackAsset.isNull()) {
+    otaUrl = fallbackAsset["browser_download_url"].as<std::string>();
+    otaSize = fallbackAsset["size"].as<size_t>();
+    totalSize = otaSize;
+    updateAvailable = true;
   }
 
   if (!updateAvailable) {
-    Serial.printf("[%lu] [OTA] No firmware.bin asset found\n", millis());
+    Serial.printf("[%lu] [OTA] No firmware asset found for suffix %s\n", millis(), expectedAssetSuffix.c_str());
     return NO_UPDATE;
   }
 
@@ -159,14 +245,20 @@ bool OtaUpdater::isUpdateNewer() const {
     return false;
   }
 
-  int currentMajor, currentMinor, currentPatch;
-  int latestMajor, latestMinor, latestPatch;
+  int currentMajor = 0;
+  int currentMinor = 0;
+  int currentPatch = 0;
+  int latestMajor = 0;
+  int latestMinor = 0;
+  int latestPatch = 0;
 
-  const auto currentVersion = CROSSPOINT_VERSION;
-
-  // semantic version check (only match on 3 segments)
-  sscanf(latestVersion.c_str(), "%d.%d.%d", &latestMajor, &latestMinor, &latestPatch);
-  sscanf(currentVersion, "%d.%d.%d", &currentMajor, &currentMinor, &currentPatch);
+  const auto currentVersion = std::string(CROSSPOINT_VERSION);
+  if (!parseSemanticVersion(latestVersion, latestMajor, latestMinor, latestPatch) ||
+      !parseSemanticVersion(currentVersion, currentMajor, currentMinor, currentPatch)) {
+    Serial.printf("[%lu] [OTA] Failed to parse semantic versions: latest=%s current=%s\n", millis(),
+                  latestVersion.c_str(), currentVersion.c_str());
+    return false;
+  }
 
   /*
    * Compare major versions.
