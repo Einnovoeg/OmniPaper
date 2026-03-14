@@ -9,12 +9,14 @@
 #include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
+#include "PaperS3Ui.h"
 #include "fontIds.h"
 
 namespace {
 constexpr const char* kLogFile = "/logs/uv.csv";
 constexpr int kMaxEntries = 200;
 constexpr int kItemsPerPage = 8;
+constexpr int kPaperS3ItemsPerPage = 6;
 }
 
 UvLogViewerActivity::UvLogViewerActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,
@@ -28,6 +30,36 @@ void UvLogViewerActivity::onEnter() {
 }
 
 void UvLogViewerActivity::loop() {
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      if (onExitCb) {
+        onExitCb();
+      }
+      return;
+    }
+
+    const int page = selectionIndex / kPaperS3ItemsPerPage;
+    const int start = page * kPaperS3ItemsPerPage;
+    const int end = std::min(start + kPaperS3ItemsPerPage, static_cast<int>(entries.size()));
+    for (int i = start; i < end; i++) {
+      if (PaperS3Ui::listRowRect(renderer, i - start).contains(tapX, tapY)) {
+        selectionIndex = i;
+        needsRender = true;
+        return;
+      }
+    }
+
+    if (PaperS3Ui::primaryActionRect(renderer).contains(tapX, tapY)) {
+      loadLogs();
+      needsRender = true;
+      return;
+    }
+  }
+#endif
+
   if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
     if (onExitCb) {
       onExitCb();
@@ -42,6 +74,23 @@ void UvLogViewerActivity::loop() {
   }
 
   if (!entries.empty()) {
+#if defined(PLATFORM_M5PAPERS3)
+    if (mappedInput.wasPressed(MappedInputManager::Button::Up)) {
+      const int page = selectionIndex / kPaperS3ItemsPerPage;
+      if (page > 0) {
+        selectionIndex = (page - 1) * kPaperS3ItemsPerPage;
+        needsRender = true;
+      }
+    }
+    if (mappedInput.wasPressed(MappedInputManager::Button::Down)) {
+      const int page = selectionIndex / kPaperS3ItemsPerPage;
+      const int nextStart = (page + 1) * kPaperS3ItemsPerPage;
+      if (nextStart < static_cast<int>(entries.size())) {
+        selectionIndex = nextStart;
+        needsRender = true;
+      }
+    }
+#else
     if (mappedInput.wasPressed(MappedInputManager::Button::Up)) {
       selectionIndex = (selectionIndex - 1 + static_cast<int>(entries.size())) % static_cast<int>(entries.size());
       needsRender = true;
@@ -50,6 +99,7 @@ void UvLogViewerActivity::loop() {
       selectionIndex = (selectionIndex + 1) % static_cast<int>(entries.size());
       needsRender = true;
     }
+#endif
   }
 
   if (needsRender) {
@@ -155,6 +205,49 @@ bool UvLogViewerActivity::parseLine(const std::string& line, UvLogEntry& out) co
 
 void UvLogViewerActivity::render() {
   renderer.clearScreen();
+#if defined(PLATFORM_M5PAPERS3)
+  {
+    renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+    PaperS3Ui::drawScreenHeader(renderer, "UV Logs", "Saved AS7331 samples");
+    PaperS3Ui::drawBackButton(renderer);
+
+    if (entries.empty()) {
+      renderer.drawCenteredText(UI_12_FONT_ID, 320, statusMessage.c_str());
+      PaperS3Ui::drawPrimaryActionButton(renderer, "Refresh");
+      renderer.displayBuffer();
+      return;
+    }
+
+    const auto& selected = entries[selectionIndex];
+    char detail[64];
+    snprintf(detail, sizeof(detail), "%s  UVA %.1f  UVB %.1f  UVC %.1f", selected.addr.c_str(), selected.uva,
+             selected.uvb, selected.uvc);
+    PaperS3Ui::drawFooterStatus(renderer, detail);
+
+    const int page = selectionIndex / kPaperS3ItemsPerPage;
+    const int start = page * kPaperS3ItemsPerPage;
+    const int end = std::min(start + kPaperS3ItemsPerPage, static_cast<int>(entries.size()));
+    for (int i = start; i < end; i++) {
+      const auto& e = entries[i];
+      char title[24];
+      snprintf(title, sizeof(title), "%03d %s", i + 1, e.addr.c_str());
+      char subtitle[64];
+      snprintf(subtitle, sizeof(subtitle), "U %.1f / B %.1f / C %.1f / T %.1fC", e.uva, e.uvb, e.uvc, e.tempC);
+      PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, i - start), i == selectionIndex, title, "",
+                             subtitle);
+    }
+
+    PaperS3Ui::drawPrimaryActionButton(renderer, "Refresh");
+    renderer.drawSideButtonHints(UI_10_FONT_ID, start > 0 ? "Prev" : "",
+                                 end < static_cast<int>(entries.size()) ? "Next" : "");
+    char footer[48];
+    snprintf(footer, sizeof(footer), "Showing %d-%d of %d", start + 1, end, static_cast<int>(entries.size()));
+    PaperS3Ui::drawFooter(renderer, footer);
+    renderer.displayBuffer();
+    return;
+  }
+#endif
+
   renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
   renderer.drawCenteredText(UI_12_FONT_ID, 16, "UV Log Viewer");
 

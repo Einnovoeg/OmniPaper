@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
-#include "../Activity.h"
+#include "../ActivityWithSubactivity.h"
 
-class PoodleActivity final : public Activity {
+class PoodleActivity final : public ActivityWithSubactivity {
  public:
   PoodleActivity(GfxRenderer& renderer, MappedInputManager& mappedInput, const std::function<void()>& onExit);
 
@@ -34,6 +34,7 @@ class PoodleActivity final : public Activity {
   void render();
   void drawGrid();
   void drawKeyboardHint();
+  void launchKeyboardEntry();
 
   char nextLetter(char c, int delta) const;
 };

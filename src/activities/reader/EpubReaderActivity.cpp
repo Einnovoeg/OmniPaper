@@ -9,6 +9,7 @@
 #include "CrossPointState.h"
 #include "EpubReaderChapterSelectionActivity.h"
 #include "MappedInputManager.h"
+#include "../apps/PaperS3Ui.h"
 #include "RecentBooksStore.h"
 #include "ScreenComponents.h"
 #include "fontIds.h"
@@ -19,6 +20,17 @@ constexpr unsigned long skipChapterMs = 700;
 constexpr unsigned long goHomeMs = 1000;
 constexpr int statusBarMargin = 19;
 constexpr int progressBarMarginTop = 1;
+
+void drawPaperS3ReaderChrome(GfxRenderer& renderer) {
+#if defined(PLATFORM_M5PAPERS3)
+  PaperS3Ui::drawBackButton(renderer, "Library");
+  PaperS3Ui::drawSideActionButton(renderer, false, "Prev");
+  PaperS3Ui::drawPrimaryActionButton(renderer, "Menu");
+  PaperS3Ui::drawSideActionButton(renderer, true, "Next");
+#else
+  (void)renderer;
+#endif
+}
 
 }  // namespace
 
@@ -34,7 +46,11 @@ void EpubReaderActivity::onEnter() {
     return;
   }
 
-  // Configure screen orientation based on settings
+  // PaperS3 reader UI is portrait-only; legacy boards still follow the reader
+  // orientation setting.
+#if defined(PLATFORM_M5PAPERS3)
+  renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+#else
   switch (SETTINGS.orientation) {
     case CrossPointSettings::ORIENTATION::PORTRAIT:
       renderer.setOrientation(GfxRenderer::Orientation::Portrait);
@@ -51,6 +67,7 @@ void EpubReaderActivity::onEnter() {
     default:
       break;
   }
+#endif
 
   renderingMutex = xSemaphoreCreateMutex();
 
@@ -124,6 +141,27 @@ void EpubReaderActivity::loop() {
     return;
   }
 
+#if defined(PLATFORM_M5PAPERS3)
+  bool tapPrev = false;
+  bool tapNext = false;
+  bool tapMenu = false;
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      onGoBack();
+      return;
+    }
+    tapPrev = PaperS3Ui::sideActionRect(renderer, false).contains(tapX, tapY);
+    tapMenu = PaperS3Ui::primaryActionRect(renderer).contains(tapX, tapY);
+    tapNext = PaperS3Ui::sideActionRect(renderer, true).contains(tapX, tapY);
+  }
+#else
+  constexpr bool tapPrev = false;
+  constexpr bool tapNext = false;
+  constexpr bool tapMenu = false;
+#endif
+
   if (SETTINGS.infoOverlayPosition != CrossPointSettings::OVERLAY_OFF &&
       (millis() - lastOverlayRefreshMs) >= 30000) {
     lastOverlayRefreshMs = millis();
@@ -131,7 +169,7 @@ void EpubReaderActivity::loop() {
   }
 
   // Enter chapter selection activity
-  if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
+  if (mappedInput.wasReleased(MappedInputManager::Button::Confirm) || tapMenu) {
     // Don't start activity transition while rendering
     xSemaphoreTake(renderingMutex, portMAX_DELAY);
     const int currentPage = section ? section->currentPage : 0;
@@ -157,17 +195,17 @@ void EpubReaderActivity::loop() {
 
   // When long-press chapter skip is disabled, turn pages on press instead of release.
   const bool usePressForPageTurn = !SETTINGS.longPressChapterSkip;
-  const bool prevTriggered = usePressForPageTurn ? (mappedInput.wasPressed(MappedInputManager::Button::PageBack) ||
+  const bool prevTriggered = tapPrev || (usePressForPageTurn ? (mappedInput.wasPressed(MappedInputManager::Button::PageBack) ||
                                                     mappedInput.wasPressed(MappedInputManager::Button::Left))
                                                  : (mappedInput.wasReleased(MappedInputManager::Button::PageBack) ||
-                                                    mappedInput.wasReleased(MappedInputManager::Button::Left));
+                                                    mappedInput.wasReleased(MappedInputManager::Button::Left)));
   const bool powerPageTurn = SETTINGS.shortPwrBtn == CrossPointSettings::SHORT_PWRBTN::PAGE_TURN &&
                              mappedInput.wasReleased(MappedInputManager::Button::Power);
-  const bool nextTriggered = usePressForPageTurn
+  const bool nextTriggered = tapNext || (usePressForPageTurn
                                  ? (mappedInput.wasPressed(MappedInputManager::Button::PageForward) || powerPageTurn ||
                                     mappedInput.wasPressed(MappedInputManager::Button::Right))
                                  : (mappedInput.wasReleased(MappedInputManager::Button::PageForward) || powerPageTurn ||
-                                    mappedInput.wasReleased(MappedInputManager::Button::Right));
+                                    mappedInput.wasReleased(MappedInputManager::Button::Right)));
 
   if (!prevTriggered && !nextTriggered) {
     return;
@@ -341,6 +379,7 @@ void EpubReaderActivity::renderScreen() {
   if (currentSpineIndex == epub->getSpineItemsCount()) {
     renderer.clearScreen();
     renderer.drawCenteredText(UI_12_FONT_ID, 300, "End of book", true, EpdFontFamily::BOLD);
+    drawPaperS3ReaderChrome(renderer);
     renderer.displayBuffer();
     return;
   }
@@ -353,6 +392,10 @@ void EpubReaderActivity::renderScreen() {
   orientedMarginLeft += SETTINGS.screenMargin;
   orientedMarginRight += SETTINGS.screenMargin;
   orientedMarginBottom += SETTINGS.screenMargin;
+#if defined(PLATFORM_M5PAPERS3)
+  orientedMarginTop += 56;
+  orientedMarginBottom += 84;
+#endif
 
   // Add status bar margin
   if (SETTINGS.statusBar != CrossPointSettings::STATUS_BAR_MODE::NONE) {
@@ -413,6 +456,7 @@ void EpubReaderActivity::renderScreen() {
     Serial.printf("[%lu] [ERS] No pages to render\n", millis());
     renderer.drawCenteredText(UI_12_FONT_ID, 300, "Empty chapter", true, EpdFontFamily::BOLD);
     renderStatusBar(orientedMarginRight, orientedMarginBottom, orientedMarginLeft);
+    drawPaperS3ReaderChrome(renderer);
     renderer.displayBuffer();
     return;
   }
@@ -421,6 +465,7 @@ void EpubReaderActivity::renderScreen() {
     Serial.printf("[%lu] [ERS] Page out of bounds: %d (max %d)\n", millis(), section->currentPage, section->pageCount);
     renderer.drawCenteredText(UI_12_FONT_ID, 300, "Out of bounds", true, EpdFontFamily::BOLD);
     renderStatusBar(orientedMarginRight, orientedMarginBottom, orientedMarginLeft);
+    drawPaperS3ReaderChrome(renderer);
     renderer.displayBuffer();
     return;
   }
@@ -463,6 +508,7 @@ void EpubReaderActivity::renderContents(std::unique_ptr<Page> page, const int or
   const bool hasImages = page->hasImages();
   page->render(renderer, SETTINGS.getReaderFontId(), orientedMarginLeft, orientedMarginTop);
   renderStatusBar(orientedMarginRight, orientedMarginBottom, orientedMarginLeft);
+  drawPaperS3ReaderChrome(renderer);
   if (pagesUntilFullRefresh <= 1) {
     renderer.displayBuffer(HalDisplay::HALF_REFRESH);
     pagesUntilFullRefresh = SETTINGS.getRefreshFrequency();

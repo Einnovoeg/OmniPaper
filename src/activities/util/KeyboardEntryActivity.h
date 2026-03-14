@@ -95,5 +95,5 @@ class KeyboardEntryActivity : public Activity {
   void handleKeyPress();
   int getRowLength(int row) const;
   void render() const;
-  void renderItemWithSelector(int x, int y, const char* item, bool isSelected) const;
+  void renderItemWithSelector(int x, int y, int width, int height, const char* item, bool isSelected) const;
 };

@@ -36,7 +36,8 @@ constexpr WebUiAppEntry WEB_UI_APPS[] = {
     {"image-viewer", "Image Viewer"},
     {"drawing", "Drawing"},             {"notes", "Notes"},
     {"calculator", "Calculator"},       {"poodle", "Poodle"},
-    {"sudoku", "Sudoku"},               {"file-manager", "File Manager"},
+    {"sudoku", "Sudoku"},               {"tetris", "Tetris"},
+    {"file-manager", "File Manager"},
     {"hardware-test", "Hardware Test"}};
 constexpr size_t WEB_UI_APPS_COUNT = sizeof(WEB_UI_APPS) / sizeof(WEB_UI_APPS[0]);
 

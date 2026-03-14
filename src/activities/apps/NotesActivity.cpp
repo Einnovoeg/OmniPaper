@@ -5,6 +5,7 @@
 #include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
+#include "PaperS3Ui.h"
 #include "activities/util/KeyboardEntryActivity.h"
 #include "fontIds.h"
 
@@ -81,6 +82,23 @@ void NotesActivity::loop() {
     return;
   }
 
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      if (onExit) {
+        onExit();
+      }
+      return;
+    }
+    if (PaperS3Ui::primaryActionRect(renderer).contains(tapX, tapY)) {
+      startEdit();
+      return;
+    }
+  }
+#endif
+
   if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
     if (onExit) {
       onExit();
@@ -135,27 +153,30 @@ void NotesActivity::startEdit() {
 
 void NotesActivity::render() {
   renderer.clearScreen();
-  renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
+  renderer.setOrientation(GfxRenderer::Orientation::Portrait);
 
-  renderer.drawCenteredText(UI_12_FONT_ID, 16, "Notes");
+  PaperS3Ui::drawScreenHeader(renderer, "Notes");
+  PaperS3Ui::drawBackButton(renderer);
 
   if (!SdMan.ready()) {
     renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() / 2, "SD card not ready");
-    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24, "Back: Menu");
+    PaperS3Ui::drawFooter(renderer, "SD card required");
     renderer.displayBuffer();
     return;
   }
 
+  renderer.drawRect(24, 112, 492, 700);
   if (noteText.empty()) {
     renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() / 2, "No notes yet");
   } else {
     const int left = 40;
-    const int top = 60;
+    const int top = 132;
     const int maxWidth = renderer.getScreenWidth() - 80;
-    const int maxLines = (renderer.getScreenHeight() - 120) / renderer.getLineHeight(UI_10_FONT_ID);
+    const int maxLines = 26;
     drawWrappedText(renderer, UI_10_FONT_ID, left, top, maxWidth, noteText, maxLines);
   }
 
-  renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24, "Confirm: Edit   Back: Menu");
+  PaperS3Ui::drawPrimaryActionButton(renderer, noteText.empty() ? "Add Note" : "Edit Note");
+  PaperS3Ui::drawFooter(renderer, "Tap Edit to open the keyboard");
   renderer.displayBuffer();
 }

@@ -25,6 +25,15 @@ USERS_PREFIX = "/" + "Users/"
 VOLUMES_PREFIX = "/" + "Volumes/"
 DONATION_HOST = "buy" + "meacoffee.com/"
 OWNER_PLACEHOLDER = "<" + "OWNER_OR_ORG" + ">"
+SANCTIONED_PERSONAL_TEXT = {
+    "README.md": (
+        "https://buymeacoffee.com/einnovoeg",
+        "buymeacoffee.com/einnovoeg",
+    ),
+    ".github/FUNDING.yml": (
+        "buy_me_a_coffee: einnovoeg",
+    ),
+}
 
 REQUIRED_RELEASE_FILES = (
     "README.md",
@@ -189,6 +198,22 @@ def load_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def strip_sanctioned_personal_references(relative_path: str, text: str) -> str:
+    tokens = list(SANCTIONED_PERSONAL_TEXT.get(relative_path, ()))
+
+    # The compliance checker intentionally contains the sanctioned allowlist
+    # values, so strip them from the script source before running the generic
+    # personal-identifier scan against this file.
+    if relative_path == "scripts/compliance.py":
+        tokens.append(DONATION_HOST)
+        for sanctioned_tokens in SANCTIONED_PERSONAL_TEXT.values():
+            tokens.extend(sanctioned_tokens)
+
+    for token in sorted(set(tokens), key=len, reverse=True):
+        text = text.replace(token, "")
+    return text
+
+
 def extract_urls(text: str) -> set[str]:
     urls: set[str] = set()
     for match in re.findall(r"https?://[^\s<>)|]+", text):
@@ -304,7 +329,7 @@ def check_personal_identifiers(errors: list[str]) -> None:
         relative_path = path.relative_to(ROOT).as_posix()
         if should_skip_identifier_scan(relative_path) or is_probably_binary(path):
             continue
-        text = load_text(path)
+        text = strip_sanctioned_personal_references(relative_path, load_text(path))
         for pattern, description in pii_patterns:
             match = pattern.search(text)
             if match:

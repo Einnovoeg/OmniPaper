@@ -11,6 +11,7 @@
 #include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
+#include "PaperS3Ui.h"
 #include "activities/util/KeyboardEntryActivity.h"
 #include "fontIds.h"
 
@@ -152,6 +153,45 @@ void UartRxMonitorActivity::loop() {
     return;
   }
 
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      if (onExitCb) {
+        onExitCb();
+      }
+      return;
+    }
+
+    if (PaperS3Ui::listRowRect(renderer, 0).contains(tapX, tapY)) {
+      promptBaud();
+      return;
+    }
+    if (PaperS3Ui::listRowRect(renderer, 1).contains(tapX, tapY)) {
+      promptRxPin();
+      return;
+    }
+    if (PaperS3Ui::sideActionRect(renderer, false).contains(tapX, tapY)) {
+      lines.clear();
+      currentLine.clear();
+      statusMessage = "Cleared";
+      needsRender = true;
+      return;
+    }
+    if (PaperS3Ui::primaryActionRect(renderer).contains(tapX, tapY)) {
+      if (listening) {
+        stopListening();
+        statusMessage = "Paused";
+      } else {
+        startListening();
+      }
+      needsRender = true;
+      return;
+    }
+  }
+#endif
+
   if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
     if (onExitCb) {
       onExitCb();
@@ -192,6 +232,45 @@ void UartRxMonitorActivity::loop() {
 
 void UartRxMonitorActivity::render() {
   renderer.clearScreen();
+#if defined(PLATFORM_M5PAPERS3)
+  {
+    renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+    PaperS3Ui::drawScreenHeader(renderer, "UART RX", listening ? "Listening" : "Paused");
+    PaperS3Ui::drawBackButton(renderer);
+
+    char baudLine[32];
+    snprintf(baudLine, sizeof(baudLine), "%d baud", baudRate);
+    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, 0), false, "Baud Rate", baudLine,
+                           "Tap row to edit");
+
+    char rxLine[24];
+    snprintf(rxLine, sizeof(rxLine), "GPIO%d", rxPin);
+    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, 1), false, "RX Pin", rxLine,
+                           "Tap row to edit");
+    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, 2), false, "State",
+                           listening ? "Listening" : "Paused");
+
+    const int maxRows = 4;
+    const int start = std::max(0, static_cast<int>(lines.size()) - maxRows);
+    for (int i = 0; i < maxRows; i++) {
+      const int lineIndex = start + i;
+      if (lineIndex >= static_cast<int>(lines.size())) {
+        break;
+      }
+      PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, i + 3), false, lines[lineIndex].c_str());
+    }
+
+    PaperS3Ui::drawSideActionButton(renderer, false, "Clear");
+    PaperS3Ui::drawPrimaryActionButton(renderer, listening ? "Pause" : "Listen");
+    if (!statusMessage.empty()) {
+      PaperS3Ui::drawFooterStatus(renderer, statusMessage.c_str());
+    }
+    PaperS3Ui::drawFooter(renderer, "Tap Baud or RX Pin to open the keyboard");
+    renderer.displayBuffer();
+    return;
+  }
+#endif
+
   renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
   renderer.drawCenteredText(UI_12_FONT_ID, 16, "UART RX Monitor");
 

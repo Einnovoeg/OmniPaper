@@ -16,11 +16,23 @@
 #include "MappedInputManager.h"
 #include "RecentBooksStore.h"
 #include "XtcReaderChapterSelectionActivity.h"
+#include "../apps/PaperS3Ui.h"
 #include "fontIds.h"
 
 namespace {
 constexpr unsigned long skipPageMs = 700;
 constexpr unsigned long goHomeMs = 1000;
+
+void drawPaperS3ReaderChrome(GfxRenderer& renderer) {
+#if defined(PLATFORM_M5PAPERS3)
+  PaperS3Ui::drawBackButton(renderer, "Library");
+  PaperS3Ui::drawSideActionButton(renderer, false, "Prev");
+  PaperS3Ui::drawPrimaryActionButton(renderer, "Menu");
+  PaperS3Ui::drawSideActionButton(renderer, true, "Next");
+#else
+  (void)renderer;
+#endif
+}
 }  // namespace
 
 void XtcReaderActivity::taskTrampoline(void* param) {
@@ -34,6 +46,8 @@ void XtcReaderActivity::onEnter() {
   if (!xtc) {
     return;
   }
+
+  renderer.setOrientation(GfxRenderer::Orientation::Portrait);
 
   renderingMutex = xSemaphoreCreateMutex();
 
@@ -61,6 +75,8 @@ void XtcReaderActivity::onEnter() {
 void XtcReaderActivity::onExit() {
   ActivityWithSubactivity::onExit();
 
+  renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+
   // Wait until not rendering to delete task
   xSemaphoreTake(renderingMutex, portMAX_DELAY);
   if (displayTaskHandle) {
@@ -79,8 +95,29 @@ void XtcReaderActivity::loop() {
     return;
   }
 
+#if defined(PLATFORM_M5PAPERS3)
+  bool tapPrev = false;
+  bool tapNext = false;
+  bool tapMenu = false;
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      onGoBack();
+      return;
+    }
+    tapPrev = PaperS3Ui::sideActionRect(renderer, false).contains(tapX, tapY);
+    tapMenu = PaperS3Ui::primaryActionRect(renderer).contains(tapX, tapY);
+    tapNext = PaperS3Ui::sideActionRect(renderer, true).contains(tapX, tapY);
+  }
+#else
+  constexpr bool tapPrev = false;
+  constexpr bool tapNext = false;
+  constexpr bool tapMenu = false;
+#endif
+
   // Enter chapter selection activity
-  if (mappedInput.wasReleased(MappedInputManager::Button::Confirm)) {
+  if (mappedInput.wasReleased(MappedInputManager::Button::Confirm) || tapMenu) {
     if (xtc && xtc->hasChapters() && !xtc->getChapters().empty()) {
       xSemaphoreTake(renderingMutex, portMAX_DELAY);
       exitActivity();
@@ -113,17 +150,17 @@ void XtcReaderActivity::loop() {
 
   // When long-press chapter skip is disabled, turn pages on press instead of release.
   const bool usePressForPageTurn = !SETTINGS.longPressChapterSkip;
-  const bool prevTriggered = usePressForPageTurn ? (mappedInput.wasPressed(MappedInputManager::Button::PageBack) ||
+  const bool prevTriggered = tapPrev || (usePressForPageTurn ? (mappedInput.wasPressed(MappedInputManager::Button::PageBack) ||
                                                     mappedInput.wasPressed(MappedInputManager::Button::Left))
                                                  : (mappedInput.wasReleased(MappedInputManager::Button::PageBack) ||
-                                                    mappedInput.wasReleased(MappedInputManager::Button::Left));
+                                                    mappedInput.wasReleased(MappedInputManager::Button::Left)));
   const bool powerPageTurn = SETTINGS.shortPwrBtn == CrossPointSettings::SHORT_PWRBTN::PAGE_TURN &&
                              mappedInput.wasReleased(MappedInputManager::Button::Power);
-  const bool nextTriggered = usePressForPageTurn
+  const bool nextTriggered = tapNext || (usePressForPageTurn
                                  ? (mappedInput.wasPressed(MappedInputManager::Button::PageForward) || powerPageTurn ||
                                     mappedInput.wasPressed(MappedInputManager::Button::Right))
                                  : (mappedInput.wasReleased(MappedInputManager::Button::PageForward) || powerPageTurn ||
-                                    mappedInput.wasReleased(MappedInputManager::Button::Right));
+                                    mappedInput.wasReleased(MappedInputManager::Button::Right)));
 
   if (!prevTriggered && !nextTriggered) {
     return;
@@ -177,6 +214,7 @@ void XtcReaderActivity::renderScreen() {
     // Show end of book screen
     renderer.clearScreen();
     renderer.drawCenteredText(UI_12_FONT_ID, 300, "End of book", true, EpdFontFamily::BOLD);
+    drawPaperS3ReaderChrome(renderer);
     renderer.displayBuffer();
     return;
   }
@@ -206,6 +244,7 @@ void XtcReaderActivity::renderPage() {
     Serial.printf("[%lu] [XTR] Failed to allocate page buffer (%lu bytes)\n", millis(), pageBufferSize);
     renderer.clearScreen();
     renderer.drawCenteredText(UI_12_FONT_ID, 300, "Memory error", true, EpdFontFamily::BOLD);
+    drawPaperS3ReaderChrome(renderer);
     renderer.displayBuffer();
     return;
   }
@@ -217,6 +256,7 @@ void XtcReaderActivity::renderPage() {
     free(pageBuffer);
     renderer.clearScreen();
     renderer.drawCenteredText(UI_12_FONT_ID, 300, "Page load error", true, EpdFontFamily::BOLD);
+    drawPaperS3ReaderChrome(renderer);
     renderer.displayBuffer();
     return;
   }
@@ -275,6 +315,7 @@ void XtcReaderActivity::renderPage() {
     }
 
     // Display BW with conditional refresh based on pagesUntilFullRefresh
+    drawPaperS3ReaderChrome(renderer);
     if (pagesUntilFullRefresh <= 1) {
       renderer.displayBuffer(HalDisplay::HALF_REFRESH);
       pagesUntilFullRefresh = SETTINGS.getRefreshFrequency();
@@ -355,6 +396,7 @@ void XtcReaderActivity::renderPage() {
   // XTC pages already have status bar pre-rendered, no need to add our own
 
   // Display with appropriate refresh
+  drawPaperS3ReaderChrome(renderer);
   if (pagesUntilFullRefresh <= 1) {
     renderer.displayBuffer(HalDisplay::HALF_REFRESH);
     pagesUntilFullRefresh = SETTINGS.getRefreshFrequency();

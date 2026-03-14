@@ -74,6 +74,16 @@ bool MappedInputManager::wasAnyReleased() const { return gpio.wasAnyReleased(); 
 
 unsigned long MappedInputManager::getHeldTime() const { return gpio.getHeldTime(); }
 
+bool MappedInputManager::hasTouchSupport() const { return gpio.hasTouchSupport(); }
+
+bool MappedInputManager::isTouchPressed() const { return gpio.isTouchPressed(); }
+
+uint16_t MappedInputManager::getTouchX() const { return gpio.getTouchX(); }
+
+uint16_t MappedInputManager::getTouchY() const { return gpio.getTouchY(); }
+
+bool MappedInputManager::wasTapped() const { return gpio.wasTapped(); }
+
 MappedInputManager::Labels MappedInputManager::mapLabels(const char* back, const char* confirm, const char* previous,
                                                          const char* next) const {
   const auto layout = static_cast<CrossPointSettings::FRONT_BUTTON_LAYOUT>(SETTINGS.frontButtonLayout);

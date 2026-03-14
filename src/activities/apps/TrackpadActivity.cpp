@@ -314,6 +314,10 @@ void TrackpadActivity::sendScrollStep(const int step) {
 
 void TrackpadActivity::handleTouch() {
 #ifdef PLATFORM_M5PAPER
+  if (!M5.Touch.isEnabled()) {
+    return;
+  }
+
   const auto detail = M5.Touch.getDetail();
   const bool pressed = detail.isPressed();
 

@@ -22,10 +22,9 @@ print(parser.get("omnipaper", "version").strip())
 PY
 )" --output build/release-notes.md
 pio run -e m5papers3_release
-pio run -e m5paper_release
 ```
 
-3. Create an annotated tag that matches the version, for example `git tag -a 0.17.0 -m "OmniPaper 0.17.0"`.
+3. Create an annotated tag that matches the version, for example `git tag -a 0.18.0 -m "OmniPaper 0.18.0"`.
 4. Push the commit and tag with `git push origin main --follow-tags`.
 
 ## Release Bundle Contents
@@ -33,8 +32,7 @@ pio run -e m5paper_release
 The tag workflow packages and publishes:
 
 - `omnipaper-<tag>-m5papers3-firmware.bin`
-- `omnipaper-<tag>-m5paper-firmware.bin`
-- board-specific `bootloader.bin`, `partitions.bin`, `firmware.elf`, and `firmware.map`
+- PaperS3 `bootloader.bin`, `partitions.bin`, `firmware.elf`, and `firmware.map`
 - `README.md`
 - `LICENSE`
 - `CHANGELOG.md`
@@ -51,7 +49,7 @@ The tag workflow packages and publishes:
 
 ## Notes
 
-- `m5papers3_release` is the primary release target.
-- `lilygo_epd47` remains a bring-up target and is not bundled by default in tagged releases.
+- `m5papers3_release` is the published release target.
+- `m5paper` and `lilygo_epd47` remain source-build targets and are not bundled by default in tagged releases.
 - OTA release checks use the repository slug detected at build time from CI or the local `origin` remote, so release builds point at the correct OmniPaper GitHub Releases feed without hardcoding a maintainer identity in source files.
 - The workflow uploads the assembled bundle as a GitHub Actions artifact named `OmniPaper-<tag>` and publishes the same files to the matching GitHub Release.

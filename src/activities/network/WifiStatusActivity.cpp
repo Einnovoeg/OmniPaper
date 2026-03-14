@@ -5,6 +5,7 @@
 #include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
+#include "activities/apps/PaperS3Ui.h"
 #include "activities/network/WifiSelectionActivity.h"
 #include "fontIds.h"
 
@@ -22,6 +23,24 @@ void WifiStatusActivity::loop() {
     ActivityWithSubactivity::loop();
     return;
   }
+
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      if (onExit) {
+        onExit();
+      }
+      return;
+    }
+
+    if (WiFi.status() != WL_CONNECTED && PaperS3Ui::primaryActionRect(renderer).contains(tapX, tapY)) {
+      launchWifiSelection();
+      return;
+    }
+  }
+#endif
 
   if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
     if (onExit) {
@@ -54,6 +73,46 @@ void WifiStatusActivity::launchWifiSelection() {
 
 void WifiStatusActivity::render() {
   renderer.clearScreen();
+#if defined(PLATFORM_M5PAPERS3)
+  {
+    renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+    PaperS3Ui::drawScreenHeader(renderer, "WiFi Status",
+                                WiFi.status() == WL_CONNECTED ? "Connected" : "Not connected");
+    PaperS3Ui::drawBackButton(renderer);
+
+    if (WiFi.status() != WL_CONNECTED) {
+      renderer.drawCenteredText(UI_12_FONT_ID, 320, "No active WiFi connection");
+      renderer.drawCenteredText(UI_10_FONT_ID, 352, "Tap Connect to choose a network");
+      PaperS3Ui::drawPrimaryActionButton(renderer, "Connect");
+      PaperS3Ui::drawFooter(renderer, "Touchscreen navigation only");
+      renderer.displayBuffer();
+      return;
+    }
+
+    const String ssid = WiFi.SSID();
+    const String ip = WiFi.localIP().toString();
+    const String gw = WiFi.gatewayIP().toString();
+    const String dns = WiFi.dnsIP().toString();
+    const String mac = WiFi.macAddress();
+    const int rssi = WiFi.RSSI();
+
+    const char* titles[] = {"SSID", "IP Address", "Gateway", "DNS", "MAC", "Signal"};
+    std::string values[] = {ssid.c_str(), ip.c_str(), gw.c_str(), dns.c_str(), mac.c_str(), ""};
+    char rssiLine[32];
+    snprintf(rssiLine, sizeof(rssiLine), "%d dBm", rssi);
+    values[5] = rssiLine;
+
+    for (int i = 0; i < 6; i++) {
+      const auto rect = PaperS3Ui::listRowRect(renderer, i);
+      PaperS3Ui::drawListRow(renderer, rect, false, titles[i], values[i].c_str());
+    }
+
+    PaperS3Ui::drawFooter(renderer, "Tap Back to return");
+    renderer.displayBuffer();
+    return;
+  }
+#endif
+
   renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
   renderer.drawCenteredText(UI_12_FONT_ID, 16, "WiFi Status");
 

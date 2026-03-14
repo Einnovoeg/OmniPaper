@@ -36,6 +36,7 @@ class SensorsActivity final : public Activity {
     int batteryMv = 0;
     int32_t batteryCurrentMa = 0;
     int vbusMv = 0;
+    bool usbCablePresent = false;
     bool charging = false;
     bool rtcAvailable = false;
     bool speakerAvailable = false;

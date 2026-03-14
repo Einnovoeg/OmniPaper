@@ -2,6 +2,8 @@
 
 #include <Utf8.h>
 
+#include "../../src/fontIds.h"
+
 void GfxRenderer::insertFont(const int fontId, EpdFontFamily font) { fontMap.insert({fontId, font}); }
 
 void GfxRenderer::rotateCoordinates(const int x, const int y, int* rotatedX, int* rotatedY) const {
@@ -493,23 +495,69 @@ void GfxRenderer::drawButtonHints(const int fontId, const char* btn1, const char
   const Orientation orig_orientation = getOrientation();
   setOrientation(Orientation::Portrait);
 
+#if defined(PLATFORM_M5PAPERS3)
+  const int portraitWidth = getScreenWidth();
+  const int portraitHeight = getScreenHeight();
+  const bool portraitWide = portraitWidth >= 520;
+  const int portraitFontId =
+      portraitWide
+          ? ((fontId == SMALL_FONT_ID) ? UI_10_FONT_ID : (fontId == UI_10_FONT_ID) ? UI_12_FONT_ID : fontId)
+          : fontId;
+
+  auto drawChip = [&](const int x, const int y, const int width, const int height, const char* label) {
+    if (label == nullptr || label[0] == '\0') {
+      return;
+    }
+
+    fillRect(x, y, width, height, false);
+    drawRect(x, y, width, height);
+    const int textWidth = getTextWidth(portraitFontId, label);
+    const int textX = x + (width - textWidth) / 2;
+    const int textY = y + (height - getLineHeight(portraitFontId)) / 2;
+    drawText(portraitFontId, textX, textY, label);
+  };
+
+  const int backWidth = portraitWide ? 112 : 96;
+  const int backHeight = portraitWide ? 46 : 40;
+  drawChip(portraitWidth - backWidth - 20, 18, backWidth, backHeight, btn1);
+
+  const int bottomY = portraitHeight - 98;
+  const int actionHeight = portraitWide ? 54 : 46;
+  const int leftWidth = portraitWide ? 160 : 132;
+  const int centerWidth = portraitWide ? 220 : 180;
+  const int rightWidth = leftWidth;
+  drawChip(24, bottomY, leftWidth, actionHeight, btn3);
+  drawChip((portraitWidth - centerWidth) / 2, bottomY, centerWidth, actionHeight, btn2);
+  drawChip(portraitWidth - rightWidth - 24, bottomY, rightWidth, actionHeight, btn4);
+
+  setOrientation(orig_orientation);
+  return;
+#endif
+
+  const int pageWidth = getScreenWidth();
   const int pageHeight = getScreenHeight();
-  constexpr int buttonWidth = 106;
-  constexpr int buttonHeight = 40;
-  constexpr int buttonY = 40;     // Distance from bottom
-  constexpr int textYOffset = 7;  // Distance from top of button to text baseline
-  constexpr int buttonPositions[] = {25, 130, 245, 350};
+  const bool widePortrait = pageWidth >= 520;
+  const int resolvedFontId =
+      widePortrait ? ((fontId == SMALL_FONT_ID) ? UI_10_FONT_ID : (fontId == UI_10_FONT_ID) ? UI_12_FONT_ID : fontId)
+                   : fontId;
+  const int sideMargin = widePortrait ? 18 : 25;
+  const int buttonGap = widePortrait ? 12 : 10;
+  const int buttonWidth = (pageWidth - sideMargin * 2 - buttonGap * 3) / 4;
+  const int buttonHeight = widePortrait ? 50 : 40;
+  const int buttonY = widePortrait ? 58 : 40;
   const char* labels[] = {btn1, btn2, btn3, btn4};
+  const int lineHeight = getLineHeight(resolvedFontId);
+  const int textYOffset = (buttonHeight - lineHeight) / 2;
 
   for (int i = 0; i < 4; i++) {
     // Only draw if the label is non-empty
     if (labels[i] != nullptr && labels[i][0] != '\0') {
-      const int x = buttonPositions[i];
+      const int x = sideMargin + i * (buttonWidth + buttonGap);
       fillRect(x, pageHeight - buttonY, buttonWidth, buttonHeight, false);
       drawRect(x, pageHeight - buttonY, buttonWidth, buttonHeight);
-      const int textWidth = getTextWidth(fontId, labels[i]);
+      const int textWidth = getTextWidth(resolvedFontId, labels[i]);
       const int textX = x + (buttonWidth - 1 - textWidth) / 2;
-      drawText(fontId, textX, pageHeight - buttonY + textYOffset, labels[i]);
+      drawText(resolvedFontId, textX, pageHeight - buttonY + textYOffset, labels[i]);
     }
   }
 
@@ -517,6 +565,38 @@ void GfxRenderer::drawButtonHints(const int fontId, const char* btn1, const char
 }
 
 void GfxRenderer::drawSideButtonHints(const int fontId, const char* topBtn, const char* bottomBtn) const {
+#if defined(PLATFORM_M5PAPERS3)
+  const Orientation orig_orientation = const_cast<GfxRenderer*>(this)->getOrientation();
+  const_cast<GfxRenderer*>(this)->setOrientation(Orientation::Portrait);
+
+  auto* self = const_cast<GfxRenderer*>(this);
+  const int portraitWidth = self->getScreenWidth();
+  const bool portraitWide = portraitWidth >= 520;
+  const int portraitFontId =
+      portraitWide
+          ? ((fontId == SMALL_FONT_ID) ? UI_10_FONT_ID : (fontId == UI_10_FONT_ID) ? UI_12_FONT_ID : fontId)
+          : fontId;
+
+  auto drawChip = [&](const int x, const int y, const int width, const int height, const char* label) {
+    if (label == nullptr || label[0] == '\0') {
+      return;
+    }
+
+    self->fillRect(x, y, width, height, false);
+    self->drawRect(x, y, width, height);
+    const int textWidth = self->getTextWidth(portraitFontId, label);
+    const int textX = x + (width - textWidth) / 2;
+    const int textY = y + (height - self->getLineHeight(portraitFontId)) / 2;
+    self->drawText(portraitFontId, textX, textY, label);
+  };
+
+  drawChip(24, 232, 112, 56, topBtn);
+  drawChip(portraitWidth - 24 - 112, 232, 112, 56, bottomBtn);
+
+  self->setOrientation(orig_orientation);
+  return;
+#endif
+
   const int screenWidth = getScreenWidth();
   constexpr int buttonWidth = 40;   // Width on screen (height when rotated)
   constexpr int buttonHeight = 80;  // Height on screen (width when rotated)

@@ -244,8 +244,6 @@ void MyLibraryActivity::taskTrampoline(void* param) {
 void MyLibraryActivity::onEnter() {
   Activity::onEnter();
 
-  renderingMutex = xSemaphoreCreateMutex();
-
   // Load data for both tabs
   loadRecentBooks();
   loadFiles();
@@ -257,19 +255,23 @@ void MyLibraryActivity::onEnter() {
   selectorIndex = 0;
   updateRequired = true;
 
+#if !defined(PLATFORM_M5PAPERS3)
+  renderingMutex = xSemaphoreCreateMutex();
   xTaskCreate(&MyLibraryActivity::taskTrampoline, "MyLibraryActivityTask",
               4096,               // Stack size (increased for epub metadata loading)
               this,               // Parameters
               1,                  // Priority
               &displayTaskHandle  // Task handle
   );
+#endif
 }
 
 void MyLibraryActivity::onExit() {
   Activity::onExit();
 
-  // Wait until not rendering to delete task to avoid killing mid-instruction to
-  // EPD
+#if !defined(PLATFORM_M5PAPERS3)
+  // PaperS3 renders inline in the main loop so the library view cannot race
+  // against a separate UI task while touch navigation is active.
   xSemaphoreTake(renderingMutex, portMAX_DELAY);
   if (displayTaskHandle) {
     vTaskDelete(displayTaskHandle);
@@ -277,6 +279,7 @@ void MyLibraryActivity::onExit() {
   }
   vSemaphoreDelete(renderingMutex);
   renderingMutex = nullptr;
+#endif
 
   files.clear();
   invalidateFilePreview();
@@ -399,6 +402,13 @@ void MyLibraryActivity::loop() {
     }
     updateRequired = true;
   }
+
+#if defined(PLATFORM_M5PAPERS3)
+  if (updateRequired) {
+    render();
+    updateRequired = false;
+  }
+#endif
 }
 
 void MyLibraryActivity::displayTaskLoop() {

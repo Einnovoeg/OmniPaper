@@ -8,11 +8,13 @@
 #include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
+#include "activities/apps/PaperS3Ui.h"
 #include "fontIds.h"
 #include "util/TimeUtils.h"
 
 namespace {
 constexpr int kItemsPerPage = 12;
+constexpr int kPaperS3ItemsPerPage = 6;
 constexpr const char* kLogDir = "/logs";
 constexpr const char* kLogFile = "/logs/wifi_scan.csv";
 }
@@ -33,14 +35,19 @@ void WifiScannerActivity::onEnter() {
 void WifiScannerActivity::onExit() {
   Activity::onExit();
   WiFi.scanDelete();
-  WiFi.mode(WIFI_OFF);
+  if (WiFi.status() != WL_CONNECTED) {
+    WiFi.mode(WIFI_OFF);
+  }
 }
 
 void WifiScannerActivity::startScan() {
+  WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
+  WiFi.setSleep(false);
+  WiFi.disconnect(false, true);
   WiFi.scanDelete();
-  WiFi.scanNetworks(true);
+  delay(150);
+  WiFi.scanNetworks(true, true);
   scanning = true;
 }
 
@@ -67,6 +74,43 @@ void WifiScannerActivity::collectResults() {
 }
 
 void WifiScannerActivity::loop() {
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      if (onExitCb) {
+        onExitCb();
+      }
+      return;
+    }
+
+    if (!scanning) {
+      const int page = selectionIndex / kPaperS3ItemsPerPage;
+      const int start = page * kPaperS3ItemsPerPage;
+      const int end = std::min(start + kPaperS3ItemsPerPage, static_cast<int>(networks.size()));
+      for (int i = start; i < end; i++) {
+        if (PaperS3Ui::listRowRect(renderer, i - start).contains(tapX, tapY)) {
+          selectionIndex = i;
+          needsRender = true;
+          return;
+        }
+      }
+
+      if (PaperS3Ui::sideActionRect(renderer, false).contains(tapX, tapY)) {
+        saveResults();
+        needsRender = true;
+        return;
+      }
+      if (PaperS3Ui::primaryActionRect(renderer).contains(tapX, tapY)) {
+        startScan();
+        needsRender = true;
+        return;
+      }
+    }
+  }
+#endif
+
   if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
     if (onExitCb) {
       onExitCb();
@@ -82,6 +126,23 @@ void WifiScannerActivity::loop() {
       needsRender = true;
       return;
     }
+#if defined(PLATFORM_M5PAPERS3)
+    if (mappedInput.wasPressed(MappedInputManager::Button::Up) && !networks.empty()) {
+      const int page = selectionIndex / kPaperS3ItemsPerPage;
+      if (page > 0) {
+        selectionIndex = (page - 1) * kPaperS3ItemsPerPage;
+        needsRender = true;
+      }
+    }
+    if (mappedInput.wasPressed(MappedInputManager::Button::Down) && !networks.empty()) {
+      const int page = selectionIndex / kPaperS3ItemsPerPage;
+      const int nextStart = (page + 1) * kPaperS3ItemsPerPage;
+      if (nextStart < static_cast<int>(networks.size())) {
+        selectionIndex = nextStart;
+        needsRender = true;
+      }
+    }
+#else
     if (mappedInput.wasPressed(MappedInputManager::Button::Right)) {
       saveResults();
       needsRender = true;
@@ -97,6 +158,7 @@ void WifiScannerActivity::loop() {
         needsRender = true;
       }
     }
+#endif
   }
 
   if (needsRender) {
@@ -141,6 +203,53 @@ void WifiScannerActivity::saveResults() {
 
 void WifiScannerActivity::render() {
   renderer.clearScreen();
+#if defined(PLATFORM_M5PAPERS3)
+  {
+    renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+    PaperS3Ui::drawScreenHeader(renderer, "WiFi Scan", scanning ? "Scanning" : "Nearby networks");
+    PaperS3Ui::drawBackButton(renderer);
+
+    if (scanning) {
+      renderer.drawCenteredText(UI_12_FONT_ID, 320, "Scanning...");
+      PaperS3Ui::drawFooter(renderer, "Tap Back to cancel");
+      renderer.displayBuffer();
+      return;
+    }
+
+    if (networks.empty()) {
+      renderer.drawCenteredText(UI_12_FONT_ID, 320, "No networks found");
+      PaperS3Ui::drawPrimaryActionButton(renderer, "Rescan");
+      PaperS3Ui::drawFooter(renderer, "Touch Rescan to try again");
+      renderer.displayBuffer();
+      return;
+    }
+
+    const int page = selectionIndex / kPaperS3ItemsPerPage;
+    const int start = page * kPaperS3ItemsPerPage;
+    const int end = std::min(start + kPaperS3ItemsPerPage, static_cast<int>(networks.size()));
+    for (int i = start; i < end; i++) {
+      char subtitle[64];
+      snprintf(subtitle, sizeof(subtitle), "%ddBm  ch%d  %s", networks[i].rssi, networks[i].channel,
+               networks[i].open ? "open" : "secure");
+      PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, i - start), i == selectionIndex,
+                             networks[i].ssid.c_str(), "", subtitle);
+    }
+
+    PaperS3Ui::drawSideActionButton(renderer, false, "Save");
+    PaperS3Ui::drawPrimaryActionButton(renderer, "Rescan");
+    renderer.drawSideButtonHints(UI_10_FONT_ID, start > 0 ? "Prev" : "",
+                                 end < static_cast<int>(networks.size()) ? "Next" : "");
+    if (!statusMessage.empty()) {
+      PaperS3Ui::drawFooterStatus(renderer, statusMessage.c_str());
+    }
+    char footer[48];
+    snprintf(footer, sizeof(footer), "Showing %d-%d of %d", start + 1, end, static_cast<int>(networks.size()));
+    PaperS3Ui::drawFooter(renderer, footer);
+    renderer.displayBuffer();
+    return;
+  }
+#endif
+
   renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
   renderer.drawCenteredText(UI_12_FONT_ID, 16, "WiFi Scan");
 

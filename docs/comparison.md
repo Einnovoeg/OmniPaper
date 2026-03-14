@@ -6,14 +6,10 @@ features which both firmwares support.
 
 ## EPUB reading
 
-![](./images/comparison/reading-1.jpg)
-
-![](./images/comparison/reading-2.jpg)
-
-![](./images/comparison/reading-3.jpg)
+- OmniPaper keeps the CrossPoint-derived reader pipeline and adds PaperS3 portrait tuning, larger tap targets, and direct-touch navigation.
+- XTOS screenshots are intentionally omitted from this sanitized repository snapshot because the original comparison images are not shipped with the current release tree.
 
 ## Menus
 
-![](./images/comparison/menu.jpg)
-
-![](./images/comparison/chapter-menu.jpg)
+- OmniPaper now uses a PaperS3 portrait launcher and touch-first submenu lists.
+- Legacy side-by-side menu screenshots are intentionally omitted from this sanitized repository snapshot.

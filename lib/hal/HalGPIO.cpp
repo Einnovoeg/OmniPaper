@@ -134,6 +134,16 @@ bool HalGPIO::wasAnyReleased() const { return inputMgr.wasAnyReleased(); }
 
 unsigned long HalGPIO::getHeldTime() const { return inputMgr.getHeldTime(); }
 
+bool HalGPIO::hasTouchSupport() const { return inputMgr.hasTouchSupport(); }
+
+bool HalGPIO::isTouchPressed() const { return inputMgr.isTouchPressed(); }
+
+uint16_t HalGPIO::getTouchX() const { return inputMgr.getTouchX(); }
+
+uint16_t HalGPIO::getTouchY() const { return inputMgr.getTouchY(); }
+
+bool HalGPIO::wasTapped() const { return inputMgr.wasTapped(); }
+
 void HalGPIO::startDeepSleep() {
 #ifdef PLATFORM_M5PAPER
 #if defined(PLATFORM_M5PAPERS3)
@@ -176,8 +186,8 @@ int HalGPIO::getBatteryPercentage() const {
 bool HalGPIO::isUsbConnected() const {
 #ifdef PLATFORM_M5PAPER
 #if defined(PLATFORM_M5PAPERS3)
-  // USB-CDC is available only when a host has opened the interface.
-  return static_cast<bool>(Serial);
+  // On PaperS3, VBUS is the reliable "cable present" signal.
+  return M5.Power.getVBUSVoltage() >= 4000;
 #else
   // Legacy M5Paper doesn't expose a simple USB-detect pin.
   return true;

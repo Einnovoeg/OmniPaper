@@ -46,6 +46,11 @@ class HalGPIO {
   bool wasReleased(uint8_t buttonIndex) const;
   bool wasAnyReleased() const;
   unsigned long getHeldTime() const;
+  bool hasTouchSupport() const;
+  bool isTouchPressed() const;
+  uint16_t getTouchX() const;
+  uint16_t getTouchY() const;
+  bool wasTapped() const;
 
   // Setup wake up GPIO and enter deep sleep
   void startDeepSleep();

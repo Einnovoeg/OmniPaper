@@ -80,6 +80,23 @@ void HardwareTestActivity::onEnter() {
 }
 
 void HardwareTestActivity::loop() {
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      if (onExit) {
+        onExit();
+      }
+      return;
+    }
+    if (PaperS3Ui::primaryActionRect(renderer).contains(tapX, tapY)) {
+      runPaperS3SpeakerTest();
+      return;
+    }
+  }
+#endif
+
   if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
     if (onExit) {
       onExit();
@@ -112,7 +129,7 @@ void HardwareTestActivity::loop() {
 
 void HardwareTestActivity::render() {
   renderer.clearScreen();
-  renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
+  PaperS3Ui::applyDefaultOrientation(renderer);
 
 #if defined(PLATFORM_M5PAPERS3)
   renderPaperS3();
@@ -138,7 +155,7 @@ void HardwareTestActivity::render() {
   drawState("Power", mappedInput.isPressed(MappedInputManager::Button::Power));
 
 #ifdef PLATFORM_M5PAPER
-  const auto detail = M5.Touch.getDetail();
+  const auto detail = M5.Touch.isEnabled() ? M5.Touch.getDetail() : m5::touch_detail_t {};
   char touchLine[80];
   snprintf(touchLine, sizeof(touchLine), "Touch: %s (%d,%d)", detail.isPressed() ? "ON" : "off", detail.x, detail.y);
   renderer.drawText(SMALL_FONT_ID, 30, y + 4, touchLine);
@@ -221,15 +238,18 @@ void HardwareTestActivity::renderPaperS3() {
   const auto layout = PaperS3Ui::fourCardLayout(renderer);
   const int smallLineStep = renderer.getLineHeight(SMALL_FONT_ID) + 4;
   const bool sdOk = SdMan.ready();
-  const auto touch = M5.Touch.getDetail();
-  const uint8_t touchCount = M5.Touch.getCount();
+  const auto touch = M5.Touch.isEnabled() ? M5.Touch.getDetail() : m5::touch_detail_t {};
+  const uint8_t touchCount = M5.Touch.isEnabled() ? M5.Touch.getCount() : 0;
   const int batteryPct = gpio.getBatteryPercentage();
   const int16_t batteryMv = M5.Power.getBatteryVoltage();
   const int32_t batteryCurrentMa = M5.Power.getBatteryCurrent();
   const int16_t vbusMv = M5.Power.getVBUSVoltage();
+  const bool usbCablePresent = PaperS3Ui::usbCablePresent(vbusMv);
   const bool charging = (M5.Power.isCharging() == m5::Power_Class::is_charging);
 
-  renderer.drawCenteredText(UI_12_FONT_ID, 16, "Hardware Test");
+  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 22, "Hardware Test", true, EpdFontFamily::BOLD);
+  PaperS3Ui::drawBackButton(renderer);
+  PaperS3Ui::drawPrimaryActionButton(renderer, "Speaker Test");
 
   PaperS3Ui::drawCard(renderer, layout.leftX, layout.topY, layout.cardWidth, layout.cardHeight, "Navigation");
   PaperS3Ui::drawCard(renderer, layout.rightX, layout.topY, layout.cardWidth, layout.cardHeight, "Touch + Power");
@@ -288,7 +308,10 @@ void HardwareTestActivity::renderPaperS3() {
   }
   renderer.drawText(SMALL_FONT_ID, x, y, line);
   y += smallLineStep;
-  snprintf(line, sizeof(line), "USB serial: %s", PaperS3Ui::openWaiting(static_cast<bool>(Serial)));
+  snprintf(line, sizeof(line), "USB cable: %s", PaperS3Ui::presentAbsent(usbCablePresent));
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  snprintf(line, sizeof(line), "CDC session: %s", PaperS3Ui::openWaiting(static_cast<bool>(Serial)));
   renderer.drawText(SMALL_FONT_ID, x, y, line);
   y += smallLineStep;
   snprintf(line, sizeof(line), "Speaker: %s", PaperS3Ui::readyOff(M5.Speaker.isEnabled()));
@@ -326,7 +349,7 @@ void HardwareTestActivity::renderPaperS3() {
   if (!statusMessage.empty()) {
     PaperS3Ui::drawFooterStatus(renderer, statusMessage.c_str());
   }
-  PaperS3Ui::drawFooter(renderer, "Swipe: Navigate   Bottom-center tap: Chirp   Top-right tap: Back");
+  PaperS3Ui::drawFooter(renderer, "Tap Speaker Test to chirp");
   renderer.displayBuffer();
 }
 #endif

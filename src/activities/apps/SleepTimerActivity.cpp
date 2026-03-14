@@ -3,6 +3,7 @@
 #include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
+#include "PaperS3Ui.h"
 #include "fontIds.h"
 
 namespace {
@@ -32,6 +33,34 @@ void SleepTimerActivity::onEnter() {
 }
 
 void SleepTimerActivity::loop() {
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      if (onExit) {
+        onExit();
+      }
+      return;
+    }
+
+    for (int i = 0; i < kOptionCount; i++) {
+      if (PaperS3Ui::listRowRect(renderer, i).contains(tapX, tapY)) {
+        selectionIndex = i;
+        needsRender = true;
+        break;
+      }
+    }
+
+    if (PaperS3Ui::primaryActionRect(renderer).contains(tapX, tapY)) {
+      if (onSleep) {
+        onSleep(kOptions[selectionIndex].seconds);
+      }
+      return;
+    }
+  }
+#endif
+
   if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
     if (onExit) {
       onExit();
@@ -63,6 +92,22 @@ void SleepTimerActivity::loop() {
 
 void SleepTimerActivity::render() {
   renderer.clearScreen();
+#if defined(PLATFORM_M5PAPERS3)
+  renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+  PaperS3Ui::drawScreenHeader(renderer, "Sleep Timer", "Timed deep sleep");
+  PaperS3Ui::drawBackButton(renderer);
+
+  for (int i = 0; i < kOptionCount; i++) {
+    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, i), i == selectionIndex, kOptions[i].label,
+                           i == selectionIndex ? "Selected" : "");
+  }
+
+  PaperS3Ui::drawPrimaryActionButton(renderer, "Sleep");
+  PaperS3Ui::drawFooter(renderer, "Tap a duration, then Sleep");
+  renderer.displayBuffer();
+  return;
+#endif
+
   renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
 
   renderer.drawCenteredText(UI_12_FONT_ID, 16, "Sleep Timer");

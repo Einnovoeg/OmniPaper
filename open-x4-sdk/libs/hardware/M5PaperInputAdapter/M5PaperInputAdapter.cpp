@@ -3,15 +3,30 @@
 #include <Arduino.h>
 #include <cstdlib>
 
-// Virtual touch zones for the 960x540 launcher/UI canvas.
+// Legacy fallback touch areas. PaperS3 uses logical portrait hit-testing in
+// getButtonFromTouch() so the touch regions stay aligned with the shared
+// PaperS3 UI chrome.
+#if defined(PLATFORM_M5PAPERS3)
 const M5PaperInputAdapter::ButtonArea M5PaperInputAdapter::BUTTON_AREAS[NUM_BUTTON_AREAS] = {
-    {40, 480, 80, 40, BTN_LEFT},      // Bottom-left
-    {480, 480, 80, 40, BTN_CONFIRM},  // Bottom-center
-    {840, 480, 80, 40, BTN_RIGHT},    // Bottom-right
-    {40, 240, 80, 40, BTN_UP},        // Mid-left
-    {840, 240, 80, 40, BTN_DOWN},     // Mid-right
-    {880, 40, 80, 40, BTN_BACK}       // Top-right
+    {0, 0, 0, 0, BTN_LEFT},
+    {0, 0, 0, 0, BTN_CONFIRM},
+    {0, 0, 0, 0, BTN_RIGHT},
+    {0, 0, 0, 0, BTN_UP},
+    {0, 0, 0, 0, BTN_DOWN},
+    {0, 0, 0, 0, BTN_BACK}
 };
+#else
+// Legacy M5Paper touch zones remain narrow because most navigation still comes
+// from the front buttons rather than touch-first interaction.
+const M5PaperInputAdapter::ButtonArea M5PaperInputAdapter::BUTTON_AREAS[NUM_BUTTON_AREAS] = {
+    {40, 480, 80, 40, BTN_LEFT},
+    {480, 480, 80, 40, BTN_CONFIRM},
+    {840, 480, 80, 40, BTN_RIGHT},
+    {40, 240, 80, 40, BTN_UP},
+    {840, 240, 80, 40, BTN_DOWN},
+    {880, 40, 80, 40, BTN_BACK}
+};
+#endif
 
 const char* M5PaperInputAdapter::BUTTON_NAMES[] = {"BACK", "CONFIRM", "LEFT", "RIGHT", "UP", "DOWN", "POWER"};
 
@@ -69,7 +84,7 @@ void M5PaperInputAdapter::update() {
     buttonPressFinish = millis();
   }
 
-  // Gesture-generated directions are one-shot events.
+  // Touch-generated virtual key events are one-shot.
   pendingTouchEventMask = 0;
 }
 
@@ -167,7 +182,7 @@ uint8_t M5PaperInputAdapter::mapM5ButtonsToLogical() {
     }
   }
 
-  // One-shot directional events from swipe gestures.
+  // One-shot virtual key events from touch releases.
   logicalState |= pendingTouchEventMask;
   return logicalState;
 }
@@ -201,19 +216,16 @@ void M5PaperInputAdapter::updateTouchState() {
   const int adx = std::abs(dx);
   const int ady = std::abs(dy);
 
-  // Short low-travel release -> tap.
+  // Short low-travel release -> tap. For PaperS3 this is the primary touch
+  // interaction mode; swipe-to-select was intentionally removed because it
+  // made the UI feel indirect on a direct-touch screen.
   if (touchDuration <= TAP_TIMEOUT && adx <= TAP_MAX_TRAVEL && ady <= TAP_MAX_TRAVEL) {
     touchTapDetected = true;
-    return;
-  }
-
-  // Swipe -> one directional key event.
-  if (adx >= SWIPE_MIN_DISTANCE || ady >= SWIPE_MIN_DISTANCE) {
-    if (adx > ady) {
-      pendingTouchEventMask |= static_cast<uint8_t>(1 << (dx > 0 ? BTN_RIGHT : BTN_LEFT));
-    } else {
-      pendingTouchEventMask |= static_cast<uint8_t>(1 << (dy > 0 ? BTN_DOWN : BTN_UP));
+    const uint8_t touchButton = getButtonFromTouch(lastTouchX, lastTouchY);
+    if (touchButton < 7) {
+      pendingTouchEventMask |= static_cast<uint8_t>(1 << touchButton);
     }
+    return;
   }
 }
 
@@ -222,6 +234,38 @@ void M5PaperInputAdapter::updateButtonStates() { currentState = mapM5ButtonsToLo
 bool M5PaperInputAdapter::isValidButtonIndex(const uint8_t buttonIndex) const { return buttonIndex < 7; }
 
 uint8_t M5PaperInputAdapter::getButtonFromTouch(const uint16_t x, const uint16_t y) {
+#if defined(PLATFORM_M5PAPERS3)
+  // Convert raw panel coordinates into the shared 540x960 logical portrait
+  // space used by the PaperS3 UI.
+  const int logicalX = M5.Display.height() - 1 - static_cast<int>(y);
+  const int logicalY = static_cast<int>(x);
+
+  struct LogicalArea {
+    int x;
+    int y;
+    int width;
+    int height;
+    uint8_t button;
+  };
+
+  constexpr LogicalArea logicalAreas[] = {
+      {24, 862, 160, 54, BTN_LEFT},
+      {160, 862, 220, 54, BTN_CONFIRM},
+      {356, 862, 160, 54, BTN_RIGHT},
+      {24, 232, 112, 56, BTN_UP},
+      {404, 232, 112, 56, BTN_DOWN},
+      {408, 18, 112, 46, BTN_BACK},
+  };
+
+  for (const auto& area : logicalAreas) {
+    if (logicalX >= area.x && logicalX < (area.x + area.width) && logicalY >= area.y &&
+        logicalY < (area.y + area.height)) {
+      return area.button;
+    }
+  }
+  return UINT8_MAX;
+#endif
+
   for (uint8_t i = 0; i < NUM_BUTTON_AREAS; i++) {
     const ButtonArea& area = BUTTON_AREAS[i];
     if (x >= area.x && x < (area.x + area.width) && y >= area.y && y < (area.y + area.height)) {

@@ -7,6 +7,7 @@
 
 #include "MappedInputManager.h"
 #include "WifiCredentialStore.h"
+#include "activities/apps/PaperS3Ui.h"
 #include "activities/util/KeyboardEntryActivity.h"
 #include "fontIds.h"
 
@@ -49,7 +50,7 @@ void WifiSelectionActivity::onEnter() {
   updateRequired = true;
 
   xTaskCreate(&WifiSelectionActivity::taskTrampoline, "WifiSelectionTask",
-              4096,               // Stack size (larger for WiFi operations)
+              8192,               // Stack size (PaperS3 UI + WiFi stack + keyboard callbacks)
               this,               // Parameters
               1,                  // Priority
               &displayTaskHandle  // Task handle
@@ -99,13 +100,18 @@ void WifiSelectionActivity::startWifiScan() {
   networks.clear();
   updateRequired = true;
 
-  // Set WiFi mode to station
+  // Reinitialize STA mode with power save disabled. PaperS3 scan reliability is
+  // much better if we fully reset the scan state instead of reusing whatever a
+  // previous AP/STA activity left behind.
+  WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-  delay(100);
+  WiFi.setSleep(false);
+  WiFi.disconnect(false, true);
+  WiFi.scanDelete();
+  delay(150);
 
   // Start async scan
-  WiFi.scanNetworks(true);  // true = async scan
+  WiFi.scanNetworks(true, true);  // async, include hidden SSIDs
 }
 
 void WifiSelectionActivity::processWifiScanResults() {
@@ -228,7 +234,9 @@ void WifiSelectionActivity::attemptConnection() {
   connectionError.clear();
   updateRequired = true;
 
+  WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);
 
   if (selectedRequiresPassword && !enteredPassword.empty()) {
     WiFi.begin(selectedSSID.c_str(), enteredPassword.c_str());
@@ -290,6 +298,18 @@ void WifiSelectionActivity::loop() {
     subActivity->loop();
     return;
   }
+
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  const bool hasTap =
+      mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY);
+
+  if (hasTap && PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+    onComplete(false);
+    return;
+  }
+#endif
 
   // Check scan progress
   if (state == WifiSelectionState::SCANNING) {
@@ -403,6 +423,28 @@ void WifiSelectionActivity::loop() {
 
   // Handle network list state
   if (state == WifiSelectionState::NETWORK_LIST) {
+#if defined(PLATFORM_M5PAPERS3)
+    if (hasTap && PaperS3Ui::primaryActionRect(renderer).contains(tapX, tapY)) {
+      startWifiScan();
+      return;
+    }
+
+    constexpr int kPaperS3NetworksPerPage = 6;
+    if (hasTap && !networks.empty()) {
+      const int page = selectedNetworkIndex / kPaperS3NetworksPerPage;
+      const int start = page * kPaperS3NetworksPerPage;
+      const int end = std::min(start + kPaperS3NetworksPerPage, static_cast<int>(networks.size()));
+      for (int i = start; i < end; i++) {
+        if (PaperS3Ui::listRowRect(renderer, i - start).contains(tapX, tapY)) {
+          selectedNetworkIndex = i;
+          updateRequired = true;
+          selectNetwork(i);
+          return;
+        }
+      }
+    }
+#endif
+
     // Check for Back button to exit (cancel)
     if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
       onComplete(false);
@@ -509,6 +551,42 @@ void WifiSelectionActivity::render() const {
 }
 
 void WifiSelectionActivity::renderNetworkList() const {
+#if defined(PLATFORM_M5PAPERS3)
+  renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+  PaperS3Ui::drawScreenHeader(renderer, "WiFi", state == WifiSelectionState::SCANNING ? "Scanning" : "Nearby networks");
+  PaperS3Ui::drawBackButton(renderer);
+
+  if (networks.empty()) {
+    renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() / 2 - 16, "No networks found");
+    renderer.drawCenteredText(UI_10_FONT_ID, renderer.getScreenHeight() / 2 + 16, "Tap Rescan to try again");
+    PaperS3Ui::drawPrimaryActionButton(const_cast<GfxRenderer&>(renderer), "Rescan");
+    PaperS3Ui::drawFooterStatus(const_cast<GfxRenderer&>(renderer), cachedMacAddress.c_str());
+    return;
+  }
+
+  constexpr int kPaperS3NetworksPerPage = 6;
+  const int page = selectedNetworkIndex / kPaperS3NetworksPerPage;
+  const int start = page * kPaperS3NetworksPerPage;
+  const int end = std::min(start + kPaperS3NetworksPerPage, static_cast<int>(networks.size()));
+
+  for (int i = start; i < end; i++) {
+    const auto& network = networks[i];
+    char subtitle[64];
+    snprintf(subtitle, sizeof(subtitle), "%ddBm  %s%s", network.rssi, network.isEncrypted ? "secure" : "open",
+             network.hasSavedPassword ? "  saved" : "");
+    PaperS3Ui::drawListRow(const_cast<GfxRenderer&>(renderer), PaperS3Ui::listRowRect(renderer, i - start),
+                           i == selectedNetworkIndex, network.ssid.c_str(), "", subtitle);
+  }
+
+  PaperS3Ui::drawPrimaryActionButton(const_cast<GfxRenderer&>(renderer), "Rescan");
+  PaperS3Ui::drawFooterStatus(const_cast<GfxRenderer&>(renderer), cachedMacAddress.c_str());
+
+  char footer[48];
+  snprintf(footer, sizeof(footer), "Showing %d-%d of %d", start + 1, end, static_cast<int>(networks.size()));
+  PaperS3Ui::drawFooter(const_cast<GfxRenderer&>(renderer), footer);
+  return;
+#endif
+
   const auto pageWidth = renderer.getScreenWidth();
   const auto pageHeight = renderer.getScreenHeight();
 

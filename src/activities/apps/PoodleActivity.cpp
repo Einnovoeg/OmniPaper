@@ -10,6 +10,8 @@
 #include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
+#include "PaperS3Ui.h"
+#include "activities/util/KeyboardEntryActivity.h"
 #include "fontIds.h"
 
 namespace {
@@ -44,7 +46,7 @@ const char* kBuiltinWords[] = {
 
 PoodleActivity::PoodleActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,
                                const std::function<void()>& onExit)
-    : Activity("Poodle", renderer, mappedInput), onExit(onExit) {}
+    : ActivityWithSubactivity("Poodle", renderer, mappedInput), onExit(onExit) {}
 
 void PoodleActivity::onEnter() {
   Activity::onEnter();
@@ -59,6 +61,11 @@ void PoodleActivity::onEnter() {
 }
 
 void PoodleActivity::loop() {
+  if (subActivity) {
+    ActivityWithSubactivity::loop();
+    return;
+  }
+
   handleInput();
   if (needsRender) {
     render();
@@ -115,6 +122,57 @@ char PoodleActivity::nextLetter(char c, int delta) const {
 }
 
 void PoodleActivity::handleInput() {
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      if (onExit) {
+        onExit();
+      }
+      return;
+    }
+
+    if (!gameOver) {
+      for (int col = 0; col < kWordLength; col++) {
+        PaperS3Ui::Rect rect {80 + col * 76, 548, 60, 60};
+        if (rect.contains(tapX, tapY)) {
+          cursorPos = col;
+          needsRender = true;
+          return;
+        }
+      }
+
+      if (PaperS3Ui::sideActionRect(renderer, false).contains(tapX, tapY)) {
+        launchKeyboardEntry();
+        return;
+      }
+      if (PaperS3Ui::sideActionRect(renderer, true).contains(tapX, tapY)) {
+        currentGuess.assign(kWordLength, ' ');
+        cursorPos = 0;
+        needsRender = true;
+        return;
+      }
+      if (PaperS3Ui::primaryActionRect(renderer).contains(tapX, tapY)) {
+        bool complete = true;
+        for (char c : currentGuess) {
+          if (c == ' ') {
+            complete = false;
+            break;
+          }
+        }
+        if (complete) {
+          submitGuess();
+        } else {
+          launchKeyboardEntry();
+        }
+        needsRender = true;
+        return;
+      }
+    }
+  }
+#endif
+
   if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
     bool hasLetters = false;
     for (char c : currentGuess) {
@@ -171,6 +229,45 @@ void PoodleActivity::handleInput() {
   }
 }
 
+void PoodleActivity::launchKeyboardEntry() {
+  std::string initialText;
+  initialText.reserve(kWordLength);
+  for (char c : currentGuess) {
+    if (c >= 'A' && c <= 'Z') {
+      initialText.push_back(c);
+    }
+  }
+
+  enterNewActivity(new KeyboardEntryActivity(
+      renderer, mappedInput, "Enter Guess", initialText, 12, kWordLength, false,
+      [this](const std::string& text) {
+        std::string cleaned;
+        cleaned.reserve(kWordLength);
+        for (char c : text) {
+          if (c >= 'a' && c <= 'z') {
+            cleaned.push_back(static_cast<char>(c - ('a' - 'A')));
+          } else if (c >= 'A' && c <= 'Z') {
+            cleaned.push_back(c);
+          }
+          if (cleaned.size() >= kWordLength) {
+            break;
+          }
+        }
+
+        currentGuess.assign(kWordLength, ' ');
+        for (size_t i = 0; i < cleaned.size(); i++) {
+          currentGuess[i] = cleaned[i];
+        }
+        cursorPos = cleaned.empty() ? 0 : static_cast<int>(cleaned.size() - 1);
+        exitActivity();
+        needsRender = true;
+      },
+      [this]() {
+        exitActivity();
+        needsRender = true;
+      }));
+}
+
 void PoodleActivity::submitGuess() {
   guesses.push_back(currentGuess);
 
@@ -187,19 +284,20 @@ void PoodleActivity::submitGuess() {
 
 void PoodleActivity::render() {
   renderer.clearScreen();
-  renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
+  renderer.setOrientation(GfxRenderer::Orientation::Portrait);
 
-  renderer.drawCenteredText(UI_12_FONT_ID, 16, "Poodle (Word Guess)");
+  PaperS3Ui::drawScreenHeader(renderer, "Poodle", "Word Guess");
+  PaperS3Ui::drawBackButton(renderer);
   drawGrid();
 
   if (gameOver) {
     const char* msg = won ? "You Win!" : "No More Guesses";
-    renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() - 60, msg);
+    renderer.drawCenteredText(UI_12_FONT_ID, 852, msg);
     if (!won) {
       std::string answer = "Answer: " + targetWord;
-      renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 36, answer.c_str());
+      renderer.drawCenteredText(SMALL_FONT_ID, 882, answer.c_str());
     }
-    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 16, "Confirm: Back to Menu");
+    PaperS3Ui::drawFooter(renderer, "Tap Back to return");
   } else {
     drawKeyboardHint();
   }
@@ -210,10 +308,10 @@ void PoodleActivity::render() {
 void PoodleActivity::drawGrid() {
   const int screenW = renderer.getScreenWidth();
   const int cellSize = 60;
-  const int gap = 10;
+  const int gap = 8;
   const int totalWidth = kWordLength * cellSize + (kWordLength - 1) * gap;
   const int startX = (screenW - totalWidth) / 2;
-  int startY = 60;
+  int startY = 116;
 
   for (int row = 0; row < kMaxAttempts; row++) {
     for (int col = 0; col < kWordLength; col++) {
@@ -232,7 +330,7 @@ void PoodleActivity::drawGrid() {
       if (letter != ' ') {
         char text[2] = {letter, '\0'};
         int textX = x + (cellSize - renderer.getTextWidth(UI_12_FONT_ID, text)) / 2;
-        int textY = y + 18;
+        int textY = y + 22;
         renderer.drawText(UI_12_FONT_ID, textX, textY, text);
       }
 
@@ -255,6 +353,22 @@ void PoodleActivity::drawGrid() {
 }
 
 void PoodleActivity::drawKeyboardHint() {
-  int y = renderer.getScreenHeight() - 60;
-  renderer.drawCenteredText(SMALL_FONT_ID, y, "Left/Right: Move  Up/Down: Letter  Confirm: Submit  Back: Delete/Exit");
+  renderer.drawText(UI_10_FONT_ID, 80, 628, "Current guess");
+  for (int col = 0; col < kWordLength; col++) {
+    const PaperS3Ui::Rect rect {80 + col * 76, 548, 60, 60};
+    const bool selected = (col == cursorPos);
+    renderer.fillRect(rect.x, rect.y, rect.width, rect.height, false);
+    renderer.drawRect(rect.x, rect.y, rect.width, rect.height);
+    if (selected) {
+      renderer.fillRect(rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2, true);
+    }
+    char text[2] = {currentGuess[col] == ' ' ? '_' : currentGuess[col], '\0'};
+    const int textX = rect.x + (rect.width - renderer.getTextWidth(UI_12_FONT_ID, text)) / 2;
+    const int textY = rect.y + (rect.height - renderer.getLineHeight(UI_12_FONT_ID)) / 2;
+    renderer.drawText(UI_12_FONT_ID, textX, textY, text, !selected);
+  }
+  PaperS3Ui::drawPrimaryActionButton(renderer, "Submit");
+  PaperS3Ui::drawSideActionButton(renderer, false, "Keyboard");
+  PaperS3Ui::drawSideActionButton(renderer, true, "Clear");
+  PaperS3Ui::drawFooter(renderer, "Tap Keyboard to enter a word directly");
 }

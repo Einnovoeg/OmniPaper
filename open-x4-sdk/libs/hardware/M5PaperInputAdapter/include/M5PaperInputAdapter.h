@@ -59,11 +59,10 @@ class M5PaperInputAdapter : public IInputManager {
   uint16_t touchStartY;
   unsigned long touchStartTime;
 
-  // One-shot virtual button events generated from gestures.
+  // One-shot virtual button events generated from touch releases.
   uint8_t pendingTouchEventMask;
 
   static constexpr unsigned long TAP_TIMEOUT = 200;   // ms
-  static constexpr int SWIPE_MIN_DISTANCE = 60;       // px
   static constexpr int TAP_MAX_TRAVEL = 24;           // px
 
   // Helpers

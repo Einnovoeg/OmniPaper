@@ -98,6 +98,58 @@ bool readSht30(float& tempC, float& humidity) {
 }
 
 #ifdef PLATFORM_M5PAPER
+bool readExternalSht30(float& tempC, float& humidity) {
+  constexpr uint8_t kAddr = 0x44;
+  uint8_t data[6];
+
+  if (!M5.Ex_I2C.begin()) {
+    return false;
+  }
+  if (!M5.Ex_I2C.start(kAddr << 1, false, 100000)) {
+    return false;
+  }
+  if (!M5.Ex_I2C.write(0x2C) || !M5.Ex_I2C.write(0x06)) {
+    M5.Ex_I2C.stop();
+    return false;
+  }
+  if (!M5.Ex_I2C.stop()) {
+    return false;
+  }
+
+  delay(15);
+  if (!M5.Ex_I2C.start(kAddr << 1, true, 100000)) {
+    return false;
+  }
+  const bool ok = M5.Ex_I2C.read(data, sizeof(data), true) && M5.Ex_I2C.stop();
+  if (!ok) {
+    return false;
+  }
+
+  auto crc8 = [](const uint8_t* buf, int len) -> uint8_t {
+    uint8_t crc = 0xFF;
+    for (int i = 0; i < len; i++) {
+      crc ^= buf[i];
+      for (int b = 0; b < 8; b++) {
+        crc = (crc & 0x80) ? static_cast<uint8_t>((crc << 1) ^ 0x31) : static_cast<uint8_t>(crc << 1);
+      }
+    }
+    return crc;
+  };
+
+  if (crc8(data, 2) != data[2] || crc8(data + 3, 2) != data[5]) {
+    return false;
+  }
+
+  const uint16_t rawT = (static_cast<uint16_t>(data[0]) << 8) | data[1];
+  const uint16_t rawH = (static_cast<uint16_t>(data[3]) << 8) | data[4];
+
+  tempC = -45.0f + 175.0f * (static_cast<float>(rawT) / 65535.0f);
+  humidity = 100.0f * (static_cast<float>(rawH) / 65535.0f);
+  return true;
+}
+#endif
+
+#ifdef PLATFORM_M5PAPER
 bool readImu(float& ax, float& ay, float& az, float& gx, float& gy, float& gz) {
   if (!M5.Imu.isEnabled()) {
     return false;
@@ -129,6 +181,19 @@ void SensorsActivity::onEnter() {
 }
 
 void SensorsActivity::loop() {
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      if (onExit) {
+        onExit();
+      }
+      return;
+    }
+  }
+#endif
+
   if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
     if (onExit) {
       onExit();
@@ -153,6 +218,7 @@ void SensorsActivity::updateData() {
   snapshot.batteryMv = 0;
   snapshot.batteryCurrentMa = 0;
   snapshot.vbusMv = 0;
+  snapshot.usbCablePresent = false;
   snapshot.charging = false;
   snapshot.rtcAvailable = false;
   snapshot.speakerAvailable = false;
@@ -169,8 +235,9 @@ void SensorsActivity::updateData() {
   snapshot.speakerAvailable = M5.Speaker.isEnabled();
 #if defined(PLATFORM_M5PAPERS3)
   snapshot.vbusMv = M5.Power.getVBUSVoltage();
+  snapshot.usbCablePresent = PaperS3Ui::usbCablePresent(snapshot.vbusMv);
   snapshot.usbSerialOpen = static_cast<bool>(Serial);
-  snapshot.touchCount = M5.Touch.getCount();
+  snapshot.touchCount = M5.Touch.isEnabled() ? M5.Touch.getCount() : 0;
   if (snapshot.touchCount > 0) {
     const auto detail = M5.Touch.getDetail();
     snapshot.touchX = detail.x;
@@ -191,6 +258,7 @@ void SensorsActivity::updateData() {
   snapshot.hasImu = false;
 
   if (mode == Mode::BuiltIn) {
+#if !defined(PLATFORM_M5PAPERS3)
     float t = 0.0f;
     float h = 0.0f;
     if (readSht30(t, h)) {
@@ -198,6 +266,7 @@ void SensorsActivity::updateData() {
       snapshot.humidity = h;
       snapshot.hasSht30 = true;
     }
+#endif
 
 #ifdef PLATFORM_M5PAPER
     float ax = 0.0f;
@@ -219,6 +288,15 @@ void SensorsActivity::updateData() {
   }
 
   if (mode == Mode::External) {
+    float t = 0.0f;
+    float h = 0.0f;
+#ifdef PLATFORM_M5PAPER
+    if (readExternalSht30(t, h)) {
+      snapshot.temperatureC = t;
+      snapshot.humidity = h;
+      snapshot.hasSht30 = true;
+    }
+#endif
     scanI2c();
   }
 
@@ -252,12 +330,19 @@ void SensorsActivity::scanI2c() {
 
 void SensorsActivity::render() {
   renderer.clearScreen();
-  renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
+  PaperS3Ui::applyDefaultOrientation(renderer);
 
 #if defined(PLATFORM_M5PAPERS3)
   if (mode == Mode::BuiltIn) {
     renderPaperS3BuiltIn();
-    PaperS3Ui::drawFooter(renderer, "Top-right tap: Back");
+    PaperS3Ui::drawBackButton(renderer);
+    PaperS3Ui::drawFooter(renderer, "Tap Back to return");
+    renderer.displayBuffer();
+    return;
+  }
+  if (mode == Mode::External) {
+    renderExternal();
+    PaperS3Ui::drawFooter(renderer, "Tap Back to return");
     renderer.displayBuffer();
     return;
   }
@@ -342,7 +427,7 @@ void SensorsActivity::renderPaperS3BuiltIn() {
 
   PaperS3Ui::drawCard(renderer, layout.leftX, layout.topY, layout.cardWidth, layout.cardHeight, "Power");
   PaperS3Ui::drawCard(renderer, layout.rightX, layout.topY, layout.cardWidth, layout.cardHeight, "Radio + System");
-  PaperS3Ui::drawCard(renderer, layout.leftX, layout.bottomY, layout.cardWidth, layout.cardHeight, "Environment");
+  PaperS3Ui::drawCard(renderer, layout.leftX, layout.bottomY, layout.cardWidth, layout.cardHeight, "Peripherals");
   PaperS3Ui::drawCard(renderer, layout.rightX, layout.bottomY, layout.cardWidth, layout.cardHeight, "Motion + Input");
 
   char line[128];
@@ -373,7 +458,10 @@ void SensorsActivity::renderPaperS3BuiltIn() {
     renderer.drawText(SMALL_FONT_ID, x, y, line);
     y += smallLineStep;
   }
-  snprintf(line, sizeof(line), "USB serial: %s", PaperS3Ui::openWaiting(snapshot.usbSerialOpen));
+  snprintf(line, sizeof(line), "USB cable: %s", PaperS3Ui::presentAbsent(snapshot.usbCablePresent));
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  snprintf(line, sizeof(line), "CDC session: %s", PaperS3Ui::openWaiting(snapshot.usbSerialOpen));
   renderer.drawText(SMALL_FONT_ID, x, y, line);
   y += smallLineStep;
   snprintf(line, sizeof(line), "Uptime: %s", uptimeLabel.c_str());
@@ -381,17 +469,12 @@ void SensorsActivity::renderPaperS3BuiltIn() {
 
   x = PaperS3Ui::bodyX(layout.leftX);
   y = PaperS3Ui::bodyY(layout.bottomY);
-  if (snapshot.hasSht30 && !std::isnan(snapshot.temperatureC) && !std::isnan(snapshot.humidity)) {
-    snprintf(line, sizeof(line), "Temp: %.1f C", snapshot.temperatureC);
-    renderer.drawText(SMALL_FONT_ID, x, y, line);
-    y += smallLineStep;
-    snprintf(line, sizeof(line), "Humidity: %.1f%% RH", snapshot.humidity);
-    renderer.drawText(SMALL_FONT_ID, x, y, line);
-    y += smallLineStep;
-  } else {
-    renderer.drawText(SMALL_FONT_ID, x, y, "SHT30: Not available");
-    y += smallLineStep;
-  }
+  renderer.drawText(SMALL_FONT_ID, x, y, "No built-in UV sensor");
+  y += smallLineStep;
+  renderer.drawText(SMALL_FONT_ID, x, y, "No built-in env sensor");
+  y += smallLineStep;
+  renderer.drawText(SMALL_FONT_ID, x, y, "Use Optional Devices");
+  y += smallLineStep;
   snprintf(line, sizeof(line), "RTC: %s", PaperS3Ui::readyOff(snapshot.rtcAvailable));
   renderer.drawText(SMALL_FONT_ID, x, y, line);
   y += smallLineStep;
@@ -422,25 +505,27 @@ void SensorsActivity::renderPaperS3BuiltIn() {
 #endif
 
 void SensorsActivity::renderExternal() {
-  const int x = 40;
-  int y = 70;
+  renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+  PaperS3Ui::drawScreenHeader(renderer, "Optional Devices", "External sensor bus");
+  PaperS3Ui::drawBackButton(renderer);
 
-  renderer.drawText(UI_12_FONT_ID, x, y, "I2C Scan Results:");
-  y += 30;
-
-  if (externalI2cDevices.empty()) {
-    renderer.drawText(UI_12_FONT_ID, x, y, "No devices detected");
-    return;
+  int row = 0;
+  if (snapshot.hasSht30 && !std::isnan(snapshot.temperatureC) && !std::isnan(snapshot.humidity)) {
+    char subtitle[64];
+    snprintf(subtitle, sizeof(subtitle), "%.1f C  |  %.1f%% RH", snapshot.temperatureC, snapshot.humidity);
+    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, row++), false, "Environmental Sensor", "Active",
+                           subtitle);
   }
 
-  for (size_t i = 0; i < externalI2cDevices.size(); i++) {
-    char line[32];
-    snprintf(line, sizeof(line), "0x%02X", externalI2cDevices[i]);
-    renderer.drawText(UI_12_FONT_ID, x, y, line);
-    y += 24;
-    if (y > renderer.getScreenHeight() - 60) {
-      renderer.drawText(SMALL_FONT_ID, x, y, "(More devices not shown)");
-      break;
-    }
+  for (size_t i = 0; i < externalI2cDevices.size() && row < 8; i++, row++) {
+    char title[32];
+    snprintf(title, sizeof(title), "I2C device 0x%02X", externalI2cDevices[i]);
+    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, row), false, title, "Detected",
+                           "External bus");
+  }
+
+  if (row == 0) {
+    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, 0), false, "No devices detected", "",
+                           "Connect a peripheral to the Grove / I2C port");
   }
 }

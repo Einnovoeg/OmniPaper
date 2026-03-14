@@ -1,6 +1,7 @@
 #include "KeyboardEntryActivity.h"
 
 #include "MappedInputManager.h"
+#include "../apps/PaperS3Ui.h"
 #include "fontIds.h"
 
 // Keyboard layouts - lowercase
@@ -12,6 +13,75 @@ const char* const KeyboardEntryActivity::keyboard[NUM_ROWS] = {
 // Keyboard layouts - uppercase/symbols
 const char* const KeyboardEntryActivity::keyboardShift[NUM_ROWS] = {"~!@#$%^&*()_+", "QWERTYUIOP{}|", "ASDFGHJKL:\"",
                                                                     "ZXCVBNM<>?", "SPECIAL ROW"};
+
+namespace {
+constexpr int kInputBoxX = 24;
+constexpr int kInputBoxY = 92;
+constexpr int kInputBoxWidth = 492;
+constexpr int kInputBoxHeight = 96;
+constexpr int kKeyboardStartY = 220;
+constexpr int kKeyUnitWidth = 34;
+constexpr int kKeyHeight = 52;
+constexpr int kKeyGap = 4;
+constexpr int kKeyboardLeft = 27;
+constexpr int kNumRows = 5;
+constexpr int kSpecialRow = 4;
+constexpr int kShiftCol = 0;
+constexpr int kSpaceCol = 2;
+constexpr int kBackspaceCol = 7;
+constexpr int kDoneCol = 9;
+constexpr int kKeysPerRow = 13;
+
+PaperS3Ui::Rect keyboardKeyRect(const int row, const int logicalCol) {
+  PaperS3Ui::Rect rect;
+  rect.y = kKeyboardStartY + row * (kKeyHeight + kKeyGap);
+  rect.height = kKeyHeight;
+
+  if (row == kSpecialRow) {
+    if (logicalCol < kSpaceCol) {
+      rect.x = kKeyboardLeft;
+      rect.width = kKeyUnitWidth * 2 + kKeyGap;
+      return rect;
+    }
+    if (logicalCol < kBackspaceCol) {
+      rect.x = kKeyboardLeft + 2 * (kKeyUnitWidth + kKeyGap);
+      rect.width = kKeyUnitWidth * 5 + kKeyGap * 4;
+      return rect;
+    }
+    if (logicalCol < kDoneCol) {
+      rect.x = kKeyboardLeft + 7 * (kKeyUnitWidth + kKeyGap);
+      rect.width = kKeyUnitWidth * 2 + kKeyGap;
+      return rect;
+    }
+    rect.x = kKeyboardLeft + 9 * (kKeyUnitWidth + kKeyGap);
+    rect.width = kKeyUnitWidth * 2 + kKeyGap;
+    return rect;
+  }
+
+  rect.x = kKeyboardLeft + logicalCol * (kKeyUnitWidth + kKeyGap);
+  rect.width = kKeyUnitWidth;
+  return rect;
+}
+
+bool hitKeyboard(int x, int y, int& rowOut, int& colOut) {
+  for (int row = 0; row < kNumRows; row++) {
+    const int rowLength = (row == kSpecialRow) ? 4 : kKeysPerRow;
+    for (int i = 0; i < rowLength; i++) {
+      int logicalCol = i;
+      if (row == kSpecialRow) {
+        logicalCol = (i == 0) ? kShiftCol : (i == 1) ? kSpaceCol : (i == 2) ? kBackspaceCol : kDoneCol;
+      }
+      const auto rect = keyboardKeyRect(row, logicalCol);
+      if (rect.contains(x, y)) {
+        rowOut = row;
+        colOut = logicalCol;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+}  // namespace
 
 void KeyboardEntryActivity::taskTrampoline(void* param) {
   auto* self = static_cast<KeyboardEntryActivity*>(param);
@@ -33,23 +103,28 @@ void KeyboardEntryActivity::displayTaskLoop() {
 void KeyboardEntryActivity::onEnter() {
   Activity::onEnter();
 
-  renderingMutex = xSemaphoreCreateMutex();
-
-  // Trigger first update
+  selectedRow = 0;
+  selectedCol = 0;
+  shiftActive = false;
   updateRequired = true;
 
+#if !defined(PLATFORM_M5PAPERS3)
+  renderingMutex = xSemaphoreCreateMutex();
   xTaskCreate(&KeyboardEntryActivity::taskTrampoline, "KeyboardEntryActivity",
               2048,               // Stack size
               this,               // Parameters
               1,                  // Priority
               &displayTaskHandle  // Task handle
   );
+#endif
 }
 
 void KeyboardEntryActivity::onExit() {
   Activity::onExit();
 
-  // Wait until not rendering to delete task to avoid killing mid-instruction to EPD
+#if !defined(PLATFORM_M5PAPERS3)
+  // PaperS3 renders inline in the main activity loop to avoid a second UI task
+  // competing with touch handling and e-paper refreshes.
   xSemaphoreTake(renderingMutex, portMAX_DELAY);
   if (displayTaskHandle) {
     vTaskDelete(displayTaskHandle);
@@ -57,6 +132,7 @@ void KeyboardEntryActivity::onExit() {
   }
   vSemaphoreDelete(renderingMutex);
   renderingMutex = nullptr;
+#endif
 }
 
 int KeyboardEntryActivity::getRowLength(const int row) const {
@@ -138,6 +214,29 @@ void KeyboardEntryActivity::handleKeyPress() {
 }
 
 void KeyboardEntryActivity::loop() {
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      if (onCancel) {
+        onCancel();
+      }
+      return;
+    }
+
+    int tappedRow = 0;
+    int tappedCol = 0;
+    if (hitKeyboard(tapX, tapY, tappedRow, tappedCol)) {
+      selectedRow = tappedRow;
+      selectedCol = tappedCol;
+      handleKeyPress();
+      updateRequired = true;
+      return;
+    }
+  }
+#endif
+
   // Navigation
   if (mappedInput.wasPressed(MappedInputManager::Button::Up)) {
     if (selectedRow > 0) {
@@ -245,20 +344,22 @@ void KeyboardEntryActivity::loop() {
     }
     updateRequired = true;
   }
+
+#if defined(PLATFORM_M5PAPERS3)
+  if (updateRequired) {
+    render();
+    updateRequired = false;
+  }
+#endif
 }
 
 void KeyboardEntryActivity::render() const {
-  const auto pageWidth = renderer.getScreenWidth();
-
   renderer.clearScreen();
+  renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+  PaperS3Ui::drawScreenHeader(const_cast<GfxRenderer&>(renderer), title.c_str(), isPassword ? "Password input" : "");
+  PaperS3Ui::drawBackButton(const_cast<GfxRenderer&>(renderer), "Cancel");
 
-  // Draw title
-  renderer.drawCenteredText(UI_10_FONT_ID, startY, title.c_str());
-
-  // Draw input field
-  const int inputStartY = startY + 22;
-  int inputEndY = startY + 22;
-  renderer.drawText(UI_10_FONT_ID, 10, inputStartY, "[");
+  renderer.drawRect(kInputBoxX, kInputBoxY, kInputBoxWidth, kInputBoxHeight);
 
   std::string displayText;
   if (isPassword) {
@@ -271,103 +372,69 @@ void KeyboardEntryActivity::render() const {
   displayText += "_";
 
   // Render input text across multiple lines
+  int textY = kInputBoxY + 14;
   int lineStartIdx = 0;
   int lineEndIdx = displayText.length();
-  while (true) {
+  int linesDrawn = 0;
+  while (lineStartIdx < static_cast<int>(displayText.length()) && linesDrawn < 3) {
     std::string lineText = displayText.substr(lineStartIdx, lineEndIdx - lineStartIdx);
     const int textWidth = renderer.getTextWidth(UI_10_FONT_ID, lineText.c_str());
-    if (textWidth <= pageWidth - 40) {
-      renderer.drawText(UI_10_FONT_ID, 20, inputEndY, lineText.c_str());
-      if (lineEndIdx == displayText.length()) {
-        break;
-      }
-
-      inputEndY += renderer.getLineHeight(UI_10_FONT_ID);
+    if (textWidth <= (kInputBoxWidth - 24)) {
+      renderer.drawText(UI_10_FONT_ID, kInputBoxX + 12, textY, lineText.c_str());
+      textY += renderer.getLineHeight(UI_10_FONT_ID) + 4;
       lineStartIdx = lineEndIdx;
       lineEndIdx = displayText.length();
+      linesDrawn++;
     } else {
       lineEndIdx -= 1;
     }
   }
-  renderer.drawText(UI_10_FONT_ID, pageWidth - 15, inputEndY, "]");
-
-  // Draw keyboard - use compact spacing to fit 5 rows on screen
-  const int keyboardStartY = inputEndY + 25;
-  constexpr int keyWidth = 18;
-  constexpr int keyHeight = 18;
-  constexpr int keySpacing = 3;
 
   const char* const* layout = shiftActive ? keyboardShift : keyboard;
 
-  // Calculate left margin to center the longest row (13 keys)
-  constexpr int maxRowWidth = KEYS_PER_ROW * (keyWidth + keySpacing);
-  const int leftMargin = (pageWidth - maxRowWidth) / 2;
-
   for (int row = 0; row < NUM_ROWS; row++) {
-    const int rowY = keyboardStartY + row * (keyHeight + keySpacing);
-
-    // Left-align all rows for consistent navigation
-    const int startX = leftMargin;
-
-    // Handle bottom row (row 4) specially with proper multi-column keys
     if (row == 4) {
-      // Bottom row layout: SHIFT (2 cols) | SPACE (5 cols) | <- (2 cols) | OK (2 cols)
-      // Total: 11 visual columns, but we use logical positions for selection
-
-      int currentX = startX;
-
-      // SHIFT key (logical col 0, spans 2 key widths)
       const bool shiftSelected = (selectedRow == 4 && selectedCol >= SHIFT_COL && selectedCol < SPACE_COL);
-      renderItemWithSelector(currentX + 2, rowY, shiftActive ? "SHIFT" : "shift", shiftSelected);
-      currentX += 2 * (keyWidth + keySpacing);
-
-      // Space bar (logical cols 2-6, spans 5 key widths)
+      renderItemWithSelector(keyboardKeyRect(row, SHIFT_COL).x, keyboardKeyRect(row, SHIFT_COL).y,
+                             keyboardKeyRect(row, SHIFT_COL).width, keyboardKeyRect(row, SHIFT_COL).height,
+                             shiftActive ? "SHIFT" : "shift", shiftSelected);
       const bool spaceSelected = (selectedRow == 4 && selectedCol >= SPACE_COL && selectedCol < BACKSPACE_COL);
-      const int spaceTextWidth = renderer.getTextWidth(UI_10_FONT_ID, "_____");
-      const int spaceXWidth = 5 * (keyWidth + keySpacing);
-      const int spaceXPos = currentX + (spaceXWidth - spaceTextWidth) / 2;
-      renderItemWithSelector(spaceXPos, rowY, "_____", spaceSelected);
-      currentX += spaceXWidth;
-
-      // Backspace key (logical col 7, spans 2 key widths)
+      renderItemWithSelector(keyboardKeyRect(row, SPACE_COL).x, keyboardKeyRect(row, SPACE_COL).y,
+                             keyboardKeyRect(row, SPACE_COL).width, keyboardKeyRect(row, SPACE_COL).height,
+                             "Space", spaceSelected);
       const bool bsSelected = (selectedRow == 4 && selectedCol >= BACKSPACE_COL && selectedCol < DONE_COL);
-      renderItemWithSelector(currentX + 2, rowY, "<-", bsSelected);
-      currentX += 2 * (keyWidth + keySpacing);
-
-      // OK button (logical col 9, spans 2 key widths)
+      renderItemWithSelector(keyboardKeyRect(row, BACKSPACE_COL).x, keyboardKeyRect(row, BACKSPACE_COL).y,
+                             keyboardKeyRect(row, BACKSPACE_COL).width, keyboardKeyRect(row, BACKSPACE_COL).height,
+                             "Del", bsSelected);
       const bool okSelected = (selectedRow == 4 && selectedCol >= DONE_COL);
-      renderItemWithSelector(currentX + 2, rowY, "OK", okSelected);
+      renderItemWithSelector(keyboardKeyRect(row, DONE_COL).x, keyboardKeyRect(row, DONE_COL).y,
+                             keyboardKeyRect(row, DONE_COL).width, keyboardKeyRect(row, DONE_COL).height, "Done",
+                             okSelected);
     } else {
-      // Regular rows: render each key individually
       for (int col = 0; col < getRowLength(row); col++) {
-        // Get the character to display
         const char c = layout[row][col];
         std::string keyLabel(1, c);
-        const int charWidth = renderer.getTextWidth(UI_10_FONT_ID, keyLabel.c_str());
-
-        const int keyX = startX + col * (keyWidth + keySpacing) + (keyWidth - charWidth) / 2;
         const bool isSelected = row == selectedRow && col == selectedCol;
-        renderItemWithSelector(keyX, rowY, keyLabel.c_str(), isSelected);
+        const auto rect = keyboardKeyRect(row, col);
+        renderItemWithSelector(rect.x, rect.y, rect.width, rect.height, keyLabel.c_str(), isSelected);
       }
     }
   }
 
-  // Draw help text
-  const auto labels = mappedInput.mapLabels("« Back", "Select", "Left", "Right");
-  renderer.drawButtonHints(UI_10_FONT_ID, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
-
-  // Draw side button hints for Up/Down navigation
-  renderer.drawSideButtonHints(UI_10_FONT_ID, "Up", "Down");
+  PaperS3Ui::drawFooter(const_cast<GfxRenderer&>(renderer), "Tap keys directly");
 
   renderer.displayBuffer();
 }
 
-void KeyboardEntryActivity::renderItemWithSelector(const int x, const int y, const char* item,
-                                                   const bool isSelected) const {
+void KeyboardEntryActivity::renderItemWithSelector(const int x, const int y, const int width, const int height,
+                                                   const char* item, const bool isSelected) const {
+  renderer.fillRect(x, y, width, height, false);
+  renderer.drawRect(x, y, width, height);
   if (isSelected) {
-    const int itemWidth = renderer.getTextWidth(UI_10_FONT_ID, item);
-    renderer.drawText(UI_10_FONT_ID, x - 6, y, "[");
-    renderer.drawText(UI_10_FONT_ID, x + itemWidth, y, "]");
+    renderer.fillRect(x + 1, y + 1, width - 2, height - 2, true);
   }
-  renderer.drawText(UI_10_FONT_ID, x, y, item);
+  const int textWidth = renderer.getTextWidth(UI_10_FONT_ID, item);
+  const int textX = x + (width - textWidth) / 2;
+  const int textY = y + (height - renderer.getLineHeight(UI_10_FONT_ID)) / 2;
+  renderer.drawText(UI_10_FONT_ID, textX, textY, item, !isSelected);
 }

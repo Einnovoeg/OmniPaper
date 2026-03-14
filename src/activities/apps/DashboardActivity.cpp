@@ -25,6 +25,7 @@ struct PaperS3DashboardState {
   int16_t batteryMv = 0;
   int32_t batteryCurrentMa = 0;
   int16_t vbusMv = 0;
+  bool usbCablePresent = false;
   bool charging = false;
   bool rtcReady = false;
   bool imuReady = false;
@@ -40,12 +41,13 @@ PaperS3DashboardState readPaperS3DashboardState() {
   state.batteryMv = M5.Power.getBatteryVoltage();
   state.batteryCurrentMa = M5.Power.getBatteryCurrent();
   state.vbusMv = M5.Power.getVBUSVoltage();
+  state.usbCablePresent = PaperS3Ui::usbCablePresent(state.vbusMv);
   state.charging = (M5.Power.isCharging() == m5::Power_Class::is_charging);
   state.rtcReady = M5.Rtc.isEnabled();
   state.imuReady = M5.Imu.isEnabled();
   state.speakerReady = M5.Speaker.isEnabled();
   state.usbSerialOpen = static_cast<bool>(Serial);
-  state.touchCount = M5.Touch.getCount();
+  state.touchCount = M5.Touch.isEnabled() ? M5.Touch.getCount() : 0;
   if (state.touchCount > 0) {
     const auto detail = M5.Touch.getDetail();
     state.touchX = detail.x;
@@ -79,6 +81,23 @@ void DashboardActivity::onEnter() {
 }
 
 void DashboardActivity::loop() {
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      if (onExit) {
+        onExit();
+      }
+      return;
+    }
+    if (PaperS3Ui::primaryActionRect(renderer).contains(tapX, tapY)) {
+      updateWeather();
+      return;
+    }
+  }
+#endif
+
   if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
     if (onExit) {
       onExit();
@@ -223,7 +242,7 @@ std::string DashboardActivity::weatherDescription(const int code) const {
 
 void DashboardActivity::render() {
   renderer.clearScreen();
-  renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
+  PaperS3Ui::applyDefaultOrientation(renderer);
 
 #if defined(PLATFORM_M5PAPERS3)
   renderPaperS3();
@@ -276,7 +295,11 @@ void DashboardActivity::render() {
   }
 
 #if defined(PLATFORM_M5PAPERS3)
-  renderer.drawText(SMALL_FONT_ID, 40, y, static_cast<bool>(Serial) ? "USB OTG/CDC: Connected" : "USB OTG/CDC: Idle");
+  const int16_t vbusMv = M5.Power.getVBUSVoltage();
+  renderer.drawText(SMALL_FONT_ID, 40, y,
+                    PaperS3Ui::usbCablePresent(vbusMv) ? "USB cable: Present" : "USB cable: Absent");
+  y += 16;
+  renderer.drawText(SMALL_FONT_ID, 40, y, static_cast<bool>(Serial) ? "USB CDC: Open" : "USB CDC: Waiting");
   y += 16;
 #endif
 
@@ -307,7 +330,9 @@ void DashboardActivity::renderPaperS3() {
   const auto state = readPaperS3DashboardState();
   const int smallLineStep = renderer.getLineHeight(SMALL_FONT_ID) + 4;
 
-  renderer.drawCenteredText(UI_12_FONT_ID, 16, "Dashboard");
+  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 22, "Dashboard", true, EpdFontFamily::BOLD);
+  PaperS3Ui::drawBackButton(renderer);
+  PaperS3Ui::drawPrimaryActionButton(renderer, "Refresh");
 
   // PaperS3 has enough screen area and onboard telemetry to make the landing
   // screen a compact status board instead of a sparse legacy summary.
@@ -393,7 +418,10 @@ void DashboardActivity::renderPaperS3() {
 
   x = PaperS3Ui::bodyX(layout.rightX);
   y = PaperS3Ui::bodyY(layout.bottomY);
-  snprintf(line, sizeof(line), "USB serial: %s", PaperS3Ui::openWaiting(state.usbSerialOpen));
+  snprintf(line, sizeof(line), "USB cable: %s", PaperS3Ui::presentAbsent(state.usbCablePresent));
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  snprintf(line, sizeof(line), "CDC session: %s", PaperS3Ui::openWaiting(state.usbSerialOpen));
   renderer.drawText(SMALL_FONT_ID, x, y, line);
   y += smallLineStep;
   snprintf(line, sizeof(line), "Touch points: %u", state.touchCount);
@@ -410,7 +438,7 @@ void DashboardActivity::renderPaperS3() {
   snprintf(line, sizeof(line), "Speaker: %s", PaperS3Ui::readyOff(state.speakerReady));
   renderer.drawText(SMALL_FONT_ID, x, y, line);
 
-  PaperS3Ui::drawFooter(renderer, "Bottom-center tap: Refresh   Top-right tap: Back");
+  PaperS3Ui::drawFooter(renderer, "Tap Refresh to update weather");
   renderer.displayBuffer();
 }
 #endif

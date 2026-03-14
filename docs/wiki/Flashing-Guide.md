@@ -3,17 +3,17 @@
 ## Firmware Files
 
 Get prebuilt binaries here:
-- Open the repository's GitHub Releases page for the latest tagged firmware bundle.
+- Open the repository's GitHub Releases page for the latest tagged M5PaperS3 firmware bundle.
 
-For each board, use the matching `*-firmware.bin`:
-- `omnipaper-<tag>-m5paper-firmware.bin`
+Published release asset:
 - `omnipaper-<tag>-m5papers3-firmware.bin`
+
+Other boards are built locally from source.
 
 ## Recommended (PlatformIO)
 Use your board environment:
 
 ```bash
-pio run -e m5paper_release --target upload --upload-port <PORT>
 pio run -e m5papers3_release --target upload --upload-port <PORT>
 pio run -e lilygo_epd47 --target upload --upload-port <PORT>
 ```
@@ -55,17 +55,17 @@ python -m pip install --upgrade esptool
 
 macOS/Linux:
 ```bash
-python3 -m esptool --chip esp32 --port /dev/cu.usbserial-XXXX write_flash 0x10000 omnipaper-<tag>-m5paper-firmware.bin
+python3 -m esptool --chip esp32s3 --port /dev/cu.usbmodemXXXX write_flash 0x10000 omnipaper-<tag>-m5papers3-firmware.bin
 ```
 
 Windows:
 ```powershell
-py -m esptool --chip esp32 --port COM5 write_flash 0x10000 omnipaper-<tag>-m5paper-firmware.bin
+py -m esptool --chip esp32s3 --port COM5 write_flash 0x10000 omnipaper-<tag>-m5papers3-firmware.bin
 ```
 
-Adjust `--chip` and firmware filename for your target:
-- `esp32`: M5Paper
+Adjust `--chip` and the firmware filename if you are flashing a source-built image for another target:
 - `esp32s3`: M5PaperS3 and LilyGo-EPD47
+- `esp32`: legacy M5Paper
 
 ### Windows GUI: Espressif Flash Download Tool
 - Download page: https://www.espressif.com/en/tools-type/flash-download-tools
@@ -80,19 +80,19 @@ Steps:
 ## Flash release firmware binaries directly
 All firmware binaries are flashed at `0x10000` in this project.
 
-### M5Paper
-```bash
-python3 -m esptool --chip esp32 --port <PORT> write_flash 0x10000 omnipaper-<tag>-m5paper-firmware.bin
-```
-
 ### M5PaperS3
 ```bash
 python3 -m esptool --chip esp32s3 --port <PORT> write_flash 0x10000 omnipaper-<tag>-m5papers3-firmware.bin
 ```
 
+### M5Paper
+```bash
+pio run -e m5paper --target upload --upload-port <PORT>
+```
+
 ### LilyGo-EPD47
 ```bash
-python3 -m esptool --chip esp32s3 --port <PORT> write_flash 0x10000 <custom-lilygo-build>.bin
+pio run -e lilygo_epd47 --target upload --upload-port <PORT>
 ```
 
 ## Optional full-flash recovery

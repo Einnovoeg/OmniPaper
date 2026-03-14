@@ -43,7 +43,6 @@ jobs:
       - name: Build OmniPaper release firmware
         run: |
           pio run -e m5papers3_release
-          pio run -e m5paper_release
 
       - name: Assemble release bundle
         run: |
@@ -55,12 +54,6 @@ jobs:
           cp .pio/build/m5papers3_release/partitions.bin dist/omnipaper-${{ github.ref_name }}-m5papers3-partitions.bin
           cp .pio/build/m5papers3_release/firmware.elf dist/omnipaper-${{ github.ref_name }}-m5papers3-firmware.elf
           cp .pio/build/m5papers3_release/firmware.map dist/omnipaper-${{ github.ref_name }}-m5papers3-firmware.map
-
-          cp .pio/build/m5paper_release/firmware.bin dist/omnipaper-${{ github.ref_name }}-m5paper-firmware.bin
-          cp .pio/build/m5paper_release/bootloader.bin dist/omnipaper-${{ github.ref_name }}-m5paper-bootloader.bin
-          cp .pio/build/m5paper_release/partitions.bin dist/omnipaper-${{ github.ref_name }}-m5paper-partitions.bin
-          cp .pio/build/m5paper_release/firmware.elf dist/omnipaper-${{ github.ref_name }}-m5paper-firmware.elf
-          cp .pio/build/m5paper_release/firmware.map dist/omnipaper-${{ github.ref_name }}-m5paper-firmware.map
 
           cp README.md dist/README.md
           cp LICENSE dist/LICENSE
@@ -77,7 +70,7 @@ jobs:
           printf "release_tag=%s\ncreated_utc=%s\nfirmware_targets=%s\n" \
             "${{ github.ref_name }}" \
             "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
-            "m5papers3_release,m5paper_release" > dist/BUILD_INFO.txt
+            "m5papers3_release" > dist/BUILD_INFO.txt
 
           printf "commit=%s\nota_repository=%s\n" \
             "${{ github.sha }}" \

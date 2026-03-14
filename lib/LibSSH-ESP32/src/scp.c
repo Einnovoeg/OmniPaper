@@ -31,6 +31,11 @@
 #include "libssh/scp.h"
 #include "libssh/misc.h"
 
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 /**
  * @defgroup libssh_scp The SSH scp functions
  * @ingroup libssh
@@ -1208,3 +1213,7 @@ const char *ssh_scp_request_get_warning(ssh_scp scp)
 }
 
 /** @} */
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif

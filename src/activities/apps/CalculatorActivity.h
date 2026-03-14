@@ -16,7 +16,25 @@ class CalculatorActivity final : public Activity {
  private:
   struct Key {
     const char* label;
-    enum class Type { Digit, Dot, Op, Eval, Clear, Del, Empty } type;
+    enum class Type {
+      Digit,
+      Dot,
+      Op,
+      Eval,
+      Clear,
+      Del,
+      Empty,
+      FuncSin,
+      FuncCos,
+      FuncTan,
+      FuncSqrt,
+      FuncSquare,
+      FuncReciprocal,
+      FuncLog10,
+      FuncLn,
+      ConstPi,
+      ConstE
+    } type;
     char value;
   };
 
@@ -30,7 +48,12 @@ class CalculatorActivity final : public Activity {
   void handleInput();
   void render();
   void pressKey(const Key& key);
+  void applyScientificKey(const Key& key);
+  bool resolveWorkingValue(double& value) const;
+  void appendLiteral(const char* literal);
+  static std::string formatValue(double value);
   double evalExpression(const std::string& expr, bool& ok) const;
 
   static const Key kKeys[5][4];
+  static const Key kScientificKeys[2][4];
 };

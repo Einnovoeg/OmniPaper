@@ -12,6 +12,7 @@
 #include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
+#include "PaperS3Ui.h"
 #include "activities/util/KeyboardEntryActivity.h"
 #include "fontIds.h"
 
@@ -85,6 +86,46 @@ void GpioMonitorActivity::loop() {
     ActivityWithSubactivity::loop();
     return;
   }
+
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      if (onExitCb) {
+        onExitCb();
+      }
+      return;
+    }
+
+    if (PaperS3Ui::sideActionRect(renderer, false).contains(tapX, tapY)) {
+      const int idx = (static_cast<int>(profile) - 1 + 4) % 4;
+      setProfile(static_cast<Profile>(idx));
+      return;
+    }
+
+    if (PaperS3Ui::sideActionRect(renderer, true).contains(tapX, tapY)) {
+      const int idx = (static_cast<int>(profile) + 1) % 4;
+      setProfile(static_cast<Profile>(idx));
+      return;
+    }
+
+    if (PaperS3Ui::primaryActionRect(renderer).contains(tapX, tapY)) {
+      if (profile != Profile::Custom) {
+        setProfile(Profile::Custom);
+      }
+      promptCustomPins();
+      return;
+    }
+
+    if (PaperS3Ui::listRowRect(renderer, 1).contains(tapX, tapY)) {
+      pullupEnabled = !pullupEnabled;
+      applyPins();
+      needsRender = true;
+      return;
+    }
+  }
+#endif
 
   if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
     if (onExitCb) {
@@ -210,6 +251,39 @@ const char* GpioMonitorActivity::profileLabel(Profile p) const {
 
 void GpioMonitorActivity::render() {
   renderer.clearScreen();
+#if defined(PLATFORM_M5PAPERS3)
+  renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+  PaperS3Ui::drawScreenHeader(renderer, "GPIO Monitor", "PaperS3 diagnostics");
+  PaperS3Ui::drawBackButton(renderer);
+
+  PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, 0), false, "Profile", profileLabel(profile),
+                         "Tap Prev / Next to change");
+  PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, 1), false, "Pull-up",
+                         pullupEnabled ? "Enabled" : "Disabled", "Tap row to toggle");
+
+  const int visiblePins = std::min<int>(pins.size(), 6);
+  for (int i = 0; i < visiblePins; i++) {
+    char title[24];
+    snprintf(title, sizeof(title), "GPIO%02d", pins[i]);
+    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, i + 2), false, title,
+                           values[i] ? "HIGH" : "LOW");
+  }
+
+  if (pins.empty()) {
+    renderer.drawCenteredText(UI_12_FONT_ID, 360, "No pins configured");
+  }
+
+  PaperS3Ui::drawSideActionButton(renderer, false, "Prev");
+  PaperS3Ui::drawPrimaryActionButton(renderer, "Edit Pins");
+  PaperS3Ui::drawSideActionButton(renderer, true, "Next");
+  if (!statusMessage.empty()) {
+    PaperS3Ui::drawFooterStatus(renderer, statusMessage.c_str());
+  }
+  PaperS3Ui::drawFooter(renderer, "Tap Edit Pins to open the keyboard");
+  renderer.displayBuffer();
+  return;
+#endif
+
   renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
   renderer.drawCenteredText(UI_12_FONT_ID, 16, "GPIO Monitor");
 

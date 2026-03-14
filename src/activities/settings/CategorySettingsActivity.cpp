@@ -11,7 +11,25 @@
 #include "KOReaderSettingsActivity.h"
 #include "MappedInputManager.h"
 #include "OtaUpdateActivity.h"
+#include "../apps/PaperS3Ui.h"
 #include "fontIds.h"
+
+namespace {
+#if defined(PLATFORM_M5PAPERS3)
+PaperS3Ui::Rect settingRowRect(const GfxRenderer& renderer, const int index) {
+  constexpr int outerMargin = 24;
+  constexpr int topY = 120;
+  constexpr int rowHeight = 68;
+  constexpr int rowGap = 12;
+  PaperS3Ui::Rect rect;
+  rect.x = outerMargin;
+  rect.y = topY + index * (rowHeight + rowGap);
+  rect.width = renderer.getScreenWidth() - outerMargin * 2;
+  rect.height = rowHeight;
+  return rect;
+}
+#endif
+}
 
 void CategorySettingsActivity::taskTrampoline(void* param) {
   auto* self = static_cast<CategorySettingsActivity*>(param);
@@ -47,6 +65,28 @@ void CategorySettingsActivity::loop() {
     subActivity->loop();
     return;
   }
+
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      SETTINGS.saveToFile();
+      onGoBack();
+      return;
+    }
+
+    for (int i = 0; i < settingsCount; i++) {
+      if (!settingRowRect(renderer, i).contains(tapX, tapY)) {
+        continue;
+      }
+      selectedSettingIndex = i;
+      toggleCurrentSetting();
+      updateRequired = true;
+      return;
+    }
+  }
+#endif
 
   // Handle actions with early return
   if (mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
@@ -95,7 +135,10 @@ void CategorySettingsActivity::toggleCurrentSetting() {
       SETTINGS.*(setting.valuePtr) = currentValue + setting.valueRange.step;
     }
   } else if (setting.type == SettingType::ACTION) {
-    if (strcmp(setting.name, "KOReader Sync") == 0) {
+    if (strcmp(setting.name, "Touchscreen Navigation") == 0 || strcmp(setting.name, "Built-in Fonts Enabled") == 0 ||
+        strcmp(setting.name, "Reading Orientation (Portrait only)") == 0) {
+      return;
+    } else if (strcmp(setting.name, "KOReader Sync") == 0) {
       xSemaphoreTake(renderingMutex, portMAX_DELAY);
       exitActivity();
       enterNewActivity(new KOReaderSettingsActivity(renderer, mappedInput, [this] {
@@ -149,11 +192,60 @@ void CategorySettingsActivity::displayTaskLoop() {
 
 void CategorySettingsActivity::render() const {
   renderer.clearScreen();
+#if defined(PLATFORM_M5PAPERS3)
+  renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+#endif
 
   const auto pageWidth = renderer.getScreenWidth();
   const auto pageHeight = renderer.getScreenHeight();
 
-  renderer.drawCenteredText(UI_12_FONT_ID, 15, categoryName, true, EpdFontFamily::BOLD);
+  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 22, categoryName, true, EpdFontFamily::BOLD);
+
+#if defined(PLATFORM_M5PAPERS3)
+  PaperS3Ui::drawBackButton(renderer);
+
+  for (int i = 0; i < settingsCount; i++) {
+    const auto rect = settingRowRect(renderer, i);
+    const bool isSelected = (i == selectedSettingIndex);
+
+    renderer.fillRect(rect.x, rect.y, rect.width, rect.height, false);
+    renderer.drawRect(rect.x, rect.y, rect.width, rect.height);
+    if (isSelected) {
+      renderer.fillRect(rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2, true);
+    }
+
+    renderer.drawText(UI_12_FONT_ID, rect.x + 18, rect.y + 18, settingsList[i].name, !isSelected, EpdFontFamily::BOLD);
+
+    std::string valueText;
+    if (settingsList[i].type == SettingType::TOGGLE && settingsList[i].valuePtr != nullptr) {
+      valueText = (SETTINGS.*(settingsList[i].valuePtr)) ? "ON" : "OFF";
+    } else if (settingsList[i].type == SettingType::ENUM && settingsList[i].valuePtr != nullptr) {
+      valueText = settingsList[i].enumValues[SETTINGS.*(settingsList[i].valuePtr)];
+    } else if (settingsList[i].type == SettingType::VALUE && settingsList[i].valuePtr != nullptr) {
+      valueText = std::to_string(SETTINGS.*(settingsList[i].valuePtr));
+    } else if (settingsList[i].type == SettingType::ACTION) {
+      if (strcmp(settingsList[i].name, "Touchscreen Navigation") == 0 ||
+          strcmp(settingsList[i].name, "Built-in Fonts Enabled") == 0) {
+        valueText = "Enabled";
+      } else if (strcmp(settingsList[i].name, "Reading Orientation (Portrait only)") == 0) {
+        valueText = "Locked";
+      } else {
+        valueText = "Run";
+      }
+    }
+
+    if (!valueText.empty()) {
+      const int width = renderer.getTextWidth(UI_10_FONT_ID, valueText.c_str());
+      renderer.drawText(UI_10_FONT_ID, rect.x + rect.width - width - 18, rect.y + 22, valueText.c_str(), !isSelected);
+    }
+  }
+
+  renderer.drawText(UI_10_FONT_ID, pageWidth - 24 - renderer.getTextWidth(UI_10_FONT_ID, CROSSPOINT_VERSION),
+                    pageHeight - 124, CROSSPOINT_VERSION);
+  PaperS3Ui::drawFooter(renderer, "Tap a row to change it");
+  renderer.displayBuffer();
+  return;
+#endif
 
   // Draw selection highlight
   renderer.fillRect(0, 60 + selectedSettingIndex * 30 - 2, pageWidth - 1, 30);

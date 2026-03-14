@@ -9,6 +9,7 @@
 #include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
+#include "activities/apps/PaperS3Ui.h"
 #include "activities/network/WifiSelectionActivity.h"
 #include "activities/util/KeyboardEntryActivity.h"
 #include "fontIds.h"
@@ -67,6 +68,42 @@ void WifiTestsActivity::loop() {
     ActivityWithSubactivity::loop();
     return;
   }
+
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      if (onExit) {
+        onExit();
+      }
+      return;
+    }
+
+    for (int i = 0; i < kItemCount; i++) {
+      if (PaperS3Ui::listRowRect(renderer, i).contains(tapX, tapY)) {
+        selectionIndex = i;
+        needsRender = true;
+        break;
+      }
+    }
+
+    if (PaperS3Ui::primaryActionRect(renderer).contains(tapX, tapY)) {
+      if (selectionIndex == 0) {
+        ensureWifiThenRun(PendingAction::Http);
+      } else if (selectionIndex == 1) {
+        ensureWifiThenRun(PendingAction::Dns);
+      } else if (selectionIndex == 2) {
+        ensureWifiThenRun(PendingAction::Tcp);
+      } else if (selectionIndex == 3) {
+        launchHostEntry();
+      } else if (onExit) {
+        onExit();
+      }
+      return;
+    }
+  }
+#endif
 
   if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
     if (onExit) {
@@ -233,6 +270,40 @@ void WifiTestsActivity::runHttpTest() {
 
 void WifiTestsActivity::render() {
   renderer.clearScreen();
+#if defined(PLATFORM_M5PAPERS3)
+  {
+    renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+    PaperS3Ui::drawScreenHeader(renderer, "WiFi Tests", "Connectivity checks");
+    PaperS3Ui::drawBackButton(renderer);
+
+    const char* items[kItemCount] = {"HTTP GET", "DNS Lookup", "TCP Connect", "Change Host", "Back"};
+    const char* subtitles[kItemCount] = {"HTTP response code", "Resolve current host", "Open socket to host",
+                                         host.c_str(), "Return to network menu"};
+    for (int i = 0; i < kItemCount; i++) {
+      const auto rect = PaperS3Ui::listRowRect(renderer, i);
+      const char* trailing = (i == selectionIndex) ? "Selected" : "";
+      PaperS3Ui::drawListRow(renderer, rect, i == selectionIndex, items[i], trailing, subtitles[i]);
+    }
+
+    const char* actionLabel = "Run Test";
+    if (selectionIndex == 3) {
+      actionLabel = "Edit Host";
+    } else if (selectionIndex == 4) {
+      actionLabel = "Return";
+    }
+    PaperS3Ui::drawPrimaryActionButton(renderer, actionLabel);
+
+    if (!resultMessage.empty()) {
+      PaperS3Ui::drawFooterStatus(renderer, resultMessage.c_str());
+    } else if (!host.empty()) {
+      PaperS3Ui::drawFooterStatus(renderer, host.c_str());
+    }
+    PaperS3Ui::drawFooter(renderer, "Tap a row, then the action button");
+    renderer.displayBuffer();
+    return;
+  }
+#endif
+
   renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
   renderer.drawCenteredText(UI_12_FONT_ID, 16, "WiFi Tests");
 

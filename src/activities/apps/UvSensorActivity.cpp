@@ -9,6 +9,7 @@
 #include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
+#include "PaperS3Ui.h"
 #include "activities/util/KeyboardEntryActivity.h"
 #include "fontIds.h"
 #include "util/TimeUtils.h"
@@ -162,6 +163,34 @@ void UvSensorActivity::loop() {
     return;
   }
 
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      if (onExitCb) {
+        onExitCb();
+      }
+      return;
+    }
+
+    if (PaperS3Ui::listRowRect(renderer, 0).contains(tapX, tapY)) {
+      promptAddress();
+      return;
+    }
+    if (PaperS3Ui::listRowRect(renderer, 1).contains(tapX, tapY)) {
+      autoSample = !autoSample;
+      statusMessage = autoSample ? "Auto sample on" : "Auto sample off";
+      needsRender = true;
+      return;
+    }
+    if (PaperS3Ui::primaryActionRect(renderer).contains(tapX, tapY)) {
+      takeSample();
+      return;
+    }
+  }
+#endif
+
   if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
     if (onExitCb) {
       onExitCb();
@@ -200,6 +229,39 @@ void UvSensorActivity::loop() {
 
 void UvSensorActivity::render() {
   renderer.clearScreen();
+#if defined(PLATFORM_M5PAPERS3)
+  {
+    renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+    PaperS3Ui::drawScreenHeader(renderer, "UV Sensor", sensorReady ? "AS7331 connected" : "Waiting for AS7331");
+    PaperS3Ui::drawBackButton(renderer);
+
+    char addrLine[16];
+    snprintf(addrLine, sizeof(addrLine), "0x%02X", i2cAddress);
+    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, 0), false, "I2C Address", addrLine,
+                           "Tap row to edit");
+    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, 1), false, "Auto Sample",
+                           autoSample ? "Enabled" : "Disabled", "Tap row to toggle");
+
+    char line[32];
+    snprintf(line, sizeof(line), "%.1f uW/cm2", uva);
+    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, 2), false, "UVA", line);
+    snprintf(line, sizeof(line), "%.1f uW/cm2", uvb);
+    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, 3), false, "UVB", line);
+    snprintf(line, sizeof(line), "%.1f uW/cm2", uvc);
+    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, 4), false, "UVC", line);
+    snprintf(line, sizeof(line), "%.1f C", tempC);
+    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, 5), false, "Temperature", line);
+
+    PaperS3Ui::drawPrimaryActionButton(renderer, "Sample Now");
+    if (!statusMessage.empty()) {
+      PaperS3Ui::drawFooterStatus(renderer, statusMessage.c_str());
+    }
+    PaperS3Ui::drawFooter(renderer, "Tap I2C Address to open the keyboard");
+    renderer.displayBuffer();
+    return;
+  }
+#endif
+
   renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
   renderer.drawCenteredText(UI_12_FONT_ID, 16, "UV Sensor (AS7331)");
 

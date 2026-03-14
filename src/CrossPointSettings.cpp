@@ -166,6 +166,12 @@ bool CrossPointSettings::loadFromFile() {
   } while (false);
 
   inputFile.close();
+#if defined(PLATFORM_M5PAPERS3)
+  if (fontFamily == CUSTOM_SD) {
+    fontFamily = NOTOSANS;
+  }
+  orientation = PORTRAIT;
+#endif
   Serial.printf("[%lu] [CPS] Settings loaded from file\n", millis());
   return true;
 }
@@ -300,7 +306,19 @@ int CrossPointSettings::getReaderFontId() const {
           return OPENDYSLEXIC_14_FONT_ID;
       }
     case CUSTOM_SD:
-#ifdef PLATFORM_M5PAPER
+#if defined(PLATFORM_M5PAPERS3)
+      switch (fontSize) {
+        case SMALL:
+          return NOTOSANS_12_FONT_ID;
+        case MEDIUM:
+        default:
+          return NOTOSANS_14_FONT_ID;
+        case LARGE:
+          return NOTOSANS_16_FONT_ID;
+        case EXTRA_LARGE:
+          return NOTOSANS_18_FONT_ID;
+      }
+#elif defined(PLATFORM_M5PAPER)
       switch (fontSize) {
         case SMALL:
           return USER_12_FONT_ID;

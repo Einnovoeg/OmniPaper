@@ -52,23 +52,21 @@ Once the scan completes, you'll see a list of available WiFi networks with the f
 - **`*` symbol** - Indicates the network is password-protected (encrypted)
 - **`+` symbol** - Indicates you have previously saved credentials for this network
 
-<img src="./images/wifi/wifi_networks.jpeg" height="500">
+On M5PaperS3, tap the network row you want directly. The header back chip returns to the previous screen, and the footer action button rescans.
 
 ### Selecting a Network
 
-1. Use the **Left/Right** (or **Volume Up/Down**) buttons to navigate through the network list
-2. Press **Confirm** to select the highlighted network
+1. On M5PaperS3, tap the network row directly.
+2. On non-touch builds, use the navigation buttons and then press **Confirm**.
 
 ### Entering Password (for encrypted networks)
 
 If the network requires a password:
 
 1. An on-screen keyboard will appear
-2. Use the navigation buttons to select characters
-3. Press **Confirm** to enter each character
+2. On M5PaperS3, tap the characters directly
+3. On button-driven builds, use the navigation buttons to select characters and **Confirm** to enter each one
 4. When complete, select the **Done** option on the keyboard
-
-<img src="./images/wifi/wifi_password.jpeg" height="500">
 
 **Note:** If you've previously connected to this network, the saved password will be used automatically.
 
@@ -92,8 +90,6 @@ Once connected, the screen will display:
 - **Network name** (SSID)
 - **IP Address** (e.g., `192.168.1.102`)
 - **Web server URL** (e.g., `http://192.168.1.102/`)
-
-<img src="./images/wifi/wifi_connected.jpeg" height="500">
 
 **Important:** Make note of the IP address - you'll need this to access the web interface from your computer or phone.
 
@@ -137,8 +133,6 @@ Navigation links:
 - **Home** - Returns to the status page
 - **File Manager** - Access file management features
 
-<img src="./images/wifi/webserver_homepage.png" width="600">
-
 ### File Manager
 
 Click **File Manager** to access file management features.
@@ -151,8 +145,6 @@ Click **File Manager** to access file management features.
 - Click on a folder name to navigate into it
 - Use the breadcrumb navigation at the top to go back to parent folders
 
-<img src="./images/wifi/webserver_files.png" width="600">
-
 #### Uploading EPUB Files
 
 1. Click the **+ Add** button in the top-right corner
@@ -163,8 +155,6 @@ Click **File Manager** to access file management features.
 6. The page will automatically refresh when the upload is complete
 
 **Note:** Only `.epub` files are accepted. Other file types will be rejected.
-
-<img src="./images/wifi/webserver_upload.png" width="600">
 
 #### Creating Folders
 

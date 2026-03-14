@@ -9,6 +9,7 @@
 #include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
+#include "PaperS3Ui.h"
 #include "fontIds.h"
 
 namespace {
@@ -23,11 +24,28 @@ void WeatherActivity::onEnter() {
   Activity::onEnter();
   lastUpdate = 0;
   snapshot.valid = false;
+  snapshot.location = "Tap Refresh to load weather";
   needsRender = true;
-  updateWeather();
 }
 
 void WeatherActivity::loop() {
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      if (onExit) {
+        onExit();
+      }
+      return;
+    }
+    if (PaperS3Ui::primaryActionRect(renderer).contains(tapX, tapY)) {
+      lastUpdate = 0;
+      updateWeather();
+    }
+  }
+#endif
+
   if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
     if (onExit) {
       onExit();
@@ -55,6 +73,12 @@ void WeatherActivity::updateWeather() {
   fetching = true;
   needsRender = true;
 
+  // Paint the busy state before starting synchronous HTTP/TLS work so the
+  // device does not look wedged while the network stack is busy.
+  render();
+  needsRender = false;
+  delay(1);
+
   if (WiFi.status() != WL_CONNECTED) {
     snapshot.valid = false;
     snapshot.location = "WiFi disconnected";
@@ -81,6 +105,7 @@ void WeatherActivity::updateWeather() {
   snapshot.fetchedAt = millis();
   snapshot.valid = true;
   fetching = false;
+  needsRender = true;
 }
 
 bool WeatherActivity::fetchLocation(LocationInfo& out) {
@@ -180,12 +205,14 @@ std::string WeatherActivity::weatherDescription(int code) const {
 
 void WeatherActivity::render() {
   renderer.clearScreen();
-  renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
+  renderer.setOrientation(GfxRenderer::Orientation::Portrait);
 
-  renderer.drawCenteredText(UI_12_FONT_ID, 16, "Local Weather");
+  PaperS3Ui::drawScreenHeader(renderer, "Weather", snapshot.location.c_str());
+  PaperS3Ui::drawBackButton(renderer);
 
   if (fetching) {
     renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() / 2, "Fetching...");
+    PaperS3Ui::drawFooter(renderer, "Refreshing weather");
     renderer.displayBuffer();
     return;
   }
@@ -193,15 +220,15 @@ void WeatherActivity::render() {
   if (!snapshot.valid) {
     renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() / 2, snapshot.location.c_str());
     renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() / 2 + 30, "Check WiFi / retry");
-    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24, "Confirm: Refresh   Back: Menu");
+    PaperS3Ui::drawPrimaryActionButton(renderer, "Refresh");
+    PaperS3Ui::drawFooter(renderer, "Tap Refresh to try again");
     renderer.displayBuffer();
     return;
   }
 
   char line[64];
-  int y = 70;
-  renderer.drawText(UI_12_FONT_ID, 40, y, snapshot.location.c_str());
-  y += 40;
+  PaperS3Ui::drawCard(renderer, 24, 112, 492, 170, "Current Conditions");
+  int y = 160;
 
   snprintf(line, sizeof(line), "Temp: %.1f C", snapshot.temperatureC);
   renderer.drawText(UI_12_FONT_ID, 40, y, line);
@@ -214,6 +241,7 @@ void WeatherActivity::render() {
   std::string desc = weatherDescription(snapshot.weatherCode);
   renderer.drawText(UI_12_FONT_ID, 40, y, desc.c_str());
 
-  renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24, "Confirm: Refresh   Back: Menu");
+  PaperS3Ui::drawPrimaryActionButton(renderer, "Refresh");
+  PaperS3Ui::drawFooter(renderer, "Tap Refresh to update");
   renderer.displayBuffer();
 }

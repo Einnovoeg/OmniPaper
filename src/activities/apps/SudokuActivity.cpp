@@ -7,6 +7,7 @@
 #include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
+#include "PaperS3Ui.h"
 #include "fontIds.h"
 
 namespace {
@@ -49,6 +50,33 @@ void SudokuActivity::loop() {
 }
 
 void SudokuActivity::handleInput() {
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      if (onExit) {
+        onExit();
+      }
+      return;
+    }
+
+    constexpr int cellSize = 52;
+    constexpr int gridSize = cellSize * 9;
+    const int startX = (renderer.getScreenWidth() - gridSize) / 2;
+    const int startY = 120;
+    if (tapX >= startX && tapX < (startX + gridSize) && tapY >= startY && tapY < (startY + gridSize)) {
+      selX = (tapX - startX) / cellSize;
+      selY = (tapY - startY) / cellSize;
+      if (!fixed[selY][selX]) {
+        grid[selY][selX] = (grid[selY][selX] + 1) % 10;
+      }
+      needsRender = true;
+      return;
+    }
+  }
+#endif
+
   if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
     if (onExit) {
       onExit();
@@ -85,15 +113,16 @@ void SudokuActivity::handleInput() {
 
 void SudokuActivity::render() {
   renderer.clearScreen();
-  renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
+  renderer.setOrientation(GfxRenderer::Orientation::Portrait);
 
-  renderer.drawCenteredText(UI_12_FONT_ID, 16, "Sudoku");
+  PaperS3Ui::drawScreenHeader(renderer, "Sudoku");
+  PaperS3Ui::drawBackButton(renderer);
 
   const int screenW = renderer.getScreenWidth();
-  const int cellSize = 50;
+  const int cellSize = 52;
   const int gridSize = cellSize * 9;
   const int startX = (screenW - gridSize) / 2;
-  const int startY = 60;
+  const int startY = 120;
 
   for (int y = 0; y < 9; y++) {
     for (int x = 0; x < 9; x++) {
@@ -109,7 +138,7 @@ void SudokuActivity::render() {
       if (value != 0) {
         char text[2] = {static_cast<char>('0' + value), '\0'};
         int textX = xPos + (cellSize - renderer.getTextWidth(UI_12_FONT_ID, text)) / 2;
-        int textY = yPos + 16;
+        int textY = yPos + 14;
         renderer.drawText(UI_12_FONT_ID, textX, textY, text, true,
                           fixed[y][x] ? EpdFontFamily::BOLD : EpdFontFamily::REGULAR);
       }
@@ -124,7 +153,6 @@ void SudokuActivity::render() {
     renderer.drawRect(startX, y - 2, gridSize, 3, true);
   }
 
-  renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24,
-                            "Confirm: Cycle  Back: Menu");
+  PaperS3Ui::drawFooter(renderer, "Tap a cell to cycle its value");
   renderer.displayBuffer();
 }

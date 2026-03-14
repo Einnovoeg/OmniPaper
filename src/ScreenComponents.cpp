@@ -15,6 +15,10 @@
 #endif
 
 namespace {
+int overlayFontId(const GfxRenderer& renderer) {
+  return renderer.getScreenWidth() >= 520 ? UI_10_FONT_ID : SMALL_FONT_ID;
+}
+
 std::string buildDateTimeText() {
   std::tm localTime {};
   if (!TimeUtils::getLocalTimeWithOffset(localTime, SETTINGS.timezoneOffsetMinutes)) {
@@ -41,9 +45,10 @@ std::string buildWifiText() {
 void ScreenComponents::drawBattery(const GfxRenderer& renderer, const int left, const int top,
                                    const bool showPercentage) {
   // Left aligned battery icon and percentage
+  const int fontId = overlayFontId(renderer);
   const uint16_t percentage = battery.readPercentage();
   const auto percentageText = showPercentage ? std::to_string(percentage) + "%" : "";
-  renderer.drawText(SMALL_FONT_ID, left + 20, top, percentageText.c_str());
+  renderer.drawText(fontId, left + 20, top, percentageText.c_str());
 
   // 1 column on left, 2 columns on right, 5 columns of battery body
   constexpr int batteryWidth = 15;
@@ -79,6 +84,7 @@ void ScreenComponents::drawDeviceInfoOverlay(const GfxRenderer& renderer, const 
 
   const bool showBatteryPercentage =
       SETTINGS.hideBatteryPercentage == CrossPointSettings::HIDE_BATTERY_PERCENTAGE::HIDE_NEVER;
+  const int fontId = overlayFontId(renderer);
   const std::string dateTimeText = buildDateTimeText();
   std::string wifiText = buildWifiText();
 #ifdef PLATFORM_M5PAPER
@@ -88,8 +94,8 @@ void ScreenComponents::drawDeviceInfoOverlay(const GfxRenderer& renderer, const 
 #endif
 
   const int screenWidth = renderer.getScreenWidth();
-  const int lineHeight = renderer.getLineHeight(SMALL_FONT_ID);
-  const int topY = 4;
+  const int lineHeight = renderer.getLineHeight(fontId);
+  const int topY = renderer.getScreenWidth() >= 520 ? 12 : 4;
   const int bottomY = renderer.getScreenHeight() - lineHeight - 4;
 
   const bool isBottom = overlayPosition == CrossPointSettings::OVERLAY_BOTTOM ||
@@ -101,17 +107,19 @@ void ScreenComponents::drawDeviceInfoOverlay(const GfxRenderer& renderer, const 
   drawBattery(renderer, 2, y, showBatteryPercentage);
 
   if (!isCorners) {
-    const int wifiWidth = renderer.getTextWidth(SMALL_FONT_ID, wifiText.c_str());
-    renderer.drawText(SMALL_FONT_ID, screenWidth - wifiWidth - 4, y, wifiText.c_str());
-    renderer.drawCenteredText(SMALL_FONT_ID, y, dateTimeText.c_str());
+    const int rightInset = renderer.getScreenWidth() >= 520 ? 12 : 4;
+    const int wifiWidth = renderer.getTextWidth(fontId, wifiText.c_str());
+    renderer.drawText(fontId, screenWidth - wifiWidth - rightInset, y, wifiText.c_str());
+    renderer.drawCenteredText(fontId, y, dateTimeText.c_str());
     return;
   }
 
   const int batteryBlockWidth = showBatteryPercentage ? 58 : 24;
-  renderer.drawText(SMALL_FONT_ID, batteryBlockWidth, y, wifiText.c_str());
+  renderer.drawText(fontId, batteryBlockWidth, y, wifiText.c_str());
 
-  const int dateWidth = renderer.getTextWidth(SMALL_FONT_ID, dateTimeText.c_str());
-  renderer.drawText(SMALL_FONT_ID, screenWidth - dateWidth - 4, y, dateTimeText.c_str());
+  const int dateWidth = renderer.getTextWidth(fontId, dateTimeText.c_str());
+  renderer.drawText(fontId, screenWidth - dateWidth - (renderer.getScreenWidth() >= 520 ? 12 : 4), y,
+                    dateTimeText.c_str());
 }
 
 ScreenComponents::PopupLayout ScreenComponents::drawPopup(const GfxRenderer& renderer, const char* message) {

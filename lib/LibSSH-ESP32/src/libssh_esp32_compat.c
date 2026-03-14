@@ -33,6 +33,13 @@
 #include <sys/types.h>
 #include <string.h>
 
+static char gCompatUsername[] = LIBSSH_ESP32_COMPAT_USERNAME;
+static char gCompatPassword[] = "";
+static char gCompatComment[] = "";
+static char gCompatGecos[] = "";
+static char gCompatHomeDir[] = LIBSSH_ESP32_COMPAT_HOMEDIR;
+static char gCompatShell[] = "";
+
 __attribute__((weak))
 pid_t waitpid(pid_t pid, int *wstatus, int options)
 { return 0; }
@@ -42,9 +49,9 @@ uid_t getuid()
 { return LIBSSH_ESP32_COMPAT_UID; }
 
 static struct passwd p =
-  { LIBSSH_ESP32_COMPAT_USERNAME, /* password: */"", LIBSSH_ESP32_COMPAT_UID,
-    LIBSSH_ESP32_COMPAT_GID, /* comment: */"", /* gecos: */"",
-    LIBSSH_ESP32_COMPAT_HOMEDIR, /* shell: */"" };
+  { gCompatUsername, gCompatPassword, LIBSSH_ESP32_COMPAT_UID,
+    LIBSSH_ESP32_COMPAT_GID, gCompatComment, gCompatGecos,
+    gCompatHomeDir, gCompatShell };
 
 __attribute__((weak))
 int getpwuid_r(uid_t uid, struct passwd *pwd, char *buf,

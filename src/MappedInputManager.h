@@ -21,6 +21,11 @@ class MappedInputManager {
   bool wasAnyPressed() const;
   bool wasAnyReleased() const;
   unsigned long getHeldTime() const;
+  bool hasTouchSupport() const;
+  bool isTouchPressed() const;
+  uint16_t getTouchX() const;
+  uint16_t getTouchY() const;
+  bool wasTapped() const;
   Labels mapLabels(const char* back, const char* confirm, const char* previous, const char* next) const;
 
  private:

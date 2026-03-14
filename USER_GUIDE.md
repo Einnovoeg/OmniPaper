@@ -24,7 +24,7 @@ Other targets:
 - `pio run -e lilygo_epd47 --target upload --upload-port /dev/cu.usbmodemXXXX`
 
 Prebuilt binaries:
-- Open the repository's GitHub Releases page for the latest firmware bundle.
+- Open the repository's GitHub Releases page for the latest M5PaperS3 firmware bundle.
 - Each tagged bundle includes firmware binaries, flashing notes, notices, contributor credits, provenance,
   checksums, and the SPDX SBOM.
 
@@ -36,12 +36,13 @@ Web/desktop flashing tools:
 M5PaperS3 uses touch-first controls in OmniPaper:
 
 - Main launcher
-  - Swipe to move selection
-  - Tap bottom-center zone to select
+  - Portrait layout with direct tap on a tile to open it
 - Submenus
-  - Swipe up/down to move
-  - Tap center zone to select
-  - Tap top-right zone to go back
+  - Tap a row to open it
+  - Tap the back chip in the header to go back
+- Settings and diagnostics
+  - Tap rows directly to open or change them
+  - Tap the header back chip to return
 - Physical key
   - PaperS3 has one physical key; OmniPaper maps it as power and confirm fallback
 
@@ -51,10 +52,11 @@ M5PaperS3 uses touch-first controls in OmniPaper:
 - Library: recent list + file browser + cover preview
 - Dashboard + Weather + PaperS3 live device telemetry
 - Sensors menu: built-in + external scan + UV + diagnostics
-- Network menu: Wi-Fi tools, BLE scan, web portal, host keyboard, trackpad, SSH
+- Network menu: Wi-Fi tools, BLE scan, web portal, host keyboard, SSH
 - Images menu: viewer + drawing
-- Tools menu: notes (on-screen keyboard), file manager, time, sleep timer, OTA
-- Calculator
+- Tools menu: notes (on-screen keyboard), file manager, time, trackpad, sleep timer, OTA
+- Scientific calculator
+- Games: Poodle, Sudoku, Tetris
 
 ## M5PaperS3 Hardware Integrations
 
@@ -66,7 +68,8 @@ M5PaperS3 uses touch-first controls in OmniPaper:
 - IMU (BMI270): `M5.Imu.*`
 - Speaker/buzzer path: available in `Settings -> Hardware Test` speaker chirp
 - SD card pins (PaperS3): `CS=47`, `SCK=39`, `MOSI=38`, `MISO=40`
-- USB OTG/CDC session state shown in Dashboard and Sensors
+- USB OTG/TinyUSB device mode enabled for the PaperS3 target
+- Dashboard and Sensors show both USB cable presence (`VBUS`) and CDC session state
 
 ## Web UI (Idle Hotspot)
 

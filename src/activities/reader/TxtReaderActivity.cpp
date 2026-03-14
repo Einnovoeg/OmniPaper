@@ -8,6 +8,7 @@
 #include "CrossPointSettings.h"
 #include "CrossPointState.h"
 #include "MappedInputManager.h"
+#include "../apps/PaperS3Ui.h"
 #include "RecentBooksStore.h"
 #include "ScreenComponents.h"
 #include "fontIds.h"
@@ -21,6 +22,16 @@ constexpr size_t CHUNK_SIZE = 8 * 1024;  // 8KB chunk for reading
 // Cache file magic and version
 constexpr uint32_t CACHE_MAGIC = 0x54585449;  // "TXTI"
 constexpr uint8_t CACHE_VERSION = 2;          // Increment when cache format changes
+
+void drawPaperS3ReaderChrome(GfxRenderer& renderer) {
+#if defined(PLATFORM_M5PAPERS3)
+  PaperS3Ui::drawBackButton(renderer, "Library");
+  PaperS3Ui::drawSideActionButton(renderer, false, "Prev");
+  PaperS3Ui::drawSideActionButton(renderer, true, "Next");
+#else
+  (void)renderer;
+#endif
+}
 }  // namespace
 
 void TxtReaderActivity::taskTrampoline(void* param) {
@@ -35,7 +46,11 @@ void TxtReaderActivity::onEnter() {
     return;
   }
 
-  // Configure screen orientation based on settings
+  // PaperS3 reader UI is portrait-only; legacy boards still follow the reader
+  // orientation setting.
+#if defined(PLATFORM_M5PAPERS3)
+  renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+#else
   switch (SETTINGS.orientation) {
     case CrossPointSettings::ORIENTATION::PORTRAIT:
       renderer.setOrientation(GfxRenderer::Orientation::Portrait);
@@ -52,6 +67,7 @@ void TxtReaderActivity::onEnter() {
     default:
       break;
   }
+#endif
 
   renderingMutex = xSemaphoreCreateMutex();
 
@@ -99,6 +115,24 @@ void TxtReaderActivity::loop() {
     return;
   }
 
+#if defined(PLATFORM_M5PAPERS3)
+  bool tapPrev = false;
+  bool tapNext = false;
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      onGoBack();
+      return;
+    }
+    tapPrev = PaperS3Ui::sideActionRect(renderer, false).contains(tapX, tapY);
+    tapNext = PaperS3Ui::sideActionRect(renderer, true).contains(tapX, tapY);
+  }
+#else
+  constexpr bool tapPrev = false;
+  constexpr bool tapNext = false;
+#endif
+
   if (SETTINGS.infoOverlayPosition != CrossPointSettings::OVERLAY_OFF &&
       (millis() - lastOverlayRefreshMs) >= 30000) {
     lastOverlayRefreshMs = millis();
@@ -119,17 +153,17 @@ void TxtReaderActivity::loop() {
 
   // When long-press chapter skip is disabled, turn pages on press instead of release.
   const bool usePressForPageTurn = !SETTINGS.longPressChapterSkip;
-  const bool prevTriggered = usePressForPageTurn ? (mappedInput.wasPressed(MappedInputManager::Button::PageBack) ||
+  const bool prevTriggered = tapPrev || (usePressForPageTurn ? (mappedInput.wasPressed(MappedInputManager::Button::PageBack) ||
                                                     mappedInput.wasPressed(MappedInputManager::Button::Left))
                                                  : (mappedInput.wasReleased(MappedInputManager::Button::PageBack) ||
-                                                    mappedInput.wasReleased(MappedInputManager::Button::Left));
+                                                    mappedInput.wasReleased(MappedInputManager::Button::Left)));
   const bool powerPageTurn = SETTINGS.shortPwrBtn == CrossPointSettings::SHORT_PWRBTN::PAGE_TURN &&
                              mappedInput.wasReleased(MappedInputManager::Button::Power);
-  const bool nextTriggered = usePressForPageTurn
+  const bool nextTriggered = tapNext || (usePressForPageTurn
                                  ? (mappedInput.wasPressed(MappedInputManager::Button::PageForward) || powerPageTurn ||
                                     mappedInput.wasPressed(MappedInputManager::Button::Right))
                                  : (mappedInput.wasReleased(MappedInputManager::Button::PageForward) || powerPageTurn ||
-                                    mappedInput.wasReleased(MappedInputManager::Button::Right));
+                                    mappedInput.wasReleased(MappedInputManager::Button::Right)));
 
   if (!prevTriggered && !nextTriggered) {
     return;
@@ -386,6 +420,7 @@ void TxtReaderActivity::renderScreen() {
   if (pageOffsets.empty()) {
     renderer.clearScreen();
     renderer.drawCenteredText(UI_12_FONT_ID, 300, "Empty file", true, EpdFontFamily::BOLD);
+    drawPaperS3ReaderChrome(renderer);
     renderer.displayBuffer();
     return;
   }
@@ -415,6 +450,10 @@ void TxtReaderActivity::renderPage() {
   orientedMarginLeft += cachedScreenMargin;
   orientedMarginRight += cachedScreenMargin;
   orientedMarginBottom += statusBarMargin;
+#if defined(PLATFORM_M5PAPERS3)
+  orientedMarginTop += 56;
+  orientedMarginBottom += 84;
+#endif
 
   const int lineHeight = renderer.getLineHeight(cachedFontId);
   const int contentWidth = viewportWidth;
@@ -457,6 +496,7 @@ void TxtReaderActivity::renderPage() {
   // First pass: BW rendering
   renderLines();
   renderStatusBar(orientedMarginRight, orientedMarginBottom, orientedMarginLeft);
+  drawPaperS3ReaderChrome(renderer);
 
   if (pagesUntilFullRefresh <= 1) {
     renderer.displayBuffer(HalDisplay::HALF_REFRESH);

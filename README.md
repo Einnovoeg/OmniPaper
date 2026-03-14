@@ -16,25 +16,48 @@ OmniPaper now defaults to the `m5papers3` PlatformIO environment.
 Compared with legacy M5Paper, M5PaperS3 migration includes:
 - ESP32-S3 target and custom board definition (`boards/m5stack_papers3.json`)
 - M5Unified fallback board lock to `board_M5PaperS3`
+- Correct PaperS3 panel geometry handling
+  - physical panel: `960x540`
+  - PaperS3 UI path: `540x960` logical portrait layout
 - M5PaperS3 SD SPI pin map update
   - `CS=47`, `SCK=39`, `MOSI=38`, `MISO=40`
 - PaperS3 input model update
   - single physical power key mapped for UI fallback
-  - touch virtual keys + swipe navigation for launcher/submenus
+  - direct tap selection for launcher tiles, submenu rows, and settings rows
+  - swipe-to-select removed from the PaperS3 launcher path
+- PaperS3 portrait UI update
+  - larger header/footer typography
+  - large rectangular touch targets and square launcher icon boxes
+  - portrait-first launcher, settings, dashboard, sensors, and hardware test screens
 - RTC/battery/touch/IMU paths validated against M5Unified APIs
   - `M5.Rtc.*`, `M5.Power.*`, `M5.Touch.*`, `M5.Imu.*`
-- USB OTG/CDC awareness in UI (dashboard status)
+- USB OTG/TinyUSB device-mode configuration for PaperS3
+  - CDC console support on boot
+  - UI reports both USB cable presence (`VBUS`) and CDC session state
 - Sleep behavior adjusted for PaperS3 wake reliability
+
+### PaperS3 USB OTG Scope
+
+What is enabled in OmniPaper right now:
+- TinyUSB USB-OTG device mode for the PaperS3 firmware target
+- USB CDC console on boot
+- On-device diagnostics for cable presence (`VBUS`) and CDC session state
+
+What is not enabled in this release:
+- USB host-mode peripherals such as cameras, USB mass-storage host mounting, or HID host stacks
+
+The ESP32-S3 silicon and TinyUSB stack can support broader USB roles, but this firmware currently ships only the stable device-mode path.
 
 ## What OmniPaper Does
 
 - Reader: EPUB/TXT/XTC with progress/chapter navigation
 - Library: recent + file browser with EPUB cover panel
 - Launcher: icon-grid boot menu with app categories
-- Network tools: Wi-Fi scan/status/tests/channels, BLE scan, SSH client, web portal, host keyboard, trackpad
+- Network tools: Wi-Fi scan/status/tests/channels, BLE scan, SSH client, web portal, host keyboard
 - Sensors/tools: built-in/external sensor views, I2C tools, UV sensor/logs, hardware test
-- Apps: weather, dashboard, notes + on-screen keyboard, drawing, image viewer, calculator, file manager
-- Games: Poodle, Sudoku
+- Apps: weather, dashboard, notes + on-screen keyboard, drawing, image viewer, file manager, trackpad
+- Calculator: scientific keypad tuned for direct touch on PaperS3
+- Games: Poodle, Sudoku, Tetris
 - Idle hotspot web UI (toggle in settings) for file transfer and app launch
 
 ## Install And Build
@@ -65,7 +88,7 @@ pio run -e m5papers3
 pio run -e m5papers3 --target upload --upload-port /dev/cu.usbmodemXXXX
 ```
 
-After flashing, the launcher should boot into the touch-first PaperS3 UI.
+After flashing, the launcher should boot into the portrait, direct-touch PaperS3 UI.
 
 ## Board Support
 
@@ -109,8 +132,8 @@ pio run -e lilygo_epd47 --target upload --upload-port /dev/cu.usbmodemXXXX
 ```
 
 Prebuilt binaries and release assets:
-- Open the repository's GitHub Releases page for the latest tagged firmware bundle.
-- Release bundles include board-specific firmware images, bootloader/partition files, `CHANGELOG.md`,
+- Open the repository's GitHub Releases page for the latest tagged **M5PaperS3** firmware bundle.
+- Release bundles include the PaperS3 firmware image, bootloader/partition files, `CHANGELOG.md`,
   generated `RELEASE_NOTES.md`, `THIRD_PARTY_NOTICES.md`, `CONTRIBUTORS.md`, `CODE_PROVENANCE.md`,
   `LICENSE_COMPLIANCE.md`, and an SPDX SBOM.
 
@@ -125,14 +148,20 @@ Recommended local verification before publishing:
 python3 scripts/compliance.py check --release
 python3 scripts/compliance.py sbom --output build/omnipaper.spdx.json
 pio run -e m5papers3_release
-pio run -e m5paper_release
 ./test/run_hyphenation_eval.sh
+```
+
+Optional legacy regression:
+
+```bash
+pio run -e m5paper_release
 ```
 
 ## Versioning And Releases
 
-- OmniPaper uses bare semantic versions such as `0.17.0`; the Git tag, `platformio.ini` version, and `CHANGELOG.md` entry must match exactly.
-- Tagged releases publish separate firmware bundles for `m5papers3` and `m5paper`.
+- OmniPaper uses bare semantic versions such as `0.18.0`; the Git tag, `platformio.ini` version, and `CHANGELOG.md` entry must match exactly.
+- Tagged GitHub releases now publish the M5PaperS3 firmware bundle as the primary supported release artifact.
+- Other targets remain buildable from source, but the public release process is centered on the PaperS3.
 - OTA release checks compile the repository slug from CI metadata or the local `origin` remote, so official release builds point at the correct OmniPaper GitHub release feed without committing maintainer-specific identifiers to the repository.
 
 ## Dependencies
@@ -167,3 +196,7 @@ App/game/tool source references used in this project are enumerated in:
 
 - Project license: MIT (`LICENSE`) for OmniPaper first-party code
 - Third-party notices/licenses: `THIRD_PARTY_NOTICES.md`
+
+## Support
+
+- Buy Me a Coffee: [buymeacoffee.com/einnovoeg](https://buymeacoffee.com/einnovoeg)

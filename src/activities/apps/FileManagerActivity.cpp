@@ -9,11 +9,12 @@
 #include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
+#include "PaperS3Ui.h"
 #include "activities/apps/ImageViewerActivity.h"
 #include "fontIds.h"
 
 namespace {
-constexpr int kItemsPerPage = 12;
+constexpr int kItemsPerPage = 8;
 constexpr const char* kTempDir = "/.crosspoint/tmp";
 constexpr const char* kTempJpegBmp = "/.crosspoint/tmp/jpg_view.bmp";
 
@@ -79,6 +80,49 @@ void FileManagerActivity::loop() {
     ActivityWithSubactivity::loop();
     return;
   }
+
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      if (currentPath == "/") {
+        if (onExit) {
+          onExit();
+        }
+      } else {
+        goUp();
+        loadDirectory();
+        needsRender = true;
+      }
+      return;
+    }
+
+    const int page = selectionIndex / kItemsPerPage;
+    const int start = page * kItemsPerPage;
+    const int end = std::min(start + kItemsPerPage, static_cast<int>(entries.size()));
+    for (int i = start; i < end; i++) {
+      const int visibleIndex = i - start;
+      if (!PaperS3Ui::listRowRect(renderer, visibleIndex).contains(tapX, tapY)) {
+        continue;
+      }
+      selectionIndex = i;
+      openSelected();
+      return;
+    }
+
+    if (PaperS3Ui::sideActionRect(renderer, false).contains(tapX, tapY) && !entries.empty()) {
+      selectionIndex = std::max(0, selectionIndex - kItemsPerPage);
+      needsRender = true;
+      return;
+    }
+    if (PaperS3Ui::sideActionRect(renderer, true).contains(tapX, tapY) && !entries.empty()) {
+      selectionIndex = std::min(static_cast<int>(entries.size()) - 1, selectionIndex + kItemsPerPage);
+      needsRender = true;
+      return;
+    }
+  }
+#endif
 
   if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
     if (currentPath == "/") {
@@ -242,14 +286,15 @@ std::string FileManagerActivity::joinPath(const std::string& base, const std::st
 
 void FileManagerActivity::render() {
   renderer.clearScreen();
-  renderer.setOrientation(GfxRenderer::Orientation::LandscapeCounterClockwise);
+  renderer.setOrientation(GfxRenderer::Orientation::Portrait);
 
-  renderer.drawCenteredText(UI_12_FONT_ID, 16, "File Manager");
-  renderer.drawText(SMALL_FONT_ID, 20, 40, currentPath.c_str());
+  PaperS3Ui::drawScreenHeader(renderer, "File Manager");
+  PaperS3Ui::drawBackButton(renderer, currentPath == "/" ? "Back" : "Up");
+  renderer.drawText(SMALL_FONT_ID, 24, 82, currentPath.c_str());
 
   if (!statusMessage.empty()) {
     renderer.drawCenteredText(UI_10_FONT_ID, renderer.getScreenHeight() / 2, statusMessage.c_str());
-    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24, "Back: Up/Exit");
+    PaperS3Ui::drawFooter(renderer, "Tap Back to return");
     renderer.displayBuffer();
     return;
   }
@@ -264,22 +309,18 @@ void FileManagerActivity::render() {
   const int page = selectionIndex / kItemsPerPage;
   const int start = page * kItemsPerPage;
   const int end = std::min(start + kItemsPerPage, static_cast<int>(entries.size()));
-  int y = 70;
   for (int i = start; i < end; i++) {
     const bool selected = (i == selectionIndex);
     const auto& entry = entries[i];
     std::string label = entry.isDir ? "[D] " + entry.name : entry.name;
-    if (selected) {
-      renderer.fillRect(30, y - 6, renderer.getScreenWidth() - 60, 22, true);
-      renderer.drawText(UI_10_FONT_ID, 40, y, label.c_str(), false);
-    } else {
-      renderer.drawText(UI_10_FONT_ID, 40, y, label.c_str());
-    }
-    y += 22;
+    const auto rect = PaperS3Ui::listRowRect(renderer, i - start);
+    PaperS3Ui::drawListRow(renderer, rect, selected, label.c_str(), "", entry.isDir ? "Folder" : "");
   }
 
   char footer[48];
   snprintf(footer, sizeof(footer), "%d/%d", selectionIndex + 1, static_cast<int>(entries.size()));
-  renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24, footer);
+  PaperS3Ui::drawSideActionButton(renderer, false, "Prev");
+  PaperS3Ui::drawSideActionButton(renderer, true, "Next");
+  PaperS3Ui::drawFooter(renderer, footer);
   renderer.displayBuffer();
 }

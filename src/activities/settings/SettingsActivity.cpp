@@ -6,9 +6,10 @@
 #include "CategorySettingsActivity.h"
 #include "CrossPointSettings.h"
 #include "MappedInputManager.h"
+#include "../apps/PaperS3Ui.h"
 #include "fontIds.h"
 
-const char* SettingsActivity::categoryNames[categoryCount] = {"Display", "Reader", "Controls", "System"};
+const char* SettingsActivity::categoryNames[categoryCount] = {"Display", "Reader", "Device", "System"};
 
 namespace {
 constexpr int displaySettingsCount = 7;
@@ -28,21 +29,35 @@ const SettingInfo displaySettings[displaySettingsCount] = {
 
 constexpr int readerSettingsCount = 9;
 const SettingInfo readerSettings[readerSettingsCount] = {
+#if defined(PLATFORM_M5PAPERS3)
+    SettingInfo::Enum("Font Family", &CrossPointSettings::fontFamily, {"Bookerly", "Noto Sans", "Open Dyslexic"}),
+#else
     SettingInfo::Enum("Font Family", &CrossPointSettings::fontFamily,
                       {"Bookerly", "Noto Sans", "Open Dyslexic", "Custom (SD)"}),
+#endif
     SettingInfo::Enum("Font Size", &CrossPointSettings::fontSize, {"Small", "Medium", "Large", "X Large"}),
     SettingInfo::Enum("Line Spacing", &CrossPointSettings::lineSpacing, {"Tight", "Normal", "Wide"}),
     SettingInfo::Value("Screen Margin", &CrossPointSettings::screenMargin, {5, 40, 5}),
     SettingInfo::Enum("Paragraph Alignment", &CrossPointSettings::paragraphAlignment,
                       {"Justify", "Left", "Center", "Right"}),
     SettingInfo::Toggle("Hyphenation", &CrossPointSettings::hyphenationEnabled),
+#if defined(PLATFORM_M5PAPERS3)
+    SettingInfo::Action("Reading Orientation (Portrait only)"),
+#else
     SettingInfo::Enum("Reading Orientation", &CrossPointSettings::orientation,
                       {"Portrait", "Landscape CW", "Inverted", "Landscape CCW"}),
+#endif
     SettingInfo::Toggle("Extra Paragraph Spacing", &CrossPointSettings::extraParagraphSpacing),
     SettingInfo::Toggle("Text Anti-Aliasing", &CrossPointSettings::textAntiAliasing)};
 
 constexpr int controlsSettingsCount = 4;
 const SettingInfo controlsSettings[controlsSettingsCount] = {
+#if defined(PLATFORM_M5PAPERS3)
+    SettingInfo::Action("Touchscreen Navigation"),
+    SettingInfo::Action("Built-in Fonts Enabled"),
+    SettingInfo::Toggle("Long-press Chapter Skip", &CrossPointSettings::longPressChapterSkip),
+    SettingInfo::Enum("Short Power Button Click", &CrossPointSettings::shortPwrBtn, {"Ignore", "Sleep", "Page Turn"})};
+#else
     SettingInfo::Enum(
         "Front Button Layout", &CrossPointSettings::frontButtonLayout,
         {"Bck, Cnfrm, Lft, Rght", "Lft, Rght, Bck, Cnfrm", "Lft, Bck, Cnfrm, Rght", "Bck, Cnfrm, Rght, Lft"}),
@@ -50,6 +65,7 @@ const SettingInfo controlsSettings[controlsSettingsCount] = {
                       {"Prev, Next", "Next, Prev"}),
     SettingInfo::Toggle("Long-press Chapter Skip", &CrossPointSettings::longPressChapterSkip),
     SettingInfo::Enum("Short Power Button Click", &CrossPointSettings::shortPwrBtn, {"Ignore", "Sleep", "Page Turn"})};
+#endif
 
 constexpr int systemSettingsCount = 6;
 const SettingInfo systemSettings[systemSettingsCount] = {
@@ -58,6 +74,21 @@ const SettingInfo systemSettings[systemSettingsCount] = {
                       {"1 min", "5 min", "10 min", "15 min", "30 min"}),
     SettingInfo::Action("KOReader Sync"), SettingInfo::Action("OPDS Browser"), SettingInfo::Action("Clear Cache"),
     SettingInfo::Action("Check for updates")};
+
+#if defined(PLATFORM_M5PAPERS3)
+PaperS3Ui::Rect categoryRowRect(const GfxRenderer& renderer, const int index) {
+  constexpr int outerMargin = 24;
+  constexpr int topY = 120;
+  constexpr int rowHeight = 68;
+  constexpr int rowGap = 12;
+  PaperS3Ui::Rect rect;
+  rect.x = outerMargin;
+  rect.y = topY + index * (rowHeight + rowGap);
+  rect.width = renderer.getScreenWidth() - outerMargin * 2;
+  rect.height = rowHeight;
+  return rect;
+}
+#endif
 }  // namespace
 
 void SettingsActivity::taskTrampoline(void* param) {
@@ -101,6 +132,28 @@ void SettingsActivity::loop() {
     subActivity->loop();
     return;
   }
+
+#if defined(PLATFORM_M5PAPERS3)
+  int tapX = 0;
+  int tapY = 0;
+  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+    if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
+      SETTINGS.saveToFile();
+      onGoHome();
+      return;
+    }
+
+    for (int i = 0; i < categoryCount; i++) {
+      if (!categoryRowRect(renderer, i).contains(tapX, tapY)) {
+        continue;
+      }
+      selectedCategoryIndex = i;
+      updateRequired = true;
+      enterCategory(i);
+      return;
+    }
+  }
+#endif
 
   // Handle category selection
   if (mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
@@ -180,12 +233,36 @@ void SettingsActivity::displayTaskLoop() {
 
 void SettingsActivity::render() const {
   renderer.clearScreen();
+#if defined(PLATFORM_M5PAPERS3)
+  renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+#endif
 
   const auto pageWidth = renderer.getScreenWidth();
   const auto pageHeight = renderer.getScreenHeight();
 
   // Draw header
-  renderer.drawCenteredText(UI_12_FONT_ID, 15, "Settings", true, EpdFontFamily::BOLD);
+  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 22, "Settings", true, EpdFontFamily::BOLD);
+
+#if defined(PLATFORM_M5PAPERS3)
+  PaperS3Ui::drawBackButton(renderer);
+
+  for (int i = 0; i < categoryCount; i++) {
+    const auto rect = categoryRowRect(renderer, i);
+    const bool selected = (i == selectedCategoryIndex);
+    renderer.fillRect(rect.x, rect.y, rect.width, rect.height, false);
+    renderer.drawRect(rect.x, rect.y, rect.width, rect.height);
+    if (selected) {
+      renderer.fillRect(rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2, true);
+    }
+    renderer.drawText(UI_12_FONT_ID, rect.x + 18, rect.y + 20, categoryNames[i], !selected, EpdFontFamily::BOLD);
+  }
+
+  renderer.drawText(UI_10_FONT_ID, pageWidth - 24 - renderer.getTextWidth(UI_10_FONT_ID, CROSSPOINT_VERSION),
+                    pageHeight - 124, CROSSPOINT_VERSION);
+  PaperS3Ui::drawFooter(renderer, "Tap a section to open");
+  renderer.displayBuffer();
+  return;
+#endif
 
   // Draw selection
   renderer.fillRect(0, 60 + selectedCategoryIndex * 30 - 2, pageWidth - 1, 30);

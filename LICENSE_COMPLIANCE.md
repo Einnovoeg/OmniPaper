@@ -80,7 +80,7 @@ python3 scripts/compliance.py sbom --output build/omnipaper.spdx.json
 The checker currently verifies:
 
 - required compliance documents are present,
-- first-party tracked files do not contain blocked personal identifiers or owner placeholders,
+- first-party tracked files do not contain blocked personal identifiers or owner placeholders, except for the explicitly sanctioned Buy Me a Coffee references in `README.md` and `.github/FUNDING.yml`,
 - `platformio.ini` dependencies are documented in `CODE_PROVENANCE.md`,
 - included third-party components are covered by `THIRD_PARTY_NOTICES.md`,
 - included third-party components and contributor-graph links are covered by `CONTRIBUTORS.md`.
