@@ -13,11 +13,8 @@ struct SleepOption {
 };
 
 const SleepOption kOptions[] = {
-    {"5 minutes", 5ULL * 60ULL},
-    {"15 minutes", 15ULL * 60ULL},
-    {"30 minutes", 30ULL * 60ULL},
-    {"1 hour", 60ULL * 60ULL},
-    {"2 hours", 120ULL * 60ULL},
+    {"5 minutes", 5ULL * 60ULL}, {"15 minutes", 15ULL * 60ULL}, {"30 minutes", 30ULL * 60ULL},
+    {"1 hour", 60ULL * 60ULL},   {"2 hours", 120ULL * 60ULL},
 };
 constexpr int kOptionCount = sizeof(kOptions) / sizeof(kOptions[0]);
 }  // namespace
@@ -36,7 +33,8 @@ void SleepTimerActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (onExit) {
         onExit();

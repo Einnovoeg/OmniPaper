@@ -1,7 +1,7 @@
 #include <Arduino.h>
-#include <WiFi.h>
 #include <FS.h>
 #include <SD.h>
+#include <WiFi.h>
 
 #ifndef CROSSPOINT_VERSION
 #define CROSSPOINT_VERSION "dev"
@@ -15,9 +15,8 @@ constexpr uint32_t kStatusPeriodMs = 5000;
 uint32_t lastStatus = 0;
 
 void printStatus() {
-  Serial.printf("[OmniPaper][LilyGo] uptime=%lus free_heap=%u SD=%s AP_IP=%s\n", millis() / 1000UL,
-                ESP.getFreeHeap(), SD.cardType() == CARD_NONE ? "down" : "ok",
-                WiFi.softAPIP().toString().c_str());
+  Serial.printf("[OmniPaper][LilyGo] uptime=%lus free_heap=%u SD=%s AP_IP=%s\n", millis() / 1000UL, ESP.getFreeHeap(),
+                SD.cardType() == CARD_NONE ? "down" : "ok", WiFi.softAPIP().toString().c_str());
 }
 }  // namespace
 

@@ -26,19 +26,26 @@ struct WebUiAppEntry {
   const char* name;
 };
 
-constexpr WebUiAppEntry WEB_UI_APPS[] = {
-    {"dashboard", "Dashboard"},         {"sensors-built-in", "Sensors: Built-in"},
-    {"sensors-external", "Sensors: External"}, {"weather", "Weather"},
-    {"wifi-status", "WiFi Status"},     {"wifi-scan", "WiFi Scanner"},
-    {"ble-scan", "BLE Scanner"},        {"web-portal", "Web Portal"},
-    {"host-keyboard", "Host Keyboard"}, {"trackpad", "Trackpad"},
-    {"ssh-client", "SSH Client"},
-    {"image-viewer", "Image Viewer"},
-    {"drawing", "Drawing"},             {"notes", "Notes"},
-    {"calculator", "Calculator"},       {"poodle", "Poodle"},
-    {"sudoku", "Sudoku"},               {"tetris", "Tetris"},
-    {"file-manager", "File Manager"},
-    {"hardware-test", "Hardware Test"}};
+constexpr WebUiAppEntry WEB_UI_APPS[] = {{"dashboard", "Dashboard"},
+                                         {"sensors-built-in", "Sensors: Built-in"},
+                                         {"sensors-external", "Sensors: External"},
+                                         {"weather", "Weather"},
+                                         {"wifi-status", "WiFi Status"},
+                                         {"wifi-scan", "WiFi Scanner"},
+                                         {"ble-scan", "BLE Scanner"},
+                                         {"web-portal", "Web Portal"},
+                                         {"host-keyboard", "Host Keyboard"},
+                                         {"trackpad", "Trackpad"},
+                                         {"ssh-client", "SSH Client"},
+                                         {"image-viewer", "Image Viewer"},
+                                         {"drawing", "Drawing"},
+                                         {"notes", "Notes"},
+                                         {"calculator", "Calculator"},
+                                         {"poodle", "Poodle"},
+                                         {"sudoku", "Sudoku"},
+                                         {"tetris", "Tetris"},
+                                         {"file-manager", "File Manager"},
+                                         {"hardware-test", "Hardware Test"}};
 constexpr size_t WEB_UI_APPS_COUNT = sizeof(WEB_UI_APPS) / sizeof(WEB_UI_APPS[0]);
 
 // Static pointer for WebSocket callback (WebSocketsServer requires C-style callback)

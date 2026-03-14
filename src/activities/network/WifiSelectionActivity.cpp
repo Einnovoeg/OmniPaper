@@ -302,8 +302,8 @@ void WifiSelectionActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  const bool hasTap =
-      mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY);
+  const bool hasTap = mappedInput.wasTapped() &&
+                      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY);
 
   if (hasTap && PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
     onComplete(false);

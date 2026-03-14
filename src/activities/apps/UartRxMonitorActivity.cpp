@@ -4,11 +4,11 @@
 // - Diagnostics source project: https://github.com/geo-tp/ESP32-Bus-Pirate
 // - Local implementation for OmniPaper is maintained in this file.
 
+#include <GfxRenderer.h>
+
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
-
-#include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
 #include "PaperS3Ui.h"
@@ -18,7 +18,7 @@
 namespace {
 constexpr int kMaxLines = 60;
 constexpr int kMaxLineLen = 96;
-}
+}  // namespace
 
 UartRxMonitorActivity::UartRxMonitorActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,
                                              const std::function<void()>& onExit)
@@ -156,7 +156,8 @@ void UartRxMonitorActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (onExitCb) {
         onExitCb();
@@ -245,8 +246,7 @@ void UartRxMonitorActivity::render() {
 
     char rxLine[24];
     snprintf(rxLine, sizeof(rxLine), "GPIO%d", rxPin);
-    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, 1), false, "RX Pin", rxLine,
-                           "Tap row to edit");
+    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, 1), false, "RX Pin", rxLine, "Tap row to edit");
     PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, 2), false, "State",
                            listening ? "Listening" : "Paused");
 

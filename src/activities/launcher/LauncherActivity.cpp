@@ -1,27 +1,22 @@
 #include "LauncherActivity.h"
 
-#include <algorithm>
-
 #include <GfxRenderer.h>
 
+#include <algorithm>
+
+#include "../apps/PaperS3Ui.h"
 #include "CrossPointSettings.h"
 #include "MappedInputManager.h"
-#include "../apps/PaperS3Ui.h"
 #include "ScreenComponents.h"
 #include "fontIds.h"
 
 namespace {
 const LauncherActivity::MenuItem kAllItems[] = {
-    {LauncherItemId::Reader, "Reader", false},
-    {LauncherItemId::Dashboard, "Dashboard", false},
-    {LauncherItemId::Sensors, "Sensors", true},
-    {LauncherItemId::Weather, "Weather", false},
-    {LauncherItemId::Network, "Network", true},
-    {LauncherItemId::Games, "Games", true},
-    {LauncherItemId::Images, "Images", true},
-    {LauncherItemId::Tools, "Tools", true},
-    {LauncherItemId::Settings, "Settings", true},
-    {LauncherItemId::Calculator, "Calculator", false},
+    {LauncherItemId::Reader, "Reader", false},    {LauncherItemId::Dashboard, "Dashboard", false},
+    {LauncherItemId::Sensors, "Sensors", true},   {LauncherItemId::Weather, "Weather", false},
+    {LauncherItemId::Network, "Network", true},   {LauncherItemId::Games, "Games", true},
+    {LauncherItemId::Images, "Images", true},     {LauncherItemId::Tools, "Tools", true},
+    {LauncherItemId::Settings, "Settings", true}, {LauncherItemId::Calculator, "Calculator", false},
 };
 
 std::vector<LauncherActivity::SubmenuItem> buildSensorsMenu() {
@@ -33,12 +28,9 @@ std::vector<LauncherActivity::SubmenuItem> buildSensorsMenu() {
   };
 #else
   return {
-      {"Built-in", LauncherAction::SensorsBuiltIn},
-      {"Please connect", LauncherAction::SensorsPeripherals},
-      {"I2C Tools", LauncherAction::SensorsI2CTools},
-      {"GPIO Monitor", LauncherAction::SensorsGpio},
-      {"UART RX", LauncherAction::SensorsUartRx},
-      {"EEPROM Dump", LauncherAction::SensorsEepromDump},
+      {"Built-in", LauncherAction::SensorsBuiltIn},   {"Please connect", LauncherAction::SensorsPeripherals},
+      {"I2C Tools", LauncherAction::SensorsI2CTools}, {"GPIO Monitor", LauncherAction::SensorsGpio},
+      {"UART RX", LauncherAction::SensorsUartRx},     {"EEPROM Dump", LauncherAction::SensorsEepromDump},
   };
 #endif
 }
@@ -60,14 +52,10 @@ std::vector<LauncherActivity::SubmenuItem> buildImagesMenu() {
 
 std::vector<LauncherActivity::SubmenuItem> buildNetworkMenu() {
   return {
-      {"WiFi Status", LauncherAction::NetworkWifiStatus},
-      {"WiFi Scan", LauncherAction::NetworkWifiScan},
-      {"WiFi Tests", LauncherAction::NetworkWifiTests},
-      {"Channels", LauncherAction::NetworkWifiChannels},
-      {"BLE Scan", LauncherAction::NetworkBleScan},
-      {"Web Portal", LauncherAction::NetworkWebPortal},
-      {"Host Keyboard", LauncherAction::NetworkKeyboardHost},
-      {"SSH Client", LauncherAction::NetworkSshClient},
+      {"WiFi Status", LauncherAction::NetworkWifiStatus},     {"WiFi Scan", LauncherAction::NetworkWifiScan},
+      {"WiFi Tests", LauncherAction::NetworkWifiTests},       {"Channels", LauncherAction::NetworkWifiChannels},
+      {"BLE Scan", LauncherAction::NetworkBleScan},           {"Web Portal", LauncherAction::NetworkWebPortal},
+      {"Host Keyboard", LauncherAction::NetworkKeyboardHost}, {"SSH Client", LauncherAction::NetworkSshClient},
   };
 }
 
@@ -257,7 +245,7 @@ const char* submenuBadge(const LauncherAction action) {
   }
 }
 #endif
-}
+}  // namespace
 
 LauncherActivity::LauncherActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,
                                    const ActionCallback& onAction)
@@ -274,8 +262,7 @@ void LauncherActivity::onEnter() {
 }
 
 void LauncherActivity::loop() {
-  if (SETTINGS.infoOverlayPosition != CrossPointSettings::OVERLAY_OFF &&
-      (millis() - lastOverlayRefreshMs) >= 30000) {
+  if (SETTINGS.infoOverlayPosition != CrossPointSettings::OVERLAY_OFF && (millis() - lastOverlayRefreshMs) >= 30000) {
     lastOverlayRefreshMs = millis();
     needsRender = true;
   }
@@ -556,8 +543,7 @@ void LauncherActivity::render() {
 #if defined(PLATFORM_M5PAPERS3)
     PaperS3Ui::drawFooter(renderer, "Tap a tile directly");
 #else
-    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 20,
-                              "Arrows: Move   Confirm: Select");
+    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 20, "Arrows: Move   Confirm: Select");
 #endif
   } else {
     switch (menuState) {
@@ -752,7 +738,7 @@ void LauncherActivity::drawCircle(int cx, int cy, int radius, bool fill) const {
 }
 
 void LauncherActivity::drawIconSymbol(int cx, int cy, LauncherItemId id, bool selected) const {
-  bool black = !selected; // invert when selected
+  bool black = !selected;  // invert when selected
   switch (id) {
     case LauncherItemId::Reader:
       renderer.drawRect(cx - 16, cy - 10, 32, 20, black);

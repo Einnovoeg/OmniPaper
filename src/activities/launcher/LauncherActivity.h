@@ -21,8 +21,7 @@ class LauncherActivity final : public Activity {
     LauncherAction action;
   };
 
-  LauncherActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,
-                   const ActionCallback& onAction);
+  LauncherActivity(GfxRenderer& renderer, MappedInputManager& mappedInput, const ActionCallback& onAction);
 
   void onEnter() override;
   void loop() override;

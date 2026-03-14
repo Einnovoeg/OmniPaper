@@ -15,9 +15,7 @@ class OptionalDevicesActivity final : public Activity {
 
   OptionalDevicesActivity(GfxRenderer& renderer, MappedInputManager& mappedInput, ExitCallback onExit,
                           ActionCallback onAction)
-      : Activity("OptionalDevices", renderer, mappedInput),
-        onExit(std::move(onExit)),
-        onAction(std::move(onAction)) {}
+      : Activity("OptionalDevices", renderer, mappedInput), onExit(std::move(onExit)), onAction(std::move(onAction)) {}
 
   void onEnter() override;
   void loop() override;

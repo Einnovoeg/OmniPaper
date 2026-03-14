@@ -1,10 +1,9 @@
 #include "TimeSettingsActivity.h"
 
+#include <GfxRenderer.h>
 #include <WiFi.h>
 
 #include <string>
-
-#include <GfxRenderer.h>
 
 #include "CrossPointSettings.h"
 #include "MappedInputManager.h"
@@ -64,7 +63,8 @@ void TimeSettingsActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (onExit) {
         onExit();
@@ -158,16 +158,15 @@ void TimeSettingsActivity::loop() {
 }
 
 void TimeSettingsActivity::launchWifiSelection() {
-  enterNewActivity(new WifiSelectionActivity(renderer, mappedInput,
-                                             [this](const bool connected) {
-                                               exitActivity();
-                                               if (connected) {
-                                                 performSync();
-                                               } else {
-                                                 statusMessage = "WiFi connection failed";
-                                                 needsRender = true;
-                                               }
-                                             }));
+  enterNewActivity(new WifiSelectionActivity(renderer, mappedInput, [this](const bool connected) {
+    exitActivity();
+    if (connected) {
+      performSync();
+    } else {
+      statusMessage = "WiFi connection failed";
+      needsRender = true;
+    }
+  }));
 }
 
 void TimeSettingsActivity::performSync() {
@@ -190,7 +189,7 @@ void TimeSettingsActivity::render() {
   PaperS3Ui::drawBackButton(renderer);
 #endif
 
-  std::tm localTime {};
+  std::tm localTime{};
   if (TimeUtils::getLocalTimeWithOffset(localTime, SETTINGS.timezoneOffsetMinutes)) {
     char timeLine[32];
     snprintf(timeLine, sizeof(timeLine), "%02d:%02d:%02d", localTime.tm_hour, localTime.tm_min, localTime.tm_sec);

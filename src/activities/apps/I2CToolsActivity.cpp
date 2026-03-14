@@ -32,18 +32,9 @@ struct KnownDevice {
 };
 
 const KnownDevice kKnownDevices[] = {
-    {0x23, "BH1750 Light"},
-    {0x29, "VL53L0X ToF"},
-    {0x3C, "SSD1306 OLED"},
-    {0x3D, "SSD1306 OLED"},
-    {0x40, "INA219/INA226"},
-    {0x44, "SHT30/31"},
-    {0x48, "ADS1115"},
-    {0x5A, "MLX90614"},
-    {0x68, "MPU6050/DS3231"},
-    {0x69, "MPU6050"},
-    {0x74, "AS7331 UV"},
-    {0x76, "BMP280/BME280"},
+    {0x23, "BH1750 Light"},   {0x29, "VL53L0X ToF"}, {0x3C, "SSD1306 OLED"}, {0x3D, "SSD1306 OLED"},
+    {0x40, "INA219/INA226"},  {0x44, "SHT30/31"},    {0x48, "ADS1115"},      {0x5A, "MLX90614"},
+    {0x68, "MPU6050/DS3231"}, {0x69, "MPU6050"},     {0x74, "AS7331 UV"},    {0x76, "BMP280/BME280"},
     {0x77, "BMP280/BME280"},
 };
 
@@ -118,7 +109,8 @@ void I2CToolsActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (screen != Screen::Scan) {
         screen = Screen::Scan;
@@ -385,9 +377,9 @@ void I2CToolsActivity::render() {
 #if defined(PLATFORM_M5PAPERS3)
   renderer.setOrientation(GfxRenderer::Orientation::Portrait);
   PaperS3Ui::drawScreenHeader(renderer, "I2C Tools",
-                              screen == Screen::Scan ? "External bus scan"
+                              screen == Screen::Scan       ? "External bus scan"
                               : screen == Screen::Identify ? "Device identify"
-                                                            : "Register monitor");
+                                                           : "Register monitor");
   PaperS3Ui::drawBackButton(renderer);
 
   switch (screen) {
@@ -463,8 +455,7 @@ void I2CToolsActivity::renderScan() {
 
   if (addresses.empty()) {
     renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() / 2, "No devices found");
-    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24,
-                              "Left: Rescan   Back: Menu");
+    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24, "Left: Rescan   Back: Menu");
     return;
   }
 
@@ -547,8 +538,7 @@ void I2CToolsActivity::renderMonitor() {
 
     char lenLine[16];
     snprintf(lenLine, sizeof(lenLine), "%u bytes", monitorLen);
-    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, 2), false, "Length", lenLine,
-                           "Tap row to edit");
+    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, 2), false, "Length", lenLine, "Tap row to edit");
 
     char intervalLine[16];
     snprintf(intervalLine, sizeof(intervalLine), "%ums", monitorIntervalMs);

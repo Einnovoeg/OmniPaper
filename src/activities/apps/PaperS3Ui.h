@@ -69,7 +69,8 @@ inline FourCardLayout fourCardLayout(const GfxRenderer& renderer) {
 inline bool rawTouchToPortrait(const uint16_t rawX, const uint16_t rawY, int& logicalX, int& logicalY) {
   logicalX = HalDisplay::DISPLAY_HEIGHT - 1 - static_cast<int>(rawY);
   logicalY = static_cast<int>(rawX);
-  return logicalX >= 0 && logicalX < HalDisplay::DISPLAY_HEIGHT && logicalY >= 0 && logicalY < HalDisplay::DISPLAY_WIDTH;
+  return logicalX >= 0 && logicalX < HalDisplay::DISPLAY_HEIGHT && logicalY >= 0 &&
+         logicalY < HalDisplay::DISPLAY_WIDTH;
 }
 
 inline Rect backButtonRect(const GfxRenderer& renderer) {

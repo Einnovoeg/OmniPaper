@@ -1,14 +1,12 @@
 #include "ToolsOtaUpdateActivity.h"
 
 #include <Arduino.h>
+#include <GfxRenderer.h>
+#include <HTTPClient.h>
 #include <SDCardManager.h>
 #include <Update.h>
 #include <WiFi.h>
-
-#include <HTTPClient.h>
 #include <WiFiClientSecure.h>
-
-#include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
 #include "activities/network/WifiSelectionActivity.h"
@@ -18,9 +16,7 @@
 namespace {
 constexpr const char* kUpdateDir = "/update";
 
-bool hasPrefix(const std::string& value, const char* prefix) {
-  return value.rfind(prefix, 0) == 0;
-}
+bool hasPrefix(const std::string& value, const char* prefix) { return value.rfind(prefix, 0) == 0; }
 }  // namespace
 
 ToolsOtaUpdateActivity::ToolsOtaUpdateActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,
@@ -160,17 +156,16 @@ void ToolsOtaUpdateActivity::startUrlUpdate() {
 }
 
 void ToolsOtaUpdateActivity::launchWifiSelection() {
-  enterNewActivity(new WifiSelectionActivity(renderer, mappedInput,
-                                             [this](const bool connected) {
-                                               exitActivity();
-                                               if (connected) {
-                                                 launchUrlEntry();
-                                               } else {
-                                                 statusMessage = "WiFi connection failed";
-                                                 state = State::Result;
-                                                 needsRender = true;
-                                               }
-                                             }));
+  enterNewActivity(new WifiSelectionActivity(renderer, mappedInput, [this](const bool connected) {
+    exitActivity();
+    if (connected) {
+      launchUrlEntry();
+    } else {
+      statusMessage = "WiFi connection failed";
+      state = State::Result;
+      needsRender = true;
+    }
+  }));
 }
 
 void ToolsOtaUpdateActivity::launchUrlEntry() {

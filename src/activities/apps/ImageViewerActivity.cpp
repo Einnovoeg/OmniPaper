@@ -1,9 +1,8 @@
 #include "ImageViewerActivity.h"
 
-#include <SDCardManager.h>
-
 #include <Bitmap.h>
 #include <GfxRenderer.h>
+#include <SDCardManager.h>
 
 #include "MappedInputManager.h"
 #include "PaperS3Ui.h"
@@ -19,7 +18,7 @@ bool endsWithIgnoreCase(const String& name, const char* ext) {
   target.toLowerCase();
   return lower.endsWith(target);
 }
-}
+}  // namespace
 
 ImageViewerActivity::ImageViewerActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,
                                          const std::function<void()>& onExit)
@@ -52,7 +51,8 @@ void ImageViewerActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (onExit) {
         onExit();

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <functional>
 #include <array>
+#include <functional>
 
 #include "../Activity.h"
 

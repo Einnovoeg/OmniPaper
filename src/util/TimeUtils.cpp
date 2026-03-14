@@ -22,12 +22,12 @@ void syncRtcFromSystemClock() {
     return;
   }
 
-  std::tm utcTm {};
+  std::tm utcTm{};
   gmtime_r(&now, &utcTm);
   M5.Rtc.setDateTime(&utcTm);
 }
 #endif
-}
+}  // namespace
 
 bool isTimeValid() {
   const time_t now = time(nullptr);

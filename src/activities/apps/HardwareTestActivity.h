@@ -1,10 +1,11 @@
 #pragma once
 
+#include <HalGPIO.h>
+
 #include <functional>
 #include <string>
 
 #include "../Activity.h"
-#include <HalGPIO.h>
 
 class HardwareTestActivity final : public Activity {
  public:

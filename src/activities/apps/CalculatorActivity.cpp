@@ -1,27 +1,40 @@
 #include "CalculatorActivity.h"
 
+#include <GfxRenderer.h>
+
 #include <cmath>
 #include <cstdlib>
-
-#include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
 #include "PaperS3Ui.h"
 #include "fontIds.h"
 
 const CalculatorActivity::Key CalculatorActivity::kScientificKeys[2][4] = {
-    {{"sin", Key::Type::FuncSin, 0}, {"cos", Key::Type::FuncCos, 0}, {"tan", Key::Type::FuncTan, 0},
+    {{"sin", Key::Type::FuncSin, 0},
+     {"cos", Key::Type::FuncCos, 0},
+     {"tan", Key::Type::FuncTan, 0},
      {"sqrt", Key::Type::FuncSqrt, 0}},
-    {{"x^2", Key::Type::FuncSquare, 0}, {"1/x", Key::Type::FuncReciprocal, 0}, {"log", Key::Type::FuncLog10, 0},
+    {{"x^2", Key::Type::FuncSquare, 0},
+     {"1/x", Key::Type::FuncReciprocal, 0},
+     {"log", Key::Type::FuncLog10, 0},
      {"ln", Key::Type::FuncLn, 0}},
 };
 
 const CalculatorActivity::Key CalculatorActivity::kKeys[5][4] = {
-    { {"7", Key::Type::Digit, '7'}, {"8", Key::Type::Digit, '8'}, {"9", Key::Type::Digit, '9'}, {"/", Key::Type::Op, '/'} },
-    { {"4", Key::Type::Digit, '4'}, {"5", Key::Type::Digit, '5'}, {"6", Key::Type::Digit, '6'}, {"*", Key::Type::Op, '*'} },
-    { {"1", Key::Type::Digit, '1'}, {"2", Key::Type::Digit, '2'}, {"3", Key::Type::Digit, '3'}, {"-", Key::Type::Op, '-'} },
-    { {"0", Key::Type::Digit, '0'}, {".", Key::Type::Dot, '.'}, {"=", Key::Type::Eval, '='}, {"+", Key::Type::Op, '+'} },
-    { {"C", Key::Type::Clear, 0}, {"DEL", Key::Type::Del, 0}, {"", Key::Type::Empty, 0}, {"", Key::Type::Empty, 0} },
+    {{"7", Key::Type::Digit, '7'},
+     {"8", Key::Type::Digit, '8'},
+     {"9", Key::Type::Digit, '9'},
+     {"/", Key::Type::Op, '/'}},
+    {{"4", Key::Type::Digit, '4'},
+     {"5", Key::Type::Digit, '5'},
+     {"6", Key::Type::Digit, '6'},
+     {"*", Key::Type::Op, '*'}},
+    {{"1", Key::Type::Digit, '1'},
+     {"2", Key::Type::Digit, '2'},
+     {"3", Key::Type::Digit, '3'},
+     {"-", Key::Type::Op, '-'}},
+    {{"0", Key::Type::Digit, '0'}, {".", Key::Type::Dot, '.'}, {"=", Key::Type::Eval, '='}, {"+", Key::Type::Op, '+'}},
+    {{"C", Key::Type::Clear, 0}, {"DEL", Key::Type::Del, 0}, {"", Key::Type::Empty, 0}, {"", Key::Type::Empty, 0}},
 };
 
 namespace {
@@ -79,7 +92,8 @@ void CalculatorActivity::handleInput() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (onExit) {
         onExit();

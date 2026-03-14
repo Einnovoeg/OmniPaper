@@ -1,12 +1,13 @@
 #pragma once
 
+#include <HalGPIO.h>
+
 #include <cstdint>
 #include <functional>
 #include <string>
 #include <vector>
 
 #include "../Activity.h"
-#include <HalGPIO.h>
 
 class SensorsActivity final : public Activity {
  public:

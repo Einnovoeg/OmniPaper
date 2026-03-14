@@ -43,8 +43,12 @@ class CrossPointWebServer {
   // Check if server is running
   bool isRunning() const { return running; }
 
-  void setReaderOpenCallback(std::function<bool(const std::string&)> callback) { readerOpenCallback = std::move(callback); }
-  void setAppLaunchCallback(std::function<bool(const std::string&)> callback) { appLaunchCallback = std::move(callback); }
+  void setReaderOpenCallback(std::function<bool(const std::string&)> callback) {
+    readerOpenCallback = std::move(callback);
+  }
+  void setAppLaunchCallback(std::function<bool(const std::string&)> callback) {
+    appLaunchCallback = std::move(callback);
+  }
 
   WsUploadStatus getWsUploadStatus() const;
 

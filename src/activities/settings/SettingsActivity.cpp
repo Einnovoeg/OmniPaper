@@ -3,10 +3,10 @@
 #include <GfxRenderer.h>
 #include <HardwareSerial.h>
 
+#include "../apps/PaperS3Ui.h"
 #include "CategorySettingsActivity.h"
 #include "CrossPointSettings.h"
 #include "MappedInputManager.h"
-#include "../apps/PaperS3Ui.h"
 #include "fontIds.h"
 
 const char* SettingsActivity::categoryNames[categoryCount] = {"Display", "Reader", "Device", "System"};
@@ -53,8 +53,7 @@ const SettingInfo readerSettings[readerSettingsCount] = {
 constexpr int controlsSettingsCount = 4;
 const SettingInfo controlsSettings[controlsSettingsCount] = {
 #if defined(PLATFORM_M5PAPERS3)
-    SettingInfo::Action("Touchscreen Navigation"),
-    SettingInfo::Action("Built-in Fonts Enabled"),
+    SettingInfo::Action("Touchscreen Navigation"), SettingInfo::Action("Built-in Fonts Enabled"),
     SettingInfo::Toggle("Long-press Chapter Skip", &CrossPointSettings::longPressChapterSkip),
     SettingInfo::Enum("Short Power Button Click", &CrossPointSettings::shortPwrBtn, {"Ignore", "Sleep", "Page Turn"})};
 #else
@@ -72,7 +71,9 @@ const SettingInfo systemSettings[systemSettingsCount] = {
     SettingInfo::Toggle("Idle Hotspot Web UI", &CrossPointSettings::idleHotspotWebUi),
     SettingInfo::Enum("Time to Sleep", &CrossPointSettings::sleepTimeout,
                       {"1 min", "5 min", "10 min", "15 min", "30 min"}),
-    SettingInfo::Action("KOReader Sync"), SettingInfo::Action("OPDS Browser"), SettingInfo::Action("Clear Cache"),
+    SettingInfo::Action("KOReader Sync"),
+    SettingInfo::Action("OPDS Browser"),
+    SettingInfo::Action("Clear Cache"),
     SettingInfo::Action("Check for updates")};
 
 #if defined(PLATFORM_M5PAPERS3)
@@ -136,7 +137,8 @@ void SettingsActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       SETTINGS.saveToFile();
       onGoHome();

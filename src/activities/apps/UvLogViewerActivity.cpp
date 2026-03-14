@@ -1,12 +1,11 @@
 #include "UvLogViewerActivity.h"
 
+#include <GfxRenderer.h>
 #include <SDCardManager.h>
 
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
-
-#include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
 #include "PaperS3Ui.h"
@@ -17,7 +16,7 @@ constexpr const char* kLogFile = "/logs/uv.csv";
 constexpr int kMaxEntries = 200;
 constexpr int kItemsPerPage = 8;
 constexpr int kPaperS3ItemsPerPage = 6;
-}
+}  // namespace
 
 UvLogViewerActivity::UvLogViewerActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,
                                          const std::function<void()>& onExit)
@@ -33,7 +32,8 @@ void UvLogViewerActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (onExitCb) {
         onExitCb();
@@ -253,8 +253,7 @@ void UvLogViewerActivity::render() {
 
   if (entries.empty()) {
     renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() / 2, statusMessage.c_str());
-    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24,
-                              "Confirm: Refresh   Back: Menu");
+    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24, "Confirm: Refresh   Back: Menu");
     renderer.displayBuffer();
     return;
   }
@@ -268,7 +267,7 @@ void UvLogViewerActivity::render() {
 
   char tsLine[48];
   if (selected.timestamp > 0) {
-    std::tm tm {};
+    std::tm tm{};
     const time_t ts = static_cast<time_t>(selected.timestamp);
     gmtime_r(&ts, &tm);
     snprintf(tsLine, sizeof(tsLine), "UTC %04d-%02d-%02d %02d:%02d:%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,

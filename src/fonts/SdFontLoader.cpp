@@ -76,9 +76,7 @@ void resetLoadedFont(LoadedFont& font) {
   font.loaded = false;
 }
 
-bool readExact(FsFile& file, void* out, const size_t size) {
-  return file.read(out, size) == static_cast<int>(size);
-}
+bool readExact(FsFile& file, void* out, const size_t size) { return file.read(out, size) == static_cast<int>(size); }
 
 bool loadFontFile(const char* name, LoadedFont& out) {
   resetLoadedFont(out);
@@ -129,8 +127,7 @@ bool loadFontFile(const char* name, LoadedFont& out) {
   }
 
   if (!readExact(f, out.intervals, header.intervalCount * sizeof(EpdUnicodeInterval)) ||
-      !readExact(f, out.glyphs, header.glyphCount * sizeof(EpdGlyph)) ||
-      !readExact(f, out.bitmap, header.bitmapSize)) {
+      !readExact(f, out.glyphs, header.glyphCount * sizeof(EpdGlyph)) || !readExact(f, out.bitmap, header.bitmapSize)) {
     Serial.printf("[%lu] [FONT] Failed to read font data: %s\n", millis(), path);
     f.close();
     resetLoadedFont(out);

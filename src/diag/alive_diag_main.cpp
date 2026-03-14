@@ -16,9 +16,8 @@ void printPinSnapshot() {
   const int g37 = digitalRead(GPIO_NUM_37);
   const int g38 = digitalRead(GPIO_NUM_38);
   const int g39 = digitalRead(GPIO_NUM_39);
-  Serial.printf(
-      "[ALIVE_DIAG] pins g0=%d g2=%d g12=%d g15=%d g27=%d g37=%d g38=%d g39=%d\n",
-      g0, g2, g12, g15, g27, g37, g38, g39);
+  Serial.printf("[ALIVE_DIAG] pins g0=%d g2=%d g12=%d g15=%d g27=%d g37=%d g38=%d g39=%d\n", g0, g2, g12, g15, g27, g37,
+                g38, g39);
 }
 }  // namespace
 
@@ -40,8 +39,7 @@ void setup() {
   WiFi.persistent(false);
   WiFi.mode(WIFI_AP);
   const bool apOk = WiFi.softAP(kApSsid, kApPass, kApChannel, false, 1);
-  Serial.printf("[ALIVE_DIAG] wifi_ap=%d ssid=%s ip=%s\n", apOk ? 1 : 0, kApSsid,
-                WiFi.softAPIP().toString().c_str());
+  Serial.printf("[ALIVE_DIAG] wifi_ap=%d ssid=%s ip=%s\n", apOk ? 1 : 0, kApSsid, WiFi.softAPIP().toString().c_str());
 
   printPinSnapshot();
 }

@@ -8,11 +8,11 @@
 #include <M5Unified.h>
 #endif
 
+#include <GfxRenderer.h>
+
 #include <algorithm>
 #include <cstdint>
 #include <memory>
-
-#include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
 #include "fontIds.h"
@@ -259,9 +259,7 @@ void TrackpadActivity::beginBleMouse() {
   setStatus("Pair as OmniPaper Trackpad", false, 4200);
 }
 
-void TrackpadActivity::stopBleMouse() {
-  gBleMouse.end();
-}
+void TrackpadActivity::stopBleMouse() { gBleMouse.end(); }
 
 bool TrackpadActivity::isBleConnected() const { return gBleMouse.isConnected(); }
 
@@ -495,8 +493,7 @@ void TrackpadActivity::render() {
 
   if (!statusMessage.empty()) {
     if (statusError) {
-      renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 48,
-                                ("Error: " + statusMessage).c_str());
+      renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 48, ("Error: " + statusMessage).c_str());
     } else {
       renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 48, statusMessage.c_str());
     }

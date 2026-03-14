@@ -1,8 +1,7 @@
 #include "WifiStatusActivity.h"
 
-#include <WiFi.h>
-
 #include <GfxRenderer.h>
+#include <WiFi.h>
 
 #include "MappedInputManager.h"
 #include "activities/apps/PaperS3Ui.h"
@@ -27,7 +26,8 @@ void WifiStatusActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (onExit) {
         onExit();
@@ -63,12 +63,11 @@ void WifiStatusActivity::loop() {
 }
 
 void WifiStatusActivity::launchWifiSelection() {
-  enterNewActivity(new WifiSelectionActivity(renderer, mappedInput,
-                                             [this](const bool connected) {
-                                               exitActivity();
-                                               (void)connected;
-                                               needsRender = true;
-                                             }));
+  enterNewActivity(new WifiSelectionActivity(renderer, mappedInput, [this](const bool connected) {
+    exitActivity();
+    (void)connected;
+    needsRender = true;
+  }));
 }
 
 void WifiStatusActivity::render() {
@@ -76,8 +75,7 @@ void WifiStatusActivity::render() {
 #if defined(PLATFORM_M5PAPERS3)
   {
     renderer.setOrientation(GfxRenderer::Orientation::Portrait);
-    PaperS3Ui::drawScreenHeader(renderer, "WiFi Status",
-                                WiFi.status() == WL_CONNECTED ? "Connected" : "Not connected");
+    PaperS3Ui::drawScreenHeader(renderer, "WiFi Status", WiFi.status() == WL_CONNECTED ? "Connected" : "Not connected");
     PaperS3Ui::drawBackButton(renderer);
 
     if (WiFi.status() != WL_CONNECTED) {
@@ -118,8 +116,7 @@ void WifiStatusActivity::render() {
 
   if (WiFi.status() != WL_CONNECTED) {
     renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() / 2, "Not connected");
-    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24,
-                              "Confirm: Connect   Back: Menu");
+    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24, "Confirm: Connect   Back: Menu");
     renderer.displayBuffer();
     return;
   }

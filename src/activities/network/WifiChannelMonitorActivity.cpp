@@ -1,8 +1,7 @@
 #include "WifiChannelMonitorActivity.h"
 
-#include <WiFi.h>
-
 #include <GfxRenderer.h>
+#include <WiFi.h>
 
 #include "MappedInputManager.h"
 #include "fontIds.h"

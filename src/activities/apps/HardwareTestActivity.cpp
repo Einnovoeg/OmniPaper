@@ -3,6 +3,7 @@
 #include <GfxRenderer.h>
 #include <SDCardManager.h>
 #include <Wire.h>
+
 #include <cmath>
 
 #include "CrossPointSettings.h"
@@ -83,7 +84,8 @@ void HardwareTestActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (onExit) {
         onExit();
@@ -155,7 +157,7 @@ void HardwareTestActivity::render() {
   drawState("Power", mappedInput.isPressed(MappedInputManager::Button::Power));
 
 #ifdef PLATFORM_M5PAPER
-  const auto detail = M5.Touch.isEnabled() ? M5.Touch.getDetail() : m5::touch_detail_t {};
+  const auto detail = M5.Touch.isEnabled() ? M5.Touch.getDetail() : m5::touch_detail_t{};
   char touchLine[80];
   snprintf(touchLine, sizeof(touchLine), "Touch: %s (%d,%d)", detail.isPressed() ? "ON" : "off", detail.x, detail.y);
   renderer.drawText(SMALL_FONT_ID, 30, y + 4, touchLine);
@@ -166,8 +168,8 @@ void HardwareTestActivity::render() {
   std::tm localTime{};
   char line[96];
   if (TimeUtils::getLocalTimeWithOffset(localTime, SETTINGS.timezoneOffsetMinutes)) {
-    snprintf(line, sizeof(line), "RTC: %04d/%02d/%02d %02d:%02d:%02d", localTime.tm_year + 1900,
-             localTime.tm_mon + 1, localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec);
+    snprintf(line, sizeof(line), "RTC: %04d/%02d/%02d %02d:%02d:%02d", localTime.tm_year + 1900, localTime.tm_mon + 1,
+             localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec);
   } else {
     snprintf(line, sizeof(line), "RTC: Not set (sync in Time app)");
   }
@@ -238,7 +240,7 @@ void HardwareTestActivity::renderPaperS3() {
   const auto layout = PaperS3Ui::fourCardLayout(renderer);
   const int smallLineStep = renderer.getLineHeight(SMALL_FONT_ID) + 4;
   const bool sdOk = SdMan.ready();
-  const auto touch = M5.Touch.isEnabled() ? M5.Touch.getDetail() : m5::touch_detail_t {};
+  const auto touch = M5.Touch.isEnabled() ? M5.Touch.getDetail() : m5::touch_detail_t{};
   const uint8_t touchCount = M5.Touch.isEnabled() ? M5.Touch.getCount() : 0;
   const int batteryPct = gpio.getBatteryPercentage();
   const int16_t batteryMv = M5.Power.getBatteryVoltage();
@@ -262,7 +264,8 @@ void HardwareTestActivity::renderPaperS3() {
   snprintf(line, sizeof(line), "Back: %s", mappedInput.isPressed(MappedInputManager::Button::Back) ? "ON" : "off");
   renderer.drawText(SMALL_FONT_ID, x, y, line);
   y += smallLineStep;
-  snprintf(line, sizeof(line), "Confirm: %s", mappedInput.isPressed(MappedInputManager::Button::Confirm) ? "ON" : "off");
+  snprintf(line, sizeof(line), "Confirm: %s",
+           mappedInput.isPressed(MappedInputManager::Button::Confirm) ? "ON" : "off");
   renderer.drawText(SMALL_FONT_ID, x, y, line);
   y += smallLineStep;
   snprintf(line, sizeof(line), "Left/Right: %s / %s",
@@ -299,10 +302,10 @@ void HardwareTestActivity::renderPaperS3() {
 
   x = PaperS3Ui::bodyX(layout.leftX);
   y = PaperS3Ui::bodyY(layout.bottomY);
-  std::tm localTime {};
+  std::tm localTime{};
   if (TimeUtils::getLocalTimeWithOffset(localTime, SETTINGS.timezoneOffsetMinutes)) {
-    snprintf(line, sizeof(line), "RTC: %04d/%02d/%02d %02d:%02d:%02d", localTime.tm_year + 1900,
-             localTime.tm_mon + 1, localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec);
+    snprintf(line, sizeof(line), "RTC: %04d/%02d/%02d %02d:%02d:%02d", localTime.tm_year + 1900, localTime.tm_mon + 1,
+             localTime.tm_mday, localTime.tm_hour, localTime.tm_min, localTime.tm_sec);
   } else {
     snprintf(line, sizeof(line), "RTC: Not synced");
   }

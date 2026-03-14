@@ -5,10 +5,10 @@
 #include <Serialization.h>
 #include <Utf8.h>
 
+#include "../apps/PaperS3Ui.h"
 #include "CrossPointSettings.h"
 #include "CrossPointState.h"
 #include "MappedInputManager.h"
-#include "../apps/PaperS3Ui.h"
 #include "RecentBooksStore.h"
 #include "ScreenComponents.h"
 #include "fontIds.h"
@@ -120,7 +120,8 @@ void TxtReaderActivity::loop() {
   bool tapNext = false;
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       onGoBack();
       return;
@@ -133,8 +134,7 @@ void TxtReaderActivity::loop() {
   constexpr bool tapNext = false;
 #endif
 
-  if (SETTINGS.infoOverlayPosition != CrossPointSettings::OVERLAY_OFF &&
-      (millis() - lastOverlayRefreshMs) >= 30000) {
+  if (SETTINGS.infoOverlayPosition != CrossPointSettings::OVERLAY_OFF && (millis() - lastOverlayRefreshMs) >= 30000) {
     lastOverlayRefreshMs = millis();
     updateRequired = true;
   }
@@ -153,17 +153,18 @@ void TxtReaderActivity::loop() {
 
   // When long-press chapter skip is disabled, turn pages on press instead of release.
   const bool usePressForPageTurn = !SETTINGS.longPressChapterSkip;
-  const bool prevTriggered = tapPrev || (usePressForPageTurn ? (mappedInput.wasPressed(MappedInputManager::Button::PageBack) ||
-                                                    mappedInput.wasPressed(MappedInputManager::Button::Left))
-                                                 : (mappedInput.wasReleased(MappedInputManager::Button::PageBack) ||
-                                                    mappedInput.wasReleased(MappedInputManager::Button::Left)));
+  const bool prevTriggered =
+      tapPrev || (usePressForPageTurn ? (mappedInput.wasPressed(MappedInputManager::Button::PageBack) ||
+                                         mappedInput.wasPressed(MappedInputManager::Button::Left))
+                                      : (mappedInput.wasReleased(MappedInputManager::Button::PageBack) ||
+                                         mappedInput.wasReleased(MappedInputManager::Button::Left)));
   const bool powerPageTurn = SETTINGS.shortPwrBtn == CrossPointSettings::SHORT_PWRBTN::PAGE_TURN &&
                              mappedInput.wasReleased(MappedInputManager::Button::Power);
-  const bool nextTriggered = tapNext || (usePressForPageTurn
-                                 ? (mappedInput.wasPressed(MappedInputManager::Button::PageForward) || powerPageTurn ||
-                                    mappedInput.wasPressed(MappedInputManager::Button::Right))
-                                 : (mappedInput.wasReleased(MappedInputManager::Button::PageForward) || powerPageTurn ||
-                                    mappedInput.wasReleased(MappedInputManager::Button::Right)));
+  const bool nextTriggered =
+      tapNext || (usePressForPageTurn ? (mappedInput.wasPressed(MappedInputManager::Button::PageForward) ||
+                                         powerPageTurn || mappedInput.wasPressed(MappedInputManager::Button::Right))
+                                      : (mappedInput.wasReleased(MappedInputManager::Button::PageForward) ||
+                                         powerPageTurn || mappedInput.wasReleased(MappedInputManager::Button::Right)));
 
   if (!prevTriggered && !nextTriggered) {
     return;

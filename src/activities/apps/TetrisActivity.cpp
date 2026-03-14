@@ -1,9 +1,9 @@
 #include "TetrisActivity.h"
 
-#include <algorithm>
+#include <GfxRenderer.h>
 #include <esp_system.h>
 
-#include <GfxRenderer.h>
+#include <algorithm>
 
 #include "MappedInputManager.h"
 #include "PaperS3Ui.h"
@@ -16,24 +16,39 @@ constexpr int kBoardX = 52;
 constexpr int kBoardY = 118;
 
 const int8_t kShapes[7][4][4][2] = {
-    {{{0, 1}, {1, 1}, {2, 1}, {3, 1}}, {{2, 0}, {2, 1}, {2, 2}, {2, 3}}, {{0, 2}, {1, 2}, {2, 2}, {3, 2}},
+    {{{0, 1}, {1, 1}, {2, 1}, {3, 1}},
+     {{2, 0}, {2, 1}, {2, 2}, {2, 3}},
+     {{0, 2}, {1, 2}, {2, 2}, {3, 2}},
      {{1, 0}, {1, 1}, {1, 2}, {1, 3}}},
-    {{{1, 0}, {2, 0}, {1, 1}, {2, 1}}, {{1, 0}, {2, 0}, {1, 1}, {2, 1}}, {{1, 0}, {2, 0}, {1, 1}, {2, 1}},
+    {{{1, 0}, {2, 0}, {1, 1}, {2, 1}},
+     {{1, 0}, {2, 0}, {1, 1}, {2, 1}},
+     {{1, 0}, {2, 0}, {1, 1}, {2, 1}},
      {{1, 0}, {2, 0}, {1, 1}, {2, 1}}},
-    {{{1, 0}, {0, 1}, {1, 1}, {2, 1}}, {{1, 0}, {1, 1}, {2, 1}, {1, 2}}, {{0, 1}, {1, 1}, {2, 1}, {1, 2}},
+    {{{1, 0}, {0, 1}, {1, 1}, {2, 1}},
+     {{1, 0}, {1, 1}, {2, 1}, {1, 2}},
+     {{0, 1}, {1, 1}, {2, 1}, {1, 2}},
      {{1, 0}, {0, 1}, {1, 1}, {1, 2}}},
-    {{{1, 0}, {2, 0}, {0, 1}, {1, 1}}, {{1, 0}, {1, 1}, {2, 1}, {2, 2}}, {{1, 1}, {2, 1}, {0, 2}, {1, 2}},
+    {{{1, 0}, {2, 0}, {0, 1}, {1, 1}},
+     {{1, 0}, {1, 1}, {2, 1}, {2, 2}},
+     {{1, 1}, {2, 1}, {0, 2}, {1, 2}},
      {{0, 0}, {0, 1}, {1, 1}, {1, 2}}},
-    {{{0, 0}, {1, 0}, {1, 1}, {2, 1}}, {{2, 0}, {1, 1}, {2, 1}, {1, 2}}, {{0, 1}, {1, 1}, {1, 2}, {2, 2}},
+    {{{0, 0}, {1, 0}, {1, 1}, {2, 1}},
+     {{2, 0}, {1, 1}, {2, 1}, {1, 2}},
+     {{0, 1}, {1, 1}, {1, 2}, {2, 2}},
      {{1, 0}, {0, 1}, {1, 1}, {0, 2}}},
-    {{{0, 0}, {0, 1}, {1, 1}, {2, 1}}, {{1, 0}, {2, 0}, {1, 1}, {1, 2}}, {{0, 1}, {1, 1}, {2, 1}, {2, 2}},
+    {{{0, 0}, {0, 1}, {1, 1}, {2, 1}},
+     {{1, 0}, {2, 0}, {1, 1}, {1, 2}},
+     {{0, 1}, {1, 1}, {2, 1}, {2, 2}},
      {{1, 0}, {1, 1}, {0, 2}, {1, 2}}},
-    {{{2, 0}, {0, 1}, {1, 1}, {2, 1}}, {{1, 0}, {1, 1}, {1, 2}, {2, 2}}, {{0, 1}, {1, 1}, {2, 1}, {0, 2}},
+    {{{2, 0}, {0, 1}, {1, 1}, {2, 1}},
+     {{1, 0}, {1, 1}, {1, 2}, {2, 2}},
+     {{0, 1}, {1, 1}, {2, 1}, {0, 2}},
      {{0, 0}, {1, 0}, {1, 1}, {1, 2}}},
 };
 }  // namespace
 
-TetrisActivity::TetrisActivity(GfxRenderer& renderer, MappedInputManager& mappedInput, const std::function<void()>& onExit)
+TetrisActivity::TetrisActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,
+                               const std::function<void()>& onExit)
     : Activity("Tetris", renderer, mappedInput), onExit(onExit) {}
 
 void TetrisActivity::onEnter() {
@@ -171,7 +186,8 @@ void TetrisActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (onExit) {
         onExit();
@@ -219,7 +235,8 @@ void TetrisActivity::loop() {
       movePiece(1, 0);
       needsRender = true;
     }
-    if (mappedInput.wasPressed(MappedInputManager::Button::Up) || mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
+    if (mappedInput.wasPressed(MappedInputManager::Button::Up) ||
+        mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
       rotatePiece();
       needsRender = true;
     }

@@ -6,19 +6,19 @@
 #include <SDCardManager.h>
 #include <SPI.h>
 #include <esp_sleep.h>
+
 #include <memory>
 #if defined(PLATFORM_M5PAPERS3)
 #include <DNSServer.h>
 #include <ESPmDNS.h>
 #include <WiFi.h>
-
 #include <builtinFonts/all.h>
 #elif defined(PLATFORM_M5PAPER)
 #include <DNSServer.h>
 #include <ESPmDNS.h>
 #include <WiFi.h>
-
 #include <builtinFonts/notosans_8_regular.h>
+
 #include "fonts/SdFontLoader.h"
 #else
 #include <builtinFonts/all.h>
@@ -55,21 +55,21 @@
 #include "activities/apps/KeyboardHostActivity.h"
 #include "activities/apps/NotesActivity.h"
 #include "activities/apps/OptionalDevicesActivity.h"
-#include "activities/apps/ToolsOtaUpdateActivity.h"
 #include "activities/apps/PoodleActivity.h"
 #include "activities/apps/SensorsActivity.h"
 #include "activities/apps/SleepTimerActivity.h"
 #include "activities/apps/SshClientActivity.h"
 #include "activities/apps/SudokuActivity.h"
 #include "activities/apps/TetrisActivity.h"
-#include "activities/apps/TrackpadActivity.h"
 #include "activities/apps/TimeSettingsActivity.h"
+#include "activities/apps/ToolsOtaUpdateActivity.h"
+#include "activities/apps/TrackpadActivity.h"
 #include "activities/apps/UartRxMonitorActivity.h"
-#include "activities/apps/UvSensorActivity.h"
 #include "activities/apps/UvLogViewerActivity.h"
+#include "activities/apps/UvSensorActivity.h"
 #include "activities/apps/WeatherActivity.h"
-#include "activities/launcher/LauncherActivity.h"
 #include "activities/launcher/LauncherActions.h"
+#include "activities/launcher/LauncherActivity.h"
 #include "activities/network/BleScannerActivity.h"
 #include "activities/network/WifiChannelMonitorActivity.h"
 #include "activities/network/WifiScannerActivity.h"
@@ -477,32 +477,33 @@ void handleLauncherAction(LauncherAction action) {
       break;
     case LauncherAction::SensorsBuiltIn:
       exitActivity();
-      enterNewActivity(new SensorsActivity(renderer, mappedInputManager, gpio, SensorsActivity::Mode::BuiltIn, onGoLauncher));
+      enterNewActivity(
+          new SensorsActivity(renderer, mappedInputManager, gpio, SensorsActivity::Mode::BuiltIn, onGoLauncher));
       break;
     case LauncherAction::SensorsPeripherals:
       exitActivity();
-      enterNewActivity(new OptionalDevicesActivity(
-          renderer, mappedInputManager, onGoLauncher,
-          [](const OptionalDevicesActivity::DeviceAction action) {
-            switch (action) {
-              case OptionalDevicesActivity::DeviceAction::ExternalSensors:
-                handleLauncherAction(LauncherAction::SensorsExternal);
-                break;
-              case OptionalDevicesActivity::DeviceAction::UvSensor:
-                handleLauncherAction(LauncherAction::SensorsUv);
-                break;
-              case OptionalDevicesActivity::DeviceAction::UvLogs:
-                handleLauncherAction(LauncherAction::SensorsUvLogs);
-                break;
-              case OptionalDevicesActivity::DeviceAction::None:
-              default:
-                break;
-            }
-          }));
+      enterNewActivity(new OptionalDevicesActivity(renderer, mappedInputManager, onGoLauncher,
+                                                   [](const OptionalDevicesActivity::DeviceAction action) {
+                                                     switch (action) {
+                                                       case OptionalDevicesActivity::DeviceAction::ExternalSensors:
+                                                         handleLauncherAction(LauncherAction::SensorsExternal);
+                                                         break;
+                                                       case OptionalDevicesActivity::DeviceAction::UvSensor:
+                                                         handleLauncherAction(LauncherAction::SensorsUv);
+                                                         break;
+                                                       case OptionalDevicesActivity::DeviceAction::UvLogs:
+                                                         handleLauncherAction(LauncherAction::SensorsUvLogs);
+                                                         break;
+                                                       case OptionalDevicesActivity::DeviceAction::None:
+                                                       default:
+                                                         break;
+                                                     }
+                                                   }));
       break;
     case LauncherAction::SensorsExternal:
       exitActivity();
-      enterNewActivity(new SensorsActivity(renderer, mappedInputManager, gpio, SensorsActivity::Mode::External, onGoLauncher));
+      enterNewActivity(
+          new SensorsActivity(renderer, mappedInputManager, gpio, SensorsActivity::Mode::External, onGoLauncher));
       break;
     case LauncherAction::SensorsI2CTools:
       exitActivity();
@@ -594,10 +595,9 @@ void handleLauncherAction(LauncherAction action) {
       break;
     case LauncherAction::ToolsFileManager:
       exitActivity();
-      enterNewActivity(new FileManagerActivity(renderer, mappedInputManager, onGoLauncher,
-                                               [](const std::string& path) {
-                                                 onGoToReader(path, MyLibraryActivity::Tab::Recent);
-                                               }));
+      enterNewActivity(new FileManagerActivity(renderer, mappedInputManager, onGoLauncher, [](const std::string& path) {
+        onGoToReader(path, MyLibraryActivity::Tab::Recent);
+      }));
       break;
     case LauncherAction::ToolsTime:
       exitActivity();

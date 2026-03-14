@@ -1,11 +1,10 @@
 #include "WifiScannerActivity.h"
 
-#include <WiFi.h>
+#include <GfxRenderer.h>
 #include <SDCardManager.h>
+#include <WiFi.h>
 
 #include <ctime>
-
-#include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
 #include "activities/apps/PaperS3Ui.h"
@@ -17,7 +16,7 @@ constexpr int kItemsPerPage = 12;
 constexpr int kPaperS3ItemsPerPage = 6;
 constexpr const char* kLogDir = "/logs";
 constexpr const char* kLogFile = "/logs/wifi_scan.csv";
-}
+}  // namespace
 
 WifiScannerActivity::WifiScannerActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,
                                          const std::function<void()>& onExit)
@@ -77,7 +76,8 @@ void WifiScannerActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (onExitCb) {
         onExitCb();

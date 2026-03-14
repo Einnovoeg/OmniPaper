@@ -55,7 +55,7 @@ class HalDisplay {
   void copyGrayscaleMsbBuffers(const uint8_t* msbBuffer);
   void cleanupGrayscaleBuffers(const uint8_t* bwBuffer);
 
- void displayGrayBuffer();
+  void displayGrayBuffer();
 
  private:
 #ifdef PLATFORM_M5PAPER

@@ -19,7 +19,7 @@ namespace M5GfxSdU8g2Loader {
 bool loadFont(const char* path, U8g2FontHandle& out, size_t maxSize = 8 * 1024 * 1024);
 // Free any loaded font data.
 void unloadFont(U8g2FontHandle& out);
-}
+}  // namespace M5GfxSdU8g2Loader
 
 #else
 
@@ -28,6 +28,6 @@ struct U8g2FontHandle {};
 namespace M5GfxSdU8g2Loader {
 inline bool loadFont(const char*, U8g2FontHandle&, size_t = 0) { return false; }
 inline void unloadFont(U8g2FontHandle&) {}
-}
+}  // namespace M5GfxSdU8g2Loader
 
 #endif

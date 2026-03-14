@@ -1,12 +1,10 @@
 #include "SshClientActivity.h"
 
-#include <WiFi.h>
-#include <libssh_esp32.h>
-
-#include <libssh/libssh.h>
-
 #include <GfxRenderer.h>
 #include <SDCardManager.h>
+#include <WiFi.h>
+#include <libssh/libssh.h>
+#include <libssh_esp32.h>
 
 #include <algorithm>
 #include <cctype>
@@ -157,13 +155,11 @@ void SshClientActivity::onEnter() {
 }
 
 void SshClientActivity::launchWifiSelection() {
-  enterNewActivity(new WifiSelectionActivity(renderer, mappedInput,
-                                             [this](bool connected) {
-                                               exitActivity();
-                                               setStatus(connected ? "WiFi connected" : "WiFi setup cancelled",
-                                                         !connected, 2200);
-                                               needsRender = true;
-                                             }));
+  enterNewActivity(new WifiSelectionActivity(renderer, mappedInput, [this](bool connected) {
+    exitActivity();
+    setStatus(connected ? "WiFi connected" : "WiFi setup cancelled", !connected, 2200);
+    needsRender = true;
+  }));
 }
 
 void SshClientActivity::editTextField(const char* title, std::string* field, const size_t maxLen,

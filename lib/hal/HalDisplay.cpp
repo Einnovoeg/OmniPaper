@@ -54,8 +54,9 @@ void HalDisplay::displayGrayBuffer() { einkDisplay.displayGrayBuffer(); }
 
 #else
 
-#include <cstring>
 #include <esp32-hal-psram.h>
+
+#include <cstring>
 
 namespace {
 constexpr uint32_t kDisplayWaitTimeoutMs = 4000;
@@ -178,9 +179,7 @@ void HalDisplay::copyGrayscaleLsbBuffers(const uint8_t* lsbBuffer) { epdDisplay.
 
 void HalDisplay::copyGrayscaleMsbBuffers(const uint8_t* msbBuffer) { epdDisplay.copyGrayscaleMsbBuffers(msbBuffer); }
 
-void HalDisplay::cleanupGrayscaleBuffers(const uint8_t* bwBuffer) {
-  (void)bwBuffer;
-}
+void HalDisplay::cleanupGrayscaleBuffers(const uint8_t* bwBuffer) { (void)bwBuffer; }
 
 void HalDisplay::displayGrayBuffer() { displayBuffer(FAST_REFRESH); }
 

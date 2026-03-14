@@ -16,10 +16,7 @@ class I2cEepromDumpActivity final : public ActivityWithSubactivity {
   void loop() override;
 
  private:
-  enum class Screen {
-    SelectDevice,
-    DumpView
-  };
+  enum class Screen { SelectDevice, DumpView };
 
   std::function<void()> onExitCb;
   TwoWire i2c;

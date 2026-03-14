@@ -5,13 +5,12 @@
 #include <BLEHIDDevice.h>
 #include <BLESecurity.h>
 #define US_KEYBOARD
+#include <GfxRenderer.h>
 #include <HIDKeyboardTypes.h>
 
 #include <algorithm>
 #include <cctype>
 #include <memory>
-
-#include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
 #include "activities/util/KeyboardEntryActivity.h"

@@ -499,10 +499,10 @@ void GfxRenderer::drawButtonHints(const int fontId, const char* btn1, const char
   const int portraitWidth = getScreenWidth();
   const int portraitHeight = getScreenHeight();
   const bool portraitWide = portraitWidth >= 520;
-  const int portraitFontId =
-      portraitWide
-          ? ((fontId == SMALL_FONT_ID) ? UI_10_FONT_ID : (fontId == UI_10_FONT_ID) ? UI_12_FONT_ID : fontId)
-          : fontId;
+  const int portraitFontId = portraitWide ? ((fontId == SMALL_FONT_ID)   ? UI_10_FONT_ID
+                                             : (fontId == UI_10_FONT_ID) ? UI_12_FONT_ID
+                                                                         : fontId)
+                                          : fontId;
 
   auto drawChip = [&](const int x, const int y, const int width, const int height, const char* label) {
     if (label == nullptr || label[0] == '\0') {
@@ -537,9 +537,10 @@ void GfxRenderer::drawButtonHints(const int fontId, const char* btn1, const char
   const int pageWidth = getScreenWidth();
   const int pageHeight = getScreenHeight();
   const bool widePortrait = pageWidth >= 520;
-  const int resolvedFontId =
-      widePortrait ? ((fontId == SMALL_FONT_ID) ? UI_10_FONT_ID : (fontId == UI_10_FONT_ID) ? UI_12_FONT_ID : fontId)
-                   : fontId;
+  const int resolvedFontId = widePortrait ? ((fontId == SMALL_FONT_ID)   ? UI_10_FONT_ID
+                                             : (fontId == UI_10_FONT_ID) ? UI_12_FONT_ID
+                                                                         : fontId)
+                                          : fontId;
   const int sideMargin = widePortrait ? 18 : 25;
   const int buttonGap = widePortrait ? 12 : 10;
   const int buttonWidth = (pageWidth - sideMargin * 2 - buttonGap * 3) / 4;
@@ -572,10 +573,10 @@ void GfxRenderer::drawSideButtonHints(const int fontId, const char* topBtn, cons
   auto* self = const_cast<GfxRenderer*>(this);
   const int portraitWidth = self->getScreenWidth();
   const bool portraitWide = portraitWidth >= 520;
-  const int portraitFontId =
-      portraitWide
-          ? ((fontId == SMALL_FONT_ID) ? UI_10_FONT_ID : (fontId == UI_10_FONT_ID) ? UI_12_FONT_ID : fontId)
-          : fontId;
+  const int portraitFontId = portraitWide ? ((fontId == SMALL_FONT_ID)   ? UI_10_FONT_ID
+                                             : (fontId == UI_10_FONT_ID) ? UI_12_FONT_ID
+                                                                         : fontId)
+                                          : fontId;
 
   auto drawChip = [&](const int x, const int y, const int width, const int height, const char* label) {
     if (label == nullptr || label[0] == '\0') {

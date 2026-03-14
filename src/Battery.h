@@ -5,9 +5,7 @@
 
 class M5PaperBattery {
  public:
-  int readPercentage() const {
-    return M5.Power.getBatteryLevel();
-  }
+  int readPercentage() const { return M5.Power.getBatteryLevel(); }
 };
 
 static M5PaperBattery battery;

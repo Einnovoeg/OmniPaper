@@ -20,7 +20,7 @@ int overlayFontId(const GfxRenderer& renderer) {
 }
 
 std::string buildDateTimeText() {
-  std::tm localTime {};
+  std::tm localTime{};
   if (!TimeUtils::getLocalTimeWithOffset(localTime, SETTINGS.timezoneOffsetMinutes)) {
     return "----/--/-- --:--";
   }

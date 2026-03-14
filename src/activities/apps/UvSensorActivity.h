@@ -1,12 +1,11 @@
 #pragma once
 
+#include <AS7331.h>
+#include <Wire.h>
+
 #include <functional>
 #include <memory>
 #include <string>
-
-#include <Wire.h>
-
-#include <AS7331.h>
 
 #include "../ActivityWithSubactivity.h"
 

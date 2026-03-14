@@ -2,18 +2,17 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <GfxRenderer.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
-
-#include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
 #include "PaperS3Ui.h"
 #include "fontIds.h"
 
 namespace {
-constexpr unsigned long kUpdateIntervalMs = 10UL * 60UL * 1000UL; // 10 minutes
+constexpr unsigned long kUpdateIntervalMs = 10UL * 60UL * 1000UL;  // 10 minutes
 }
 
 WeatherActivity::WeatherActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,
@@ -32,7 +31,8 @@ void WeatherActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (onExit) {
         onExit();
@@ -182,24 +182,42 @@ bool WeatherActivity::fetchWeather(const LocationInfo& loc, WeatherSnapshot& out
 
 std::string WeatherActivity::weatherDescription(int code) const {
   switch (code) {
-    case 0: return "Clear";
-    case 1: return "Mostly clear";
-    case 2: return "Partly cloudy";
-    case 3: return "Overcast";
-    case 45: return "Fog";
-    case 48: return "Rime fog";
-    case 51: return "Light drizzle";
-    case 53: return "Drizzle";
-    case 55: return "Heavy drizzle";
-    case 61: return "Light rain";
-    case 63: return "Rain";
-    case 65: return "Heavy rain";
-    case 71: return "Light snow";
-    case 73: return "Snow";
-    case 75: return "Heavy snow";
-    case 80: return "Rain showers";
-    case 95: return "Thunder";
-    default: return "Unknown";
+    case 0:
+      return "Clear";
+    case 1:
+      return "Mostly clear";
+    case 2:
+      return "Partly cloudy";
+    case 3:
+      return "Overcast";
+    case 45:
+      return "Fog";
+    case 48:
+      return "Rime fog";
+    case 51:
+      return "Light drizzle";
+    case 53:
+      return "Drizzle";
+    case 55:
+      return "Heavy drizzle";
+    case 61:
+      return "Light rain";
+    case 63:
+      return "Rain";
+    case 65:
+      return "Heavy rain";
+    case 71:
+      return "Light snow";
+    case 73:
+      return "Snow";
+    case 75:
+      return "Heavy snow";
+    case 80:
+      return "Rain showers";
+    case 95:
+      return "Thunder";
+    default:
+      return "Unknown";
   }
 }
 

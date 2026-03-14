@@ -4,10 +4,10 @@
 // - Diagnostics source project: https://github.com/geo-tp/ESP32-Bus-Pirate
 // - Local implementation for OmniPaper is maintained in this file.
 
+#include <GfxRenderer.h>
+
 #include <algorithm>
 #include <cstdlib>
-
-#include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
 #include "activities/util/KeyboardEntryActivity.h"
@@ -247,8 +247,7 @@ void I2cEepromDumpActivity::renderDeviceSelect() {
   }
   if (devices.empty()) {
     renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() / 2, "No EEPROM devices");
-    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24,
-                              "Left: Rescan   Back: Menu");
+    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24, "Left: Rescan   Back: Menu");
     return;
   }
 

@@ -14,12 +14,7 @@ class GpioMonitorActivity final : public ActivityWithSubactivity {
   void loop() override;
 
  private:
-  enum class Profile {
-    PortB,
-    PortC,
-    ExternalI2C,
-    Custom
-  };
+  enum class Profile { PortB, PortC, ExternalI2C, Custom };
 
   std::function<void()> onExitCb;
   Profile profile = Profile::PortB;

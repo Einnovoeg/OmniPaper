@@ -1,12 +1,11 @@
 #include "BleScannerActivity.h"
 
 #include <BLEDevice.h>
+#include <GfxRenderer.h>
 #include <SDCardManager.h>
 
 #include <algorithm>
 #include <ctime>
-
-#include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
 #include "fontIds.h"
@@ -147,8 +146,8 @@ void BleScannerActivity::loop() {
     }
     if (!visibleIndices.empty()) {
       if (mappedInput.wasPressed(MappedInputManager::Button::Up)) {
-        selectionIndex = (selectionIndex - 1 + static_cast<int>(visibleIndices.size())) %
-                         static_cast<int>(visibleIndices.size());
+        selectionIndex =
+            (selectionIndex - 1 + static_cast<int>(visibleIndices.size())) % static_cast<int>(visibleIndices.size());
         needsRender = true;
       }
       if (mappedInput.wasPressed(MappedInputManager::Button::Down)) {

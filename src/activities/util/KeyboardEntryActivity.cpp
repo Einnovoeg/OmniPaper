@@ -1,7 +1,7 @@
 #include "KeyboardEntryActivity.h"
 
-#include "MappedInputManager.h"
 #include "../apps/PaperS3Ui.h"
+#include "MappedInputManager.h"
 #include "fontIds.h"
 
 // Keyboard layouts - lowercase
@@ -217,7 +217,8 @@ void KeyboardEntryActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (onCancel) {
         onCancel();
@@ -400,8 +401,8 @@ void KeyboardEntryActivity::render() const {
                              shiftActive ? "SHIFT" : "shift", shiftSelected);
       const bool spaceSelected = (selectedRow == 4 && selectedCol >= SPACE_COL && selectedCol < BACKSPACE_COL);
       renderItemWithSelector(keyboardKeyRect(row, SPACE_COL).x, keyboardKeyRect(row, SPACE_COL).y,
-                             keyboardKeyRect(row, SPACE_COL).width, keyboardKeyRect(row, SPACE_COL).height,
-                             "Space", spaceSelected);
+                             keyboardKeyRect(row, SPACE_COL).width, keyboardKeyRect(row, SPACE_COL).height, "Space",
+                             spaceSelected);
       const bool bsSelected = (selectedRow == 4 && selectedCol >= BACKSPACE_COL && selectedCol < DONE_COL);
       renderItemWithSelector(keyboardKeyRect(row, BACKSPACE_COL).x, keyboardKeyRect(row, BACKSPACE_COL).y,
                              keyboardKeyRect(row, BACKSPACE_COL).width, keyboardKeyRect(row, BACKSPACE_COL).height,

@@ -130,7 +130,8 @@ size_t MyLibraryActivity::findEntry(const std::string& name) const {
 }
 
 std::string MyLibraryActivity::buildSelectedFilePath() const {
-  if (currentTab != Tab::Files || files.empty() || selectorIndex < 0 || selectorIndex >= static_cast<int>(files.size())) {
+  if (currentTab != Tab::Files || files.empty() || selectorIndex < 0 ||
+      selectorIndex >= static_cast<int>(files.size())) {
     return "";
   }
 
@@ -212,7 +213,8 @@ void MyLibraryActivity::prepareFilePreview() {
         previewPath = xtc.getCoverBmpPath();
       }
     }
-  } else if (StringUtils::checkFileExtension(selectedPath, ".txt") || StringUtils::checkFileExtension(selectedPath, ".md")) {
+  } else if (StringUtils::checkFileExtension(selectedPath, ".txt") ||
+             StringUtils::checkFileExtension(selectedPath, ".md")) {
     Txt txt(selectedPath, "/.crosspoint");
     if (txt.load()) {
       const std::string title = txt.getTitle();

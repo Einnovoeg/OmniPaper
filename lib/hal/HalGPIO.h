@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #ifdef PLATFORM_M5PAPER
 #include <M5Unified.h>
+
 #include "../../open-x4-sdk/libs/hardware/M5PaperInputAdapter/include/M5PaperInputAdapter.h"
 #else
 #include <BatteryMonitor.h>

@@ -1,12 +1,11 @@
 #include "WifiTestsActivity.h"
 
+#include <GfxRenderer.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
 
 #include <cstdlib>
-
-#include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
 #include "activities/apps/PaperS3Ui.h"
@@ -72,7 +71,8 @@ void WifiTestsActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (onExit) {
         onExit();
@@ -160,22 +160,21 @@ void WifiTestsActivity::ensureWifiThenRun(const PendingAction action) {
 }
 
 void WifiTestsActivity::launchWifiSelection() {
-  enterNewActivity(new WifiSelectionActivity(renderer, mappedInput,
-                                             [this](const bool connected) {
-                                               exitActivity();
-                                               if (!connected) {
-                                                 resultMessage = "WiFi connection failed";
-                                                 needsRender = true;
-                                                 return;
-                                               }
-                                               if (pending == PendingAction::Http) {
-                                                 runHttpTest();
-                                               } else if (pending == PendingAction::Dns) {
-                                                 runDnsTest();
-                                               } else if (pending == PendingAction::Tcp) {
-                                                 runTcpTest();
-                                               }
-                                             }));
+  enterNewActivity(new WifiSelectionActivity(renderer, mappedInput, [this](const bool connected) {
+    exitActivity();
+    if (!connected) {
+      resultMessage = "WiFi connection failed";
+      needsRender = true;
+      return;
+    }
+    if (pending == PendingAction::Http) {
+      runHttpTest();
+    } else if (pending == PendingAction::Dns) {
+      runDnsTest();
+    } else if (pending == PendingAction::Tcp) {
+      runTcpTest();
+    }
+  }));
 }
 
 void WifiTestsActivity::launchHostEntry() {
@@ -325,8 +324,7 @@ void WifiTestsActivity::render() {
   if (!resultMessage.empty()) {
     renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24, resultMessage.c_str());
   } else {
-    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24,
-                              "Confirm: Run/Select   Back: Menu");
+    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24, "Confirm: Run/Select   Back: Menu");
   }
   renderer.displayBuffer();
 }

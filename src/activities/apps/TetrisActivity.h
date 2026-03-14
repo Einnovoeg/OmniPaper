@@ -1,8 +1,8 @@
 #pragma once
 
 #include <array>
-#include <functional>
 #include <cstdint>
+#include <functional>
 
 #include "../Activity.h"
 
@@ -20,7 +20,7 @@ class TetrisActivity final : public Activity {
   using Board = std::array<std::array<uint8_t, kBoardWidth>, kBoardHeight>;
 
   std::function<void()> onExit;
-  Board board {};
+  Board board{};
   uint8_t pieceType = 0;
   uint8_t rotation = 0;
   int pieceX = 0;

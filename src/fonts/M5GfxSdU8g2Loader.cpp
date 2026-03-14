@@ -14,7 +14,7 @@ void* fontAlloc(size_t size) {
   }
   return ptr;
 }
-}
+}  // namespace
 
 namespace M5GfxSdU8g2Loader {
 

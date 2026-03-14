@@ -17,7 +17,7 @@ namespace {
 constexpr uint8_t kSht30Address = 0x44;
 constexpr uint8_t kAs7331Address = 0x74;
 constexpr const char* kUvLogFile = "/logs/uv.csv";
-}
+}  // namespace
 
 void OptionalDevicesActivity::onEnter() {
   Activity::onEnter();
@@ -29,7 +29,7 @@ void OptionalDevicesActivity::refreshRows() {
   rows.clear();
 
 #ifdef PLATFORM_M5PAPER
-  std::array<bool, 120> found {};
+  std::array<bool, 120> found{};
   found.fill(false);
 
   if (M5.Ex_I2C.begin()) {
@@ -50,8 +50,8 @@ void OptionalDevicesActivity::refreshRows() {
   }
 
   if (rows.empty()) {
-    rows.push_back({"No supported peripherals detected", "Please connect an external sensor, then refresh",
-                    DeviceAction::None});
+    rows.push_back(
+        {"No supported peripherals detected", "Please connect an external sensor, then refresh", DeviceAction::None});
   }
 
   selectedIndex = 0;
@@ -61,7 +61,8 @@ void OptionalDevicesActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (onExit) {
         onExit();

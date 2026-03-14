@@ -1,13 +1,12 @@
 #include "DashboardActivity.h"
 
 #include <ArduinoJson.h>
+#include <GfxRenderer.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 
 #include <string>
-
-#include <GfxRenderer.h>
 
 #include "CrossPointSettings.h"
 #include "MappedInputManager.h"
@@ -84,7 +83,8 @@ void DashboardActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (onExit) {
         onExit();
@@ -219,24 +219,42 @@ bool DashboardActivity::fetchWeather(const LocationInfo& loc, WeatherSnapshot& o
 
 std::string DashboardActivity::weatherDescription(const int code) const {
   switch (code) {
-    case 0: return "Clear";
-    case 1: return "Mostly clear";
-    case 2: return "Partly cloudy";
-    case 3: return "Overcast";
-    case 45: return "Fog";
-    case 48: return "Rime fog";
-    case 51: return "Light drizzle";
-    case 53: return "Drizzle";
-    case 55: return "Heavy drizzle";
-    case 61: return "Light rain";
-    case 63: return "Rain";
-    case 65: return "Heavy rain";
-    case 71: return "Light snow";
-    case 73: return "Snow";
-    case 75: return "Heavy snow";
-    case 80: return "Rain showers";
-    case 95: return "Thunder";
-    default: return "Unknown";
+    case 0:
+      return "Clear";
+    case 1:
+      return "Mostly clear";
+    case 2:
+      return "Partly cloudy";
+    case 3:
+      return "Overcast";
+    case 45:
+      return "Fog";
+    case 48:
+      return "Rime fog";
+    case 51:
+      return "Light drizzle";
+    case 53:
+      return "Drizzle";
+    case 55:
+      return "Heavy drizzle";
+    case 61:
+      return "Light rain";
+    case 63:
+      return "Rain";
+    case 65:
+      return "Heavy rain";
+    case 71:
+      return "Light snow";
+    case 73:
+      return "Snow";
+    case 75:
+      return "Heavy snow";
+    case 80:
+      return "Rain showers";
+    case 95:
+      return "Thunder";
+    default:
+      return "Unknown";
   }
 }
 
@@ -252,7 +270,7 @@ void DashboardActivity::render() {
   renderer.drawCenteredText(UI_12_FONT_ID, 16, "Dashboard");
 
   int y = 58;
-  std::tm localTime {};
+  std::tm localTime{};
   if (TimeUtils::getLocalTimeWithOffset(localTime, SETTINGS.timezoneOffsetMinutes)) {
     char timeLine[32];
     char dateLine[32];
@@ -343,7 +361,7 @@ void DashboardActivity::renderPaperS3() {
 
   int x = PaperS3Ui::bodyX(layout.leftX);
   int y = PaperS3Ui::bodyY(layout.topY);
-  std::tm localTime {};
+  std::tm localTime{};
   if (TimeUtils::getLocalTimeWithOffset(localTime, SETTINGS.timezoneOffsetMinutes)) {
     char line[96];
     snprintf(line, sizeof(line), "%02d:%02d:%02d", localTime.tm_hour, localTime.tm_min, localTime.tm_sec);
@@ -389,12 +407,14 @@ void DashboardActivity::renderPaperS3() {
     renderer.drawText(UI_12_FONT_ID, x, y, "Weather unavailable");
     y += renderer.getLineHeight(UI_12_FONT_ID) + 6;
     if (!snapshot.location.empty()) {
-      const std::string message = renderer.truncatedText(SMALL_FONT_ID, snapshot.location.c_str(), layout.cardWidth - 24);
+      const std::string message =
+          renderer.truncatedText(SMALL_FONT_ID, snapshot.location.c_str(), layout.cardWidth - 24);
       renderer.drawText(SMALL_FONT_ID, x, y, message.c_str());
       y += smallLineStep;
     }
   } else {
-    const std::string location = renderer.truncatedText(UI_10_FONT_ID, snapshot.location.c_str(), layout.cardWidth - 24);
+    const std::string location =
+        renderer.truncatedText(UI_10_FONT_ID, snapshot.location.c_str(), layout.cardWidth - 24);
     renderer.drawText(UI_10_FONT_ID, x, y, location.c_str());
     y += renderer.getLineHeight(UI_10_FONT_ID) + 6;
     snprintf(line, sizeof(line), "%.1f C", snapshot.temperatureC);

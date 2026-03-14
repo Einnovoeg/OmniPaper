@@ -1,12 +1,11 @@
 #include "FileManagerActivity.h"
 
+#include <GfxRenderer.h>
 #include <JpegToBmpConverter.h>
 #include <SDCardManager.h>
 
 #include <algorithm>
 #include <cstring>
-
-#include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
 #include "PaperS3Ui.h"
@@ -49,8 +48,7 @@ bool convertJpegToBmp(const std::string& srcPath, const int targetWidth, const i
     return false;
   }
 
-  const bool ok =
-      JpegToBmpConverter::jpegFileToBmpStreamWithSize(jpegFile, bmpFile, targetWidth, targetHeight);
+  const bool ok = JpegToBmpConverter::jpegFileToBmpStreamWithSize(jpegFile, bmpFile, targetWidth, targetHeight);
   jpegFile.close();
   bmpFile.close();
 
@@ -84,7 +82,8 @@ void FileManagerActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (currentPath == "/") {
         if (onExit) {
@@ -220,12 +219,10 @@ void FileManagerActivity::openSelected() {
   if (endsWithIgnoreCase(entry.name, ".bmp")) {
     std::vector<String> files;
     files.emplace_back(path.c_str());
-    enterNewActivity(new ImageViewerActivity(
-        renderer, mappedInput, std::move(files), 0,
-        [this]() {
-          exitActivity();
-          needsRender = true;
-        }));
+    enterNewActivity(new ImageViewerActivity(renderer, mappedInput, std::move(files), 0, [this]() {
+      exitActivity();
+      needsRender = true;
+    }));
     return;
   }
 
@@ -241,12 +238,10 @@ void FileManagerActivity::openSelected() {
     }
     std::vector<String> files;
     files.emplace_back(kTempJpegBmp);
-    enterNewActivity(new ImageViewerActivity(
-        renderer, mappedInput, std::move(files), 0,
-        [this]() {
-          exitActivity();
-          needsRender = true;
-        }));
+    enterNewActivity(new ImageViewerActivity(renderer, mappedInput, std::move(files), 0, [this]() {
+      exitActivity();
+      needsRender = true;
+    }));
     return;
   }
 

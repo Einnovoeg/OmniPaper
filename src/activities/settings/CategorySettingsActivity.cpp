@@ -5,13 +5,13 @@
 
 #include <cstring>
 
+#include "../apps/PaperS3Ui.h"
 #include "CalibreSettingsActivity.h"
 #include "ClearCacheActivity.h"
 #include "CrossPointSettings.h"
 #include "KOReaderSettingsActivity.h"
 #include "MappedInputManager.h"
 #include "OtaUpdateActivity.h"
-#include "../apps/PaperS3Ui.h"
 #include "fontIds.h"
 
 namespace {
@@ -29,7 +29,7 @@ PaperS3Ui::Rect settingRowRect(const GfxRenderer& renderer, const int index) {
   return rect;
 }
 #endif
-}
+}  // namespace
 
 void CategorySettingsActivity::taskTrampoline(void* param) {
   auto* self = static_cast<CategorySettingsActivity*>(param);
@@ -69,7 +69,8 @@ void CategorySettingsActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       SETTINGS.saveToFile();
       onGoBack();

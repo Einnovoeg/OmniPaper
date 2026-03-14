@@ -184,7 +184,8 @@ void SensorsActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (onExit) {
         onExit();
@@ -520,8 +521,7 @@ void SensorsActivity::renderExternal() {
   for (size_t i = 0; i < externalI2cDevices.size() && row < 8; i++, row++) {
     char title[32];
     snprintf(title, sizeof(title), "I2C device 0x%02X", externalI2cDevices[i]);
-    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, row), false, title, "Detected",
-                           "External bus");
+    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, row), false, title, "Detected", "External bus");
   }
 
   if (row == 0) {

@@ -5,9 +5,8 @@
 // - Local implementation for OmniPaper is maintained in this file.
 
 #include <Arduino.h>
-#include <SDCardManager.h>
-
 #include <GfxRenderer.h>
+#include <SDCardManager.h>
 
 #include "MappedInputManager.h"
 #include "PaperS3Ui.h"
@@ -17,32 +16,27 @@
 namespace {
 const char* kWordFile = "/games/poodle_words.txt";
 const char* kBuiltinWords[] = {
-    "ABOUT", "ABOVE", "ACORN", "ACTOR", "ADULT", "AGENT", "AGREE", "ALARM", "ALBUM", "ALERT",
-    "ALIEN", "ALIVE", "AMBER", "AMONG", "ANGLE", "APPLE", "APRIL", "ARENA", "ARGON", "ARISE",
-    "ARMOR", "ARROW", "ASIDE", "ATLAS", "AUDIO", "AWARE", "AWOKE", "BADGE", "BASIC", "BASIL",
-    "BATCH", "BEACH", "BEGAN", "BEGIN", "BEING", "BENCH", "BERRY", "BIRTH", "BLEND", "BLINK",
-    "BLOOM", "BLUNT", "BOARD", "BOOST", "BRAIN", "BRAVE", "BREAD", "BRICK", "BRING", "BRUSH",
-    "BUILD", "BUNCH", "BURST", "CABLE", "CALMS", "CANDY", "CARRY", "CHAIN", "CHAIR", "CHART",
-    "CHESS", "CHIEF", "CHOIR", "CHORD", "CIVIC", "CLOUD", "COAST", "COLOR", "CORAL", "COVER",
-    "CRANE", "CRISP", "CROSS", "CROWN", "DANCE", "DEALT", "DELTA", "DEPTH", "DIARY", "DRIFT",
-    "EAGER", "EARTH", "EIGHT", "ELBOW", "ELDER", "EMBER", "ENJOY", "ENTER", "EPOCH", "EQUAL",
-    "ERROR", "EVENT", "EXTRA", "FAITH", "FALSE", "FIELD", "FINAL", "FIVER", "FLOAT", "FOCUS",
-    "FORGE", "FRAME", "FRESH", "FRONT", "FRUIT", "GHOST", "GLASS", "GLIDE", "GLOVE", "GRACE",
-    "GRADE", "GRAIN", "GRAPH", "GREEN", "GROUP", "GUIDE", "HAPPY", "HEART", "HONEY", "HORSE",
-    "HOUSE", "IMAGE", "INDEX", "INNER", "INPUT", "ISSUE", "JUICE", "KNIFE", "LAYER", "LEMON",
-    "LIGHT", "LIMIT", "LOCAL", "MAGIC", "MAJOR", "MANGO", "MAPLE", "MARCH", "MATCH", "METAL",
-    "MODEL", "MONEY", "MORAL", "MOUSE", "MUSIC", "NEVER", "NORTH", "NOVEL", "NURSE", "OCEAN",
-    "OFFER", "OPERA", "ORDER", "OTHER", "PAINT", "PANEL", "PAPER", "PARTY", "PASTE", "PAUSE",
-    "PEARL", "PHASE", "PHONE", "PIANO", "PLAIN", "PLANE", "PLANT", "PLATE", "POINT", "POWER",
-    "PRESS", "PRINT", "PRIZE", "PROUD", "QUERY", "QUIET", "RADIO", "RAINY", "RANGE", "RATIO",
-    "REACH", "READY", "REPLY", "RIDER", "RIVER", "ROBIN", "ROUTE", "ROYAL", "RUGBY", "SCALE",
-    "SCENE", "SCOPE", "SCORE", "SEVEN", "SHADE", "SHARE", "SHIFT", "SHINE", "SHORE", "SHORT",
-    "SIGHT", "SILKY", "SIXTH", "SKILL", "SLEEP", "SMILE", "SOLAR", "SOLID", "SOUND", "SOUTH",
-    "SPEED", "SPICE", "SPOKE", "STACK", "STONE", "STORY", "STUDY", "STYLE", "SUGAR", "SUNNY",
-    "SWIFT", "TABLE", "TEACH", "THANK", "THEME", "THREE", "TITLE", "TODAY", "TOKEN", "TOUCH",
-    "TRACK", "TRADE", "TRAIN", "TRAIL", "TRUST", "TRUTH", "UNITY", "URBAN", "VIVID", "VOICE",
-    "WATER", "WHEEL", "WHITE", "WHOLE", "WINDY", "WOMAN", "WORLD", "YOUNG"};
-}
+    "ABOUT", "ABOVE", "ACORN", "ACTOR", "ADULT", "AGENT", "AGREE", "ALARM", "ALBUM", "ALERT", "ALIEN", "ALIVE", "AMBER",
+    "AMONG", "ANGLE", "APPLE", "APRIL", "ARENA", "ARGON", "ARISE", "ARMOR", "ARROW", "ASIDE", "ATLAS", "AUDIO", "AWARE",
+    "AWOKE", "BADGE", "BASIC", "BASIL", "BATCH", "BEACH", "BEGAN", "BEGIN", "BEING", "BENCH", "BERRY", "BIRTH", "BLEND",
+    "BLINK", "BLOOM", "BLUNT", "BOARD", "BOOST", "BRAIN", "BRAVE", "BREAD", "BRICK", "BRING", "BRUSH", "BUILD", "BUNCH",
+    "BURST", "CABLE", "CALMS", "CANDY", "CARRY", "CHAIN", "CHAIR", "CHART", "CHESS", "CHIEF", "CHOIR", "CHORD", "CIVIC",
+    "CLOUD", "COAST", "COLOR", "CORAL", "COVER", "CRANE", "CRISP", "CROSS", "CROWN", "DANCE", "DEALT", "DELTA", "DEPTH",
+    "DIARY", "DRIFT", "EAGER", "EARTH", "EIGHT", "ELBOW", "ELDER", "EMBER", "ENJOY", "ENTER", "EPOCH", "EQUAL", "ERROR",
+    "EVENT", "EXTRA", "FAITH", "FALSE", "FIELD", "FINAL", "FIVER", "FLOAT", "FOCUS", "FORGE", "FRAME", "FRESH", "FRONT",
+    "FRUIT", "GHOST", "GLASS", "GLIDE", "GLOVE", "GRACE", "GRADE", "GRAIN", "GRAPH", "GREEN", "GROUP", "GUIDE", "HAPPY",
+    "HEART", "HONEY", "HORSE", "HOUSE", "IMAGE", "INDEX", "INNER", "INPUT", "ISSUE", "JUICE", "KNIFE", "LAYER", "LEMON",
+    "LIGHT", "LIMIT", "LOCAL", "MAGIC", "MAJOR", "MANGO", "MAPLE", "MARCH", "MATCH", "METAL", "MODEL", "MONEY", "MORAL",
+    "MOUSE", "MUSIC", "NEVER", "NORTH", "NOVEL", "NURSE", "OCEAN", "OFFER", "OPERA", "ORDER", "OTHER", "PAINT", "PANEL",
+    "PAPER", "PARTY", "PASTE", "PAUSE", "PEARL", "PHASE", "PHONE", "PIANO", "PLAIN", "PLANE", "PLANT", "PLATE", "POINT",
+    "POWER", "PRESS", "PRINT", "PRIZE", "PROUD", "QUERY", "QUIET", "RADIO", "RAINY", "RANGE", "RATIO", "REACH", "READY",
+    "REPLY", "RIDER", "RIVER", "ROBIN", "ROUTE", "ROYAL", "RUGBY", "SCALE", "SCENE", "SCOPE", "SCORE", "SEVEN", "SHADE",
+    "SHARE", "SHIFT", "SHINE", "SHORE", "SHORT", "SIGHT", "SILKY", "SIXTH", "SKILL", "SLEEP", "SMILE", "SOLAR", "SOLID",
+    "SOUND", "SOUTH", "SPEED", "SPICE", "SPOKE", "STACK", "STONE", "STORY", "STUDY", "STYLE", "SUGAR", "SUNNY", "SWIFT",
+    "TABLE", "TEACH", "THANK", "THEME", "THREE", "TITLE", "TODAY", "TOKEN", "TOUCH", "TRACK", "TRADE", "TRAIN", "TRAIL",
+    "TRUST", "TRUTH", "UNITY", "URBAN", "VIVID", "VOICE", "WATER", "WHEEL", "WHITE", "WHOLE", "WINDY", "WOMAN", "WORLD",
+    "YOUNG"};
+}  // namespace
 
 PoodleActivity::PoodleActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,
                                const std::function<void()>& onExit)
@@ -125,7 +119,8 @@ void PoodleActivity::handleInput() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (onExit) {
         onExit();
@@ -135,7 +130,7 @@ void PoodleActivity::handleInput() {
 
     if (!gameOver) {
       for (int col = 0; col < kWordLength; col++) {
-        PaperS3Ui::Rect rect {80 + col * 76, 548, 60, 60};
+        PaperS3Ui::Rect rect{80 + col * 76, 548, 60, 60};
         if (rect.contains(tapX, tapY)) {
           cursorPos = col;
           needsRender = true;
@@ -355,7 +350,7 @@ void PoodleActivity::drawGrid() {
 void PoodleActivity::drawKeyboardHint() {
   renderer.drawText(UI_10_FONT_ID, 80, 628, "Current guess");
   for (int col = 0; col < kWordLength; col++) {
-    const PaperS3Ui::Rect rect {80 + col * 76, 548, 60, 60};
+    const PaperS3Ui::Rect rect{80 + col * 76, 548, 60, 60};
     const bool selected = (col == cursorPos);
     renderer.fillRect(rect.x, rect.y, rect.width, rect.height, false);
     renderer.drawRect(rect.x, rect.y, rect.width, rect.height);

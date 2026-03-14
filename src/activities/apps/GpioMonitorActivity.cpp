@@ -4,12 +4,11 @@
 // - Diagnostics source project: https://github.com/geo-tp/ESP32-Bus-Pirate
 // - Local implementation for OmniPaper is maintained in this file.
 
+#include <Arduino.h>
+#include <GfxRenderer.h>
+
 #include <algorithm>
 #include <cstdlib>
-
-#include <Arduino.h>
-
-#include <GfxRenderer.h>
 
 #include "MappedInputManager.h"
 #include "PaperS3Ui.h"
@@ -90,7 +89,8 @@ void GpioMonitorActivity::loop() {
 #if defined(PLATFORM_M5PAPERS3)
   int tapX = 0;
   int tapY = 0;
-  if (mappedInput.wasTapped() && PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
+  if (mappedInput.wasTapped() &&
+      PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), tapX, tapY)) {
     if (PaperS3Ui::backButtonRect(renderer).contains(tapX, tapY)) {
       if (onExitCb) {
         onExitCb();
@@ -265,8 +265,7 @@ void GpioMonitorActivity::render() {
   for (int i = 0; i < visiblePins; i++) {
     char title[24];
     snprintf(title, sizeof(title), "GPIO%02d", pins[i]);
-    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, i + 2), false, title,
-                           values[i] ? "HIGH" : "LOW");
+    PaperS3Ui::drawListRow(renderer, PaperS3Ui::listRowRect(renderer, i + 2), false, title, values[i] ? "HIGH" : "LOW");
   }
 
   if (pins.empty()) {
@@ -296,8 +295,7 @@ void GpioMonitorActivity::render() {
 
   if (pins.empty()) {
     renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() / 2, "No pins configured");
-    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24,
-                              "Confirm: Set Pins   Back: Menu");
+    renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 24, "Confirm: Set Pins   Back: Menu");
     renderer.displayBuffer();
     return;
   }
