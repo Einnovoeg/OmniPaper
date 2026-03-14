@@ -94,6 +94,7 @@ Files:
 |---|---|---|---|---|
 | Poodle game | https://github.com/k-natori/Poodle | No repository-wide code license declared upstream | Gameplay/rules referenced; implementation is local in this repository and does not copy upstream source files | `src/activities/apps/PoodleActivity.cpp` |
 | Sudoku game | https://gist.github.com/palaniraja/d5a55f9bd1f990410c8a0099844cec91 | No explicit license shown on gist page | Puzzle/gameplay reference used; implementation is local in this repository and does not copy source from the gist | `src/activities/apps/SudokuActivity.cpp` |
+| Minesweeper game | https://github.com/lualiliu/esp32-gameboy | GPL-3.0 | Games-section reference only; OmniPaper implements a native PaperS3-friendly Minesweeper locally and does not copy emulator source or assets from the GPL repository | `src/activities/apps/MinesweeperActivity.cpp` |
 | I2C/GPIO/UART/EEPROM diagnostics | https://github.com/geo-tp/ESP32-Bus-Pirate | MIT | Feature workflow and tool scope sourced from upstream project; implementation adapted locally for M5Paper | `src/activities/apps/I2CToolsActivity.cpp`, `src/activities/apps/GpioMonitorActivity.cpp`, `src/activities/apps/UartRxMonitorActivity.cpp`, `src/activities/apps/I2cEepromDumpActivity.cpp` |
 | UV sensor app | https://github.com/RobTillaart/AS7331 | MIT | Uses upstream library API directly via dependency | `src/activities/apps/UvSensorActivity.cpp` |
 | Notes app + keyboard | https://github.com/daveallie/crosspoint-reader | MIT | Built on forked CrossPoint-reader activity framework; implementation local in this repository | `src/activities/apps/NotesActivity.cpp`, `src/activities/util/KeyboardEntryActivity.cpp` |
@@ -126,6 +127,7 @@ Primary sources used for this project:
 - picojpeg: <https://github.com/richgel999/picojpeg>
 - Poodle: <https://github.com/k-natori/Poodle>
 - Sudoku gist: <https://gist.github.com/palaniraja/d5a55f9bd1f990410c8a0099844cec91>
+- esp32-gameboy: <https://github.com/lualiliu/esp32-gameboy>
 - ESP32 Bus Pirate: <https://github.com/geo-tp/ESP32-Bus-Pirate>
 - M5Cardputer Interactive SSH Client: <https://github.com/SUB0PT1MAL/M5Cardputer_Interactive_SSH_Client>
 - LibSSH-ESP32: <https://github.com/ewpa/LibSSH-ESP32>

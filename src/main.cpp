@@ -53,6 +53,7 @@
 #include "activities/apps/I2cEepromDumpActivity.h"
 #include "activities/apps/ImageViewerActivity.h"
 #include "activities/apps/KeyboardHostActivity.h"
+#include "activities/apps/MinesweeperActivity.h"
 #include "activities/apps/NotesActivity.h"
 #include "activities/apps/OptionalDevicesActivity.h"
 #include "activities/apps/PoodleActivity.h"
@@ -577,6 +578,10 @@ void handleLauncherAction(LauncherAction action) {
       exitActivity();
       enterNewActivity(new SudokuActivity(renderer, mappedInputManager, onGoLauncher));
       break;
+    case LauncherAction::GameMinesweeper:
+      exitActivity();
+      enterNewActivity(new MinesweeperActivity(renderer, mappedInputManager, onGoLauncher));
+      break;
     case LauncherAction::GameTetris:
       exitActivity();
       enterNewActivity(new TetrisActivity(renderer, mappedInputManager, onGoLauncher));
@@ -664,6 +669,8 @@ bool mapWebAppIdToAction(const std::string& appId, LauncherAction& action) {
     action = LauncherAction::GamePoodle;
   } else if (appId == "sudoku") {
     action = LauncherAction::GameSudoku;
+  } else if (appId == "minesweeper") {
+    action = LauncherAction::GameMinesweeper;
   } else if (appId == "tetris") {
     action = LauncherAction::GameTetris;
   } else if (appId == "file-manager") {

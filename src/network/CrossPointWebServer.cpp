@@ -43,6 +43,7 @@ constexpr WebUiAppEntry WEB_UI_APPS[] = {{"dashboard", "Dashboard"},
                                          {"calculator", "Calculator"},
                                          {"poodle", "Poodle"},
                                          {"sudoku", "Sudoku"},
+                                         {"minesweeper", "Minesweeper"},
                                          {"tetris", "Tetris"},
                                          {"file-manager", "File Manager"},
                                          {"hardware-test", "Hardware Test"}};

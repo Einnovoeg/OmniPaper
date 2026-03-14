@@ -40,6 +40,7 @@ std::vector<LauncherActivity::SubmenuItem> buildGamesMenu() {
   return {
       {"Poodle", LauncherAction::GamePoodle},
       {"Sudoku", LauncherAction::GameSudoku},
+      {"Mines", LauncherAction::GameMinesweeper},
       {"Tetris", LauncherAction::GameTetris},
   };
 }
@@ -144,6 +145,7 @@ LauncherItemId submenuItemToIcon(const LauncherAction action) {
       return LauncherItemId::Network;
     case LauncherAction::GamePoodle:
     case LauncherAction::GameSudoku:
+    case LauncherAction::GameMinesweeper:
     case LauncherAction::GameTetris:
       return LauncherItemId::Games;
     case LauncherAction::ImagesViewer:
@@ -214,6 +216,8 @@ const char* submenuBadge(const LauncherAction action) {
       return "PDL";
     case LauncherAction::GameSudoku:
       return "SDK";
+    case LauncherAction::GameMinesweeper:
+      return "MINE";
     case LauncherAction::GameTetris:
       return "TET";
     case LauncherAction::ImagesViewer:
@@ -255,7 +259,7 @@ const char* mainTileDescription(const LauncherItemId id) {
     case LauncherItemId::Network:
       return "Wi-Fi, BLE and SSH";
     case LauncherItemId::Games:
-      return "Poodle, Sudoku, Tetris";
+      return "Poodle, Sudoku, Mines";
     case LauncherItemId::Images:
       return "Viewer and sketchpad";
     case LauncherItemId::Tools:
@@ -297,6 +301,8 @@ const char* submenuDescription(const LauncherAction action) {
       return "Touch-friendly daily word game";
     case LauncherAction::GameSudoku:
       return "Tap-to-fill number puzzle";
+    case LauncherAction::GameMinesweeper:
+      return "Reveal cells and mark hidden mines";
     case LauncherAction::GameTetris:
       return "Fast drop block puzzler";
     case LauncherAction::ImagesViewer:

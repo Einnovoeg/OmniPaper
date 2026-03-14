@@ -81,6 +81,7 @@ These are credited sources used for design or behavior reference in locally impl
 - portal: https://github.com/paperportal/portal
 - M5Cardputer Interactive SSH Client: https://github.com/SUB0PT1MAL/M5Cardputer_Interactive_SSH_Client
 - Sudoku gist: https://gist.github.com/palaniraja/d5a55f9bd1f990410c8a0099844cec91
+- esp32-gameboy: https://github.com/lualiliu/esp32-gameboy
 - XTC format gist: https://gist.github.com/CrazyCoder/b125f26d6987c0620058249f59f1327d
 
 ## Documentation References

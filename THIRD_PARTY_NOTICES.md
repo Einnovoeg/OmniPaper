@@ -29,6 +29,7 @@ OmniPaper is derived from CrossPoint Reader and related open-source projects, th
 | Ubuntu Font Family | https://github.com/canonical/Ubuntu-Sans-fonts | UFL-1.0 |
 | Poodle (gameplay source reference) | https://github.com/k-natori/Poodle | No repository-wide code license declared upstream |
 | Sudoku gist (gameplay source reference) | https://gist.github.com/palaniraja/d5a55f9bd1f990410c8a0099844cec91 | No explicit license shown on gist page |
+| esp32-gameboy (games-section reference only) | https://github.com/lualiliu/esp32-gameboy | GPL-3.0 |
 | ESP32 Bus Pirate (adapted diagnostics component source) | https://github.com/geo-tp/ESP32-Bus-Pirate | MIT |
 | M5Cardputer Interactive SSH Client (workflow reference) | https://github.com/SUB0PT1MAL/M5Cardputer_Interactive_SSH_Client | No explicit license file observed in repository snapshot |
 | m5paper-trackpad (gesture logic reference) | https://github.com/hollyhockberry/m5paper-trackpad | MIT |
@@ -82,6 +83,7 @@ The following components have code included or adapted in OmniPaper. Credit is o
 - If you redistribute firmware binaries that include LibSSH-ESP32, LGPL-2.1 obligations apply for that component as well.
 - `poly1305-donna` attribution is included because LibSSH-ESP32 contains upstream references to that implementation in bundled source headers.
 - For Poodle and Sudoku entries above, this repository uses local implementations and cites upstream gameplay/reference sources in `CODE_PROVENANCE.md`.
+- For the `esp32-gameboy` entry above, this repository uses no GPL emulator code or assets. It is credited as a reference-only source for games-section direction, while `src/activities/apps/MinesweeperActivity.cpp` remains a local implementation.
 - Arduino-ESP32 Core package metadata in this build environment declares `LGPL-2.1-or-later`; LGPL notice text is included below in this document.
 - Tagged release bundles should ship this file together with `LICENSE`, `CODE_PROVENANCE.md`, `CONTRIBUTORS.md`, `LICENSE_COMPLIANCE.md`, and the generated SPDX SBOM.
 

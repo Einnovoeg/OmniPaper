@@ -41,6 +41,7 @@ enum class LauncherAction : uint8_t {
   NetworkSshClient,
   GamePoodle,
   GameSudoku,
+  GameMinesweeper,
   GameTetris,
   ImagesViewer,
   ImagesDraw,
