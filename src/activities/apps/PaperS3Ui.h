@@ -9,13 +9,13 @@ namespace PaperS3Ui {
 // Shared card chrome for the touch-first PaperS3 dashboards and diagnostics.
 constexpr int kOuterMargin = 24;
 constexpr int kCardGap = 16;
-constexpr int kTopY = 108;
-constexpr int kFooterOffset = 36;
-constexpr int kFooterStatusOffset = 70;
-constexpr int kHeaderHeight = 38;
+constexpr int kTopY = 116;
+constexpr int kFooterOffset = 42;
+constexpr int kFooterStatusOffset = 82;
+constexpr int kHeaderHeight = 42;
 constexpr int kCardInnerPadding = 16;
-constexpr int kListTopY = 148;
-constexpr int kListRowHeight = 70;
+constexpr int kListTopY = 158;
+constexpr int kListRowHeight = 76;
 constexpr int kListRowGap = 14;
 
 struct Rect {
@@ -75,10 +75,10 @@ inline bool rawTouchToPortrait(const uint16_t rawX, const uint16_t rawY, int& lo
 
 inline Rect backButtonRect(const GfxRenderer& renderer) {
   Rect rect;
-  rect.x = renderer.getScreenWidth() - 144;
-  rect.y = 38;
-  rect.width = 120;
-  rect.height = 52;
+  rect.x = renderer.getScreenWidth() - 156;
+  rect.y = 44;
+  rect.width = 132;
+  rect.height = 58;
   return rect;
 }
 
@@ -110,9 +110,9 @@ inline Rect listRowRect(const GfxRenderer& renderer, const int index) {
 }
 
 inline void drawScreenHeader(GfxRenderer& renderer, const char* title, const char* subtitle = nullptr) {
-  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 38, title, true, EpdFontFamily::BOLD);
+  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 44, title, true, EpdFontFamily::BOLD);
   if (subtitle != nullptr && subtitle[0] != '\0') {
-    renderer.drawCenteredText(UI_12_FONT_ID, 74, subtitle);
+    renderer.drawCenteredText(NOTOSANS_14_FONT_ID, 84, subtitle);
   }
 }
 
@@ -120,30 +120,30 @@ inline void drawBackButton(GfxRenderer& renderer, const char* label = "Back") {
   const Rect rect = backButtonRect(renderer);
   renderer.fillRect(rect.x, rect.y, rect.width, rect.height, false);
   renderer.drawRect(rect.x, rect.y, rect.width, rect.height);
-  const int textWidth = renderer.getTextWidth(UI_12_FONT_ID, label, EpdFontFamily::BOLD);
+  const int textWidth = renderer.getTextWidth(NOTOSANS_14_FONT_ID, label, EpdFontFamily::BOLD);
   const int textX = rect.x + (rect.width - textWidth) / 2;
-  const int textY = rect.y + (rect.height - renderer.getLineHeight(UI_12_FONT_ID)) / 2;
-  renderer.drawText(UI_12_FONT_ID, textX, textY, label, true, EpdFontFamily::BOLD);
+  const int textY = rect.y + (rect.height - renderer.getLineHeight(NOTOSANS_14_FONT_ID)) / 2;
+  renderer.drawText(NOTOSANS_14_FONT_ID, textX, textY, label, true, EpdFontFamily::BOLD);
 }
 
 inline void drawPrimaryActionButton(GfxRenderer& renderer, const char* label) {
   const Rect rect = primaryActionRect(renderer);
   renderer.fillRect(rect.x, rect.y, rect.width, rect.height, false);
   renderer.drawRect(rect.x, rect.y, rect.width, rect.height);
-  const int textWidth = renderer.getTextWidth(UI_12_FONT_ID, label, EpdFontFamily::BOLD);
+  const int textWidth = renderer.getTextWidth(NOTOSANS_14_FONT_ID, label, EpdFontFamily::BOLD);
   const int textX = rect.x + (rect.width - textWidth) / 2;
-  const int textY = rect.y + (rect.height - renderer.getLineHeight(UI_12_FONT_ID)) / 2;
-  renderer.drawText(UI_12_FONT_ID, textX, textY, label, true, EpdFontFamily::BOLD);
+  const int textY = rect.y + (rect.height - renderer.getLineHeight(NOTOSANS_14_FONT_ID)) / 2;
+  renderer.drawText(NOTOSANS_14_FONT_ID, textX, textY, label, true, EpdFontFamily::BOLD);
 }
 
 inline void drawSideActionButton(GfxRenderer& renderer, const bool rightSide, const char* label) {
   const Rect rect = sideActionRect(renderer, rightSide);
   renderer.fillRect(rect.x, rect.y, rect.width, rect.height, false);
   renderer.drawRect(rect.x, rect.y, rect.width, rect.height);
-  const int textWidth = renderer.getTextWidth(UI_12_FONT_ID, label, EpdFontFamily::BOLD);
+  const int textWidth = renderer.getTextWidth(NOTOSANS_14_FONT_ID, label, EpdFontFamily::BOLD);
   const int textX = rect.x + (rect.width - textWidth) / 2;
-  const int textY = rect.y + (rect.height - renderer.getLineHeight(UI_12_FONT_ID)) / 2;
-  renderer.drawText(UI_12_FONT_ID, textX, textY, label, true, EpdFontFamily::BOLD);
+  const int textY = rect.y + (rect.height - renderer.getLineHeight(NOTOSANS_14_FONT_ID)) / 2;
+  renderer.drawText(NOTOSANS_14_FONT_ID, textX, textY, label, true, EpdFontFamily::BOLD);
 }
 
 inline void drawListRow(GfxRenderer& renderer, const Rect& rect, const bool selected, const char* title,
@@ -154,15 +154,15 @@ inline void drawListRow(GfxRenderer& renderer, const Rect& rect, const bool sele
     renderer.fillRect(rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2, true);
   }
 
-  renderer.drawText(UI_12_FONT_ID, rect.x + 18, rect.y + 16, title, !selected, EpdFontFamily::BOLD);
+  renderer.drawText(NOTOSANS_14_FONT_ID, rect.x + 18, rect.y + 16, title, !selected, EpdFontFamily::BOLD);
 
   if (subtitle != nullptr && subtitle[0] != '\0') {
-    renderer.drawText(UI_10_FONT_ID, rect.x + 18, rect.y + 43, subtitle, !selected);
+    renderer.drawText(UI_12_FONT_ID, rect.x + 18, rect.y + 46, subtitle, !selected);
   }
 
   if (trailing != nullptr && trailing[0] != '\0') {
-    const int width = renderer.getTextWidth(UI_10_FONT_ID, trailing);
-    renderer.drawText(UI_10_FONT_ID, rect.x + rect.width - width - 18, rect.y + 22, trailing, !selected);
+    const int width = renderer.getTextWidth(UI_12_FONT_ID, trailing);
+    renderer.drawText(UI_12_FONT_ID, rect.x + rect.width - width - 18, rect.y + 24, trailing, !selected);
   }
 }
 
@@ -170,7 +170,7 @@ inline void drawCard(GfxRenderer& renderer, const int x, const int y, const int 
                      const char* title) {
   renderer.drawRect(x, y, width, height);
   renderer.fillRect(x + 1, y + 1, width - 2, kHeaderHeight, true);
-  renderer.drawText(UI_12_FONT_ID, x + kCardInnerPadding, y + 8, title, false, EpdFontFamily::BOLD);
+  renderer.drawText(NOTOSANS_14_FONT_ID, x + kCardInnerPadding, y + 10, title, false, EpdFontFamily::BOLD);
 }
 
 inline int bodyX(const int cardX) { return cardX + kCardInnerPadding; }
@@ -188,11 +188,12 @@ inline const char* presentAbsent(const bool value) { return value ? "Present" : 
 inline bool usbCablePresent(const int16_t vbusMv) { return vbusMv >= 4000; }
 
 inline void drawFooter(GfxRenderer& renderer, const char* text) {
-  renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() - kFooterOffset, text);
+  renderer.drawCenteredText(NOTOSANS_14_FONT_ID, renderer.getScreenHeight() - kFooterOffset, text);
 }
 
-inline void drawFooterStatus(GfxRenderer& renderer, const char* text) {
-  renderer.drawCenteredText(UI_10_FONT_ID, renderer.getScreenHeight() - kFooterStatusOffset, text);
+inline void drawFooterStatus(GfxRenderer& renderer, const char* text, const bool invert = false) {
+  renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() - kFooterStatusOffset, text, !invert,
+                            EpdFontFamily::BOLD);
 }
 
 }  // namespace PaperS3Ui

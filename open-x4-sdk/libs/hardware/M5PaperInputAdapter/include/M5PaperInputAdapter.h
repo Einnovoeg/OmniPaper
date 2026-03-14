@@ -66,8 +66,8 @@ class M5PaperInputAdapter : public IInputManager {
   // PaperS3 taps feel slower than a phone because the e-paper pipeline adds
   // visual latency. Keep tap recognition intentionally forgiving so normal
   // human taps still register even when the user waits for the screen to react.
-  static constexpr unsigned long TAP_TIMEOUT = 450;  // ms
-  static constexpr int TAP_MAX_TRAVEL = 36;          // px
+  static constexpr unsigned long TAP_TIMEOUT = 650;  // ms
+  static constexpr int TAP_MAX_TRAVEL = 48;          // px
 
   // Helpers
   uint8_t mapM5ButtonsToLogical();

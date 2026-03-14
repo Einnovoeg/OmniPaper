@@ -4,6 +4,26 @@ All notable changes to OmniPaper are documented in this file.
 
 The release tag must match the version in `platformio.ini` exactly, without a leading `v`, so OTA version checks and release asset names stay aligned.
 
+## [0.18.1] - 2026-03-14
+
+### Added
+
+- A native in-app Poodle keyboard for PaperS3 so the word game is directly playable by touch without bouncing into the generic text-entry activity.
+- Per-key feedback in Poodle for hit/present/miss states, plus dictionary-backed guess validation and a persistent PaperS3 status line.
+- Metadata chips and clearer touch hints on PaperS3 launcher tiles and submenu rows, informed by `bmorcelli/Launcher` and adapted locally for OmniPaper.
+
+### Changed
+
+- Increased PaperS3 tap recognition tolerance in the shared touch adapter so slightly slower or heavier e-paper taps still register as intended.
+- Enlarged shared PaperS3 header, list, action-button, footer, and status typography to better match the 540x960 portrait layout on-device.
+- Refined the PaperS3 launcher tile composition to emphasize direct touch, with denser descriptions and square-card metadata instead of bare placeholder cards.
+
+### Fixed
+
+- Replaced the ineffective PaperS3 Poodle interaction model with direct cell selection, integrated touch keyboard entry, clear/delete actions, and proper submit flow.
+- Fixed Poodle duplicate-letter scoring so repeated letters now follow the expected two-pass word-match logic instead of naive single-character checks.
+- Documented the new launcher reference source in provenance and third-party notices so the PaperS3 UX polish remains license-compliant and fully attributed.
+
 ## [0.18.0] - 2026-03-13
 
 ### Added

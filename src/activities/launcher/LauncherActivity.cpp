@@ -85,7 +85,7 @@ PaperS3Ui::Rect mainTileRect(const GfxRenderer& renderer, const int index, const
   const int rows = (itemCount + columns - 1) / columns;
   constexpr int outerMargin = 24;
   constexpr int tileGap = 16;
-  constexpr int topY = 122;
+  constexpr int topY = 136;
   constexpr int bottomReserve = 122;
   const int tileWidth = (renderer.getScreenWidth() - outerMargin * 2 - tileGap) / columns;
   const int tileHeight = (renderer.getScreenHeight() - topY - bottomReserve - tileGap * (rows - 1)) / rows;
@@ -271,6 +271,12 @@ const char* mainTileDescription(const LauncherItemId id) {
     default:
       return "";
   }
+}
+
+const char* mainTileMeta(const LauncherActivity::MenuItem& item) { return item.hasSubmenu ? "MENU" : "APP"; }
+
+const char* mainTileTapHint(const LauncherActivity::MenuItem& item) {
+  return item.hasSubmenu ? "Tap to browse" : "Tap to launch";
 }
 
 const char* submenuDescription(const LauncherAction action) {
@@ -682,9 +688,9 @@ void LauncherActivity::renderMainMenu() {
       const bool selected = (i == selectionIndex);
       const int iconBoxSize = 56;
       const int iconBoxX = rect.x + 18;
-      const int iconBoxY = rect.y + (rect.height - iconBoxSize) / 2;
+      const int iconBoxY = rect.y + 18;
       const int labelX = iconBoxX + iconBoxSize + 18;
-      const int labelY = rect.y + 24;
+      const int labelY = rect.y + 22;
 
       renderer.fillRect(rect.x, rect.y, rect.width, rect.height, false);
       renderer.drawRect(rect.x, rect.y, rect.width, rect.height);
@@ -697,14 +703,30 @@ void LauncherActivity::renderMainMenu() {
       renderer.drawRect(iconBoxX, iconBoxY, iconBoxSize, iconBoxSize, selected ? false : true);
       drawIconSymbol(iconBoxX + iconBoxSize / 2, iconBoxY + iconBoxSize / 2, visibleItems[i].id, selected);
 
-      renderer.drawText(UI_12_FONT_ID, labelX, labelY, visibleItems[i].label, !selected, EpdFontFamily::BOLD);
+      const char* meta = mainTileMeta(visibleItems[i]);
+      const int metaWidth = renderer.getTextWidth(UI_10_FONT_ID, meta, EpdFontFamily::BOLD) + 18;
+      const int metaX = rect.x + rect.width - metaWidth - 16;
+      renderer.drawRect(metaX, rect.y + 16, metaWidth, 24, !selected);
+      renderer.drawText(UI_10_FONT_ID, metaX + 9, rect.y + 21, meta, !selected, EpdFontFamily::BOLD);
+
+      renderer.drawText(NOTOSANS_14_FONT_ID, labelX, labelY, visibleItems[i].label, !selected, EpdFontFamily::BOLD);
       const int subtitleWidth = rect.x + rect.width - labelX - 18;
       const std::string subtitle =
-          renderer.truncatedText(UI_10_FONT_ID, mainTileDescription(visibleItems[i].id), subtitleWidth);
-      renderer.drawText(UI_10_FONT_ID, labelX, labelY + 26, subtitle.c_str(), !selected);
+          renderer.truncatedText(UI_12_FONT_ID, mainTileDescription(visibleItems[i].id), subtitleWidth);
+      renderer.drawText(UI_12_FONT_ID, labelX, labelY + 30, subtitle.c_str(), !selected);
+      renderer.drawText(UI_10_FONT_ID, labelX, rect.y + rect.height - 28, mainTileTapHint(visibleItems[i]), !selected);
+
+      if (visibleItems[i].hasSubmenu) {
+        renderer.drawLine(rect.x + rect.width - 34, rect.y + rect.height - 30, rect.x + rect.width - 24,
+                          rect.y + rect.height - 20, !selected);
+        renderer.drawLine(rect.x + rect.width - 24, rect.y + rect.height - 20, rect.x + rect.width - 34,
+                          rect.y + rect.height - 10, !selected);
+      }
     }
     if (!visibleItems.empty()) {
-      PaperS3Ui::drawFooterStatus(renderer, mainTileDescription(visibleItems[selectionIndex].id));
+      const auto& item = visibleItems[selectionIndex];
+      const std::string status = std::string(item.label) + ": " + mainTileDescription(item.id);
+      PaperS3Ui::drawFooterStatus(renderer, status.c_str());
     }
     return;
   }
@@ -771,11 +793,15 @@ void LauncherActivity::renderSubmenu(const char* title, const std::vector<Submen
     const int badgeY = iconBoxY + (iconBoxSize - renderer.getLineHeight(UI_10_FONT_ID)) / 2;
     renderer.drawText(UI_10_FONT_ID, badgeX, badgeY, badge, !selected, EpdFontFamily::BOLD);
 
-    renderer.drawText(UI_12_FONT_ID, textX, rect.y + 15, items[i].label, !selected, EpdFontFamily::BOLD);
+    renderer.drawText(NOTOSANS_14_FONT_ID, textX, rect.y + 14, items[i].label, !selected, EpdFontFamily::BOLD);
     const int subtitleWidth = rect.x + rect.width - textX - 18;
     const std::string subtitle =
-        renderer.truncatedText(UI_10_FONT_ID, submenuDescription(items[i].action), subtitleWidth);
-    renderer.drawText(UI_10_FONT_ID, textX, rect.y + 42, subtitle.c_str(), !selected);
+        renderer.truncatedText(UI_12_FONT_ID, submenuDescription(items[i].action), subtitleWidth - 24);
+    renderer.drawText(UI_12_FONT_ID, textX, rect.y + 44, subtitle.c_str(), !selected);
+    renderer.drawLine(rect.x + rect.width - 30, rect.y + rect.height / 2 - 8, rect.x + rect.width - 18,
+                      rect.y + rect.height / 2, !selected);
+    renderer.drawLine(rect.x + rect.width - 18, rect.y + rect.height / 2, rect.x + rect.width - 30,
+                      rect.y + rect.height / 2 + 8, !selected);
   }
 
   const auto backRect = submenuRowRect(renderer, static_cast<int>(items.size()));
@@ -785,8 +811,8 @@ void LauncherActivity::renderSubmenu(const char* title, const std::vector<Submen
   if (selected) {
     renderer.fillRect(backRect.x + 1, backRect.y + 1, backRect.width - 2, backRect.height - 2, true);
   }
-  renderer.drawText(UI_12_FONT_ID, backRect.x + 18, backRect.y + 15, "Back", !selected, EpdFontFamily::BOLD);
-  renderer.drawText(UI_10_FONT_ID, backRect.x + 18, backRect.y + 42, "Return to the launcher", !selected);
+  renderer.drawText(NOTOSANS_14_FONT_ID, backRect.x + 18, backRect.y + 14, "Back", !selected, EpdFontFamily::BOLD);
+  renderer.drawText(UI_12_FONT_ID, backRect.x + 18, backRect.y + 44, "Return to the launcher", !selected);
   if (submenuSelection < static_cast<int>(items.size())) {
     PaperS3Ui::drawFooterStatus(renderer, submenuDescription(items[submenuSelection].action));
   } else {

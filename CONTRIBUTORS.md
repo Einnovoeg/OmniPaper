@@ -78,6 +78,7 @@ These are credited sources used for design or behavior reference in locally impl
 - m5panel: https://github.com/TAKeanice/m5panel
 - M5Sudoku: https://github.com/murraypaul/M5Sudoku
 - Poodle: https://github.com/k-natori/Poodle
+- Launcher: https://github.com/bmorcelli/Launcher
 - portal: https://github.com/paperportal/portal
 - M5Cardputer Interactive SSH Client: https://github.com/SUB0PT1MAL/M5Cardputer_Interactive_SSH_Client
 - Sudoku gist: https://gist.github.com/palaniraja/d5a55f9bd1f990410c8a0099844cec91

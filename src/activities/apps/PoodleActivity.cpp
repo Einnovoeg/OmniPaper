@@ -2,11 +2,16 @@
 
 // Source reference:
 // - Gameplay/source project: https://github.com/k-natori/Poodle
-// - Local implementation for OmniPaper is maintained in this file.
+// - Local PaperS3 implementation for OmniPaper is maintained in this file.
 
 #include <Arduino.h>
 #include <GfxRenderer.h>
 #include <SDCardManager.h>
+
+#include <algorithm>
+#include <array>
+#include <cctype>
+#include <cstring>
 
 #include "MappedInputManager.h"
 #include "PaperS3Ui.h"
@@ -15,6 +20,16 @@
 
 namespace {
 const char* kWordFile = "/games/poodle_words.txt";
+const char* kKeyboardRows[] = {"QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"};
+constexpr int kKeyboardRowCount = 3;
+constexpr int kGridTopY = 124;
+constexpr int kGridCellSize = 70;
+constexpr int kGridGap = 10;
+constexpr int kKeyboardTopY = 622;
+constexpr int kKeyboardGap = 8;
+constexpr int kKeyboardRowGap = 12;
+constexpr int kKeyboardHeight = 58;
+constexpr int kGameWordLength = 5;
 const char* kBuiltinWords[] = {
     "ABOUT", "ABOVE", "ACORN", "ACTOR", "ADULT", "AGENT", "AGREE", "ALARM", "ALBUM", "ALERT", "ALIEN", "ALIVE", "AMBER",
     "AMONG", "ANGLE", "APPLE", "APRIL", "ARENA", "ARGON", "ARISE", "ARMOR", "ARROW", "ASIDE", "ATLAS", "AUDIO", "AWARE",
@@ -36,6 +51,27 @@ const char* kBuiltinWords[] = {
     "TABLE", "TEACH", "THANK", "THEME", "THREE", "TITLE", "TODAY", "TOKEN", "TOUCH", "TRACK", "TRADE", "TRAIN", "TRAIL",
     "TRUST", "TRUTH", "UNITY", "URBAN", "VIVID", "VOICE", "WATER", "WHEEL", "WHITE", "WHOLE", "WINDY", "WOMAN", "WORLD",
     "YOUNG"};
+
+PaperS3Ui::Rect gridCellRect(const GfxRenderer& renderer, const int row, const int col) {
+  const int totalWidth = kGameWordLength * kGridCellSize + (kGameWordLength - 1) * kGridGap;
+  const int startX = (renderer.getScreenWidth() - totalWidth) / 2;
+  return {startX + col * (kGridCellSize + kGridGap), kGridTopY + row * (kGridCellSize + kGridGap), kGridCellSize,
+          kGridCellSize};
+}
+
+PaperS3Ui::Rect keyboardKeyRect(const GfxRenderer& renderer, const int row, const int col) {
+  const int rowLength = static_cast<int>(strlen(kKeyboardRows[row]));
+  const int maxWidth = renderer.getScreenWidth() - PaperS3Ui::kOuterMargin * 2;
+  const int keyWidth = std::min(58, (maxWidth - (rowLength - 1) * kKeyboardGap) / rowLength);
+  const int totalWidth = rowLength * keyWidth + (rowLength - 1) * kKeyboardGap;
+  const int startX = (renderer.getScreenWidth() - totalWidth) / 2;
+  return {startX + col * (keyWidth + kKeyboardGap), kKeyboardTopY + row * (kKeyboardHeight + kKeyboardRowGap), keyWidth,
+          kKeyboardHeight};
+}
+
+PoodleActivity::LetterState strongest(PoodleActivity::LetterState lhs, PoodleActivity::LetterState rhs) {
+  return static_cast<int>(rhs) > static_cast<int>(lhs) ? rhs : lhs;
+}
 }  // namespace
 
 PoodleActivity::PoodleActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,
@@ -44,13 +80,8 @@ PoodleActivity::PoodleActivity(GfxRenderer& renderer, MappedInputManager& mapped
 
 void PoodleActivity::onEnter() {
   Activity::onEnter();
-  guesses.clear();
-  currentGuess.assign(kWordLength, ' ');
-  cursorPos = 0;
-  gameOver = false;
-  won = false;
   loadWords();
-  pickTarget();
+  startNewGame();
   needsRender = true;
 }
 
@@ -69,7 +100,11 @@ void PoodleActivity::loop() {
 
 void PoodleActivity::loadWords() {
   wordList.clear();
+  usingSdWordList = false;
 
+  // Prefer an SD-backed dictionary so larger word lists can be added without
+  // inflating the firmware image. The built-in list keeps the game usable when
+  // the card is missing or the file has not been installed yet.
   if (SdMan.ready()) {
     String data = SdMan.readFile(kWordFile);
     if (data.length() > 0) {
@@ -81,12 +116,17 @@ void PoodleActivity::loadWords() {
         }
         String line = data.substring(start, end);
         line.trim();
-        if (line.length() == kWordLength) {
-          line.toUpperCase();
-          wordList.push_back(std::string(line.c_str()));
+        line.toUpperCase();
+        bool valid = line.length() == kWordLength;
+        for (int i = 0; valid && i < line.length(); i++) {
+          valid = std::isalpha(static_cast<unsigned char>(line[i])) != 0;
+        }
+        if (valid) {
+          wordList.emplace_back(line.c_str());
         }
         start = end + 1;
       }
+      usingSdWordList = !wordList.empty();
     }
   }
 
@@ -95,15 +135,110 @@ void PoodleActivity::loadWords() {
       wordList.emplace_back(word);
     }
   }
+
+  std::sort(wordList.begin(), wordList.end());
+  wordList.erase(std::unique(wordList.begin(), wordList.end()), wordList.end());
 }
 
 void PoodleActivity::pickTarget() {
   if (wordList.empty()) {
-    targetWord = "POODL";
+    targetWord = "PAPER";
     return;
   }
-  const int index = static_cast<int>(millis() % wordList.size());
+  const size_t index = static_cast<size_t>(millis()) % wordList.size();
   targetWord = wordList[index];
+}
+
+void PoodleActivity::startNewGame() {
+  guesses.clear();
+  guessStates.clear();
+  currentGuess.assign(kWordLength, ' ');
+  std::fill(keyboardStates.begin(), keyboardStates.end(), LetterState::Unknown);
+  cursorPos = 0;
+  gameOver = false;
+  won = false;
+  pickTarget();
+  setStatus(usingSdWordList ? "Dictionary loaded from SD card" : "Using the built-in dictionary", false);
+}
+
+void PoodleActivity::setStatus(const std::string& message, const bool isError) {
+  statusMessage = message;
+  statusError = isError;
+}
+
+void PoodleActivity::clearGuess() {
+  currentGuess.assign(kWordLength, ' ');
+  cursorPos = 0;
+}
+
+void PoodleActivity::deleteLetter() {
+  if (currentGuess[cursorPos] != ' ') {
+    currentGuess[cursorPos] = ' ';
+    return;
+  }
+  for (int i = cursorPos - 1; i >= 0; i--) {
+    if (currentGuess[i] != ' ') {
+      cursorPos = i;
+      currentGuess[i] = ' ';
+      return;
+    }
+  }
+}
+
+void PoodleActivity::insertLetter(const char letter) {
+  currentGuess[cursorPos] = letter;
+  for (int i = cursorPos + 1; i < kWordLength; i++) {
+    if (currentGuess[i] == ' ') {
+      cursorPos = i;
+      return;
+    }
+  }
+  cursorPos = std::min(cursorPos + 1, kWordLength - 1);
+}
+
+bool PoodleActivity::isGuessComplete() const {
+  return std::none_of(currentGuess.begin(), currentGuess.end(), [](const char c) { return c == ' '; });
+}
+
+bool PoodleActivity::isValidGuess(const std::string& guess) const {
+  return std::binary_search(wordList.begin(), wordList.end(), guess);
+}
+
+std::array<PoodleActivity::LetterState, PoodleActivity::kWordLength> PoodleActivity::evaluateGuess(
+    const std::string& guess) {
+  std::array<LetterState, kWordLength> result{};
+  std::array<int, 26> remaining{};
+
+  // Two-pass scoring preserves duplicate-letter behaviour. Exact hits consume
+  // the target pool first, then remaining letters can score as misplaced.
+  for (int i = 0; i < kWordLength; i++) {
+    if (guess[i] == targetWord[i]) {
+      result[i] = LetterState::Correct;
+    } else {
+      result[i] = LetterState::Absent;
+      remaining[targetWord[i] - 'A']++;
+    }
+  }
+
+  for (int i = 0; i < kWordLength; i++) {
+    if (result[i] == LetterState::Correct) {
+      continue;
+    }
+    const int index = guess[i] - 'A';
+    if (remaining[index] > 0) {
+      result[i] = LetterState::Present;
+      remaining[index]--;
+    }
+  }
+  return result;
+}
+
+void PoodleActivity::promoteKeyboardState(const char letter, const LetterState state) {
+  if (letter < 'A' || letter > 'Z') {
+    return;
+  }
+  const size_t index = static_cast<size_t>(letter - 'A');
+  keyboardStates[index] = strongest(keyboardStates[index], state);
 }
 
 char PoodleActivity::nextLetter(char c, int delta) const {
@@ -128,39 +263,60 @@ void PoodleActivity::handleInput() {
       return;
     }
 
-    if (!gameOver) {
+    if (gameOver) {
+      if (PaperS3Ui::sideActionRect(renderer, false).contains(tapX, tapY)) {
+        if (onExit) {
+          onExit();
+        }
+        return;
+      }
+      if (PaperS3Ui::primaryActionRect(renderer).contains(tapX, tapY)) {
+        startNewGame();
+        needsRender = true;
+        return;
+      }
+      if (PaperS3Ui::sideActionRect(renderer, true).contains(tapX, tapY)) {
+        setStatus(won ? "Solved cleanly" : "Answer: " + targetWord, false);
+        needsRender = true;
+        return;
+      }
+    } else {
+      const int activeRow = static_cast<int>(guesses.size());
       for (int col = 0; col < kWordLength; col++) {
-        PaperS3Ui::Rect rect{80 + col * 76, 548, 60, 60};
-        if (rect.contains(tapX, tapY)) {
+        if (gridCellRect(renderer, activeRow, col).contains(tapX, tapY)) {
           cursorPos = col;
           needsRender = true;
           return;
         }
       }
 
+      for (int row = 0; row < kKeyboardRowCount; row++) {
+        const int rowLength = static_cast<int>(strlen(kKeyboardRows[row]));
+        for (int col = 0; col < rowLength; col++) {
+          if (!keyboardKeyRect(renderer, row, col).contains(tapX, tapY)) {
+            continue;
+          }
+          insertLetter(kKeyboardRows[row][col]);
+          setStatus("Tap Enter to submit the current guess", false);
+          needsRender = true;
+          return;
+        }
+      }
+
       if (PaperS3Ui::sideActionRect(renderer, false).contains(tapX, tapY)) {
-        launchKeyboardEntry();
+        clearGuess();
+        setStatus("Current guess cleared", false);
+        needsRender = true;
         return;
       }
       if (PaperS3Ui::sideActionRect(renderer, true).contains(tapX, tapY)) {
-        currentGuess.assign(kWordLength, ' ');
-        cursorPos = 0;
+        deleteLetter();
+        setStatus("Deleted the previous letter", false);
         needsRender = true;
         return;
       }
       if (PaperS3Ui::primaryActionRect(renderer).contains(tapX, tapY)) {
-        bool complete = true;
-        for (char c : currentGuess) {
-          if (c == ' ') {
-            complete = false;
-            break;
-          }
-        }
-        if (complete) {
-          submitGuess();
-        } else {
-          launchKeyboardEntry();
-        }
+        submitGuess();
         needsRender = true;
         return;
       }
@@ -169,25 +325,22 @@ void PoodleActivity::handleInput() {
 #endif
 
   if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
-    bool hasLetters = false;
-    for (char c : currentGuess) {
-      if (c != ' ') {
-        hasLetters = true;
-        break;
-      }
-    }
-    if (hasLetters) {
-      currentGuess[cursorPos] = ' ';
+    bool hasLetters = std::any_of(currentGuess.begin(), currentGuess.end(), [](const char c) { return c != ' '; });
+    if (!gameOver && hasLetters) {
+      deleteLetter();
+      setStatus("Deleted the previous letter", false);
     } else if (onExit) {
       onExit();
+      return;
     }
     needsRender = true;
     return;
   }
 
   if (gameOver) {
-    if (mappedInput.wasPressed(MappedInputManager::Button::Confirm) && onExit) {
-      onExit();
+    if (mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
+      startNewGame();
+      needsRender = true;
     }
     return;
   }
@@ -208,18 +361,8 @@ void PoodleActivity::handleInput() {
     currentGuess[cursorPos] = nextLetter(currentGuess[cursorPos], -1);
     needsRender = true;
   }
-
   if (mappedInput.wasPressed(MappedInputManager::Button::Confirm)) {
-    bool complete = true;
-    for (char c : currentGuess) {
-      if (c == ' ') {
-        complete = false;
-        break;
-      }
-    }
-    if (complete) {
-      submitGuess();
-    }
+    submitGuess();
     needsRender = true;
   }
 }
@@ -249,11 +392,11 @@ void PoodleActivity::launchKeyboardEntry() {
           }
         }
 
-        currentGuess.assign(kWordLength, ' ');
+        clearGuess();
         for (size_t i = 0; i < cleaned.size(); i++) {
           currentGuess[i] = cleaned[i];
         }
-        cursorPos = cleaned.empty() ? 0 : static_cast<int>(cleaned.size() - 1);
+        cursorPos = cleaned.empty() ? 0 : static_cast<int>(std::min(cleaned.size(), static_cast<size_t>(kWordLength - 1)));
         exitActivity();
         needsRender = true;
       },
@@ -264,106 +407,180 @@ void PoodleActivity::launchKeyboardEntry() {
 }
 
 void PoodleActivity::submitGuess() {
+  if (!isGuessComplete()) {
+#if !defined(PLATFORM_M5PAPERS3)
+    launchKeyboardEntry();
+#endif
+    setStatus("Enter all 5 letters before submitting", true);
+    return;
+  }
+
+  if (!isValidGuess(currentGuess)) {
+    setStatus("That word is not in the dictionary", true);
+    return;
+  }
+
   guesses.push_back(currentGuess);
+  const auto state = evaluateGuess(currentGuess);
+  guessStates.push_back(state);
+  for (int i = 0; i < kWordLength; i++) {
+    promoteKeyboardState(currentGuess[i], state[i]);
+  }
 
   if (currentGuess == targetWord) {
     won = true;
     gameOver = true;
+    setStatus("Solved in " + std::to_string(guesses.size()) + " tries", false);
   } else if (static_cast<int>(guesses.size()) >= kMaxAttempts) {
     gameOver = true;
+    setStatus("Out of guesses", true);
+  } else {
+    setStatus("Attempt " + std::to_string(guesses.size() + 1) + " of 6", false);
   }
 
-  currentGuess.assign(kWordLength, ' ');
-  cursorPos = 0;
+  if (!gameOver) {
+    clearGuess();
+  }
 }
 
 void PoodleActivity::render() {
   renderer.clearScreen();
   renderer.setOrientation(GfxRenderer::Orientation::Portrait);
 
-  PaperS3Ui::drawScreenHeader(renderer, "Poodle", "Word Guess");
+  PaperS3Ui::drawScreenHeader(renderer, "Poodle", "Touch-first PaperS3 word puzzle");
   PaperS3Ui::drawBackButton(renderer);
+
+  std::string attemptLine;
+  if (gameOver) {
+    attemptLine = won ? "Puzzle solved" : "No guesses left";
+  } else {
+    attemptLine = "Attempt " + std::to_string(guesses.size() + 1) + " of 6";
+  }
+  renderer.drawCenteredText(NOTOSANS_14_FONT_ID, 100, attemptLine.c_str(), true, EpdFontFamily::BOLD);
+
   drawGrid();
+  drawLegend();
+  drawKeyboard();
+  drawActionButtons();
+
+  if (!statusMessage.empty()) {
+    PaperS3Ui::drawFooterStatus(renderer, statusMessage.c_str(), statusError);
+  }
 
   if (gameOver) {
-    const char* msg = won ? "You Win!" : "No More Guesses";
-    renderer.drawCenteredText(UI_12_FONT_ID, 852, msg);
-    if (!won) {
-      std::string answer = "Answer: " + targetWord;
-      renderer.drawCenteredText(SMALL_FONT_ID, 882, answer.c_str());
-    }
-    PaperS3Ui::drawFooter(renderer, "Tap Back to return");
+    const std::string footer = won ? "Tap New Game to start another round" : "Tap Reveal to show the answer";
+    PaperS3Ui::drawFooter(renderer, footer.c_str());
   } else {
-    drawKeyboardHint();
+    PaperS3Ui::drawFooter(renderer, "Tap a cell to move the cursor, then tap letters to fill it");
   }
 
   renderer.displayBuffer();
 }
 
 void PoodleActivity::drawGrid() {
-  const int screenW = renderer.getScreenWidth();
-  const int cellSize = 60;
-  const int gap = 8;
-  const int totalWidth = kWordLength * cellSize + (kWordLength - 1) * gap;
-  const int startX = (screenW - totalWidth) / 2;
-  int startY = 116;
-
+  const int activeRow = static_cast<int>(guesses.size());
   for (int row = 0; row < kMaxAttempts; row++) {
     for (int col = 0; col < kWordLength; col++) {
-      const int x = startX + col * (cellSize + gap);
-      const int y = startY + row * (cellSize + gap);
-      renderer.drawRect(x, y, cellSize, cellSize, true);
-
+      const auto rect = gridCellRect(renderer, row, col);
+      const bool currentRow = row == activeRow && !gameOver;
+      const bool activeCell = currentRow && col == cursorPos;
       char letter = ' ';
-      bool isCurrentRow = (row == static_cast<int>(guesses.size()));
+      LetterState state = LetterState::Unknown;
+
       if (row < static_cast<int>(guesses.size())) {
         letter = guesses[row][col];
-      } else if (isCurrentRow) {
+        state = guessStates[row][col];
+      } else if (currentRow) {
         letter = currentGuess[col];
       }
 
-      if (letter != ' ') {
-        char text[2] = {letter, '\0'};
-        int textX = x + (cellSize - renderer.getTextWidth(UI_12_FONT_ID, text)) / 2;
-        int textY = y + 22;
-        renderer.drawText(UI_12_FONT_ID, textX, textY, text);
+      const bool fillCorrect = state == LetterState::Correct;
+      renderer.fillRect(rect.x, rect.y, rect.width, rect.height, fillCorrect);
+      renderer.drawRect(rect.x, rect.y, rect.width, rect.height, !fillCorrect);
+
+      if (state == LetterState::Present) {
+        renderer.drawRect(rect.x + 4, rect.y + 4, rect.width - 8, rect.height - 8, true);
+      } else if (state == LetterState::Absent) {
+        renderer.drawLine(rect.x + 10, rect.y + rect.height - 12, rect.x + rect.width - 10, rect.y + 12, true);
       }
 
-      if (isCurrentRow && col == cursorPos && !gameOver) {
-        renderer.drawRect(x - 2, y - 2, cellSize + 4, cellSize + 4, true);
+      if (activeCell) {
+        renderer.drawRect(rect.x - 3, rect.y - 3, rect.width + 6, rect.height + 6, true);
       }
 
-      if (row < static_cast<int>(guesses.size())) {
-        char guessLetter = guesses[row][col];
-        bool correct = guessLetter == targetWord[col];
-        bool present = !correct && targetWord.find(guessLetter) != std::string::npos;
-        if (correct) {
-          renderer.fillRect(x + cellSize / 2 - 6, y + cellSize - 12, 12, 8, true);
-        } else if (present) {
-          renderer.drawRect(x + cellSize / 2 - 6, y + cellSize - 12, 12, 8, true);
-        }
-      }
+      char text[2] = {letter == ' ' ? '_' : letter, '\0'};
+      const int fontId = NOTOSANS_18_FONT_ID;
+      const int textX = rect.x + (rect.width - renderer.getTextWidth(fontId, text, EpdFontFamily::BOLD)) / 2;
+      const int textY = rect.y + (rect.height - renderer.getLineHeight(fontId)) / 2;
+      renderer.drawText(fontId, textX, textY, text, !fillCorrect, EpdFontFamily::BOLD);
     }
   }
 }
 
-void PoodleActivity::drawKeyboardHint() {
-  renderer.drawText(UI_10_FONT_ID, 80, 628, "Current guess");
-  for (int col = 0; col < kWordLength; col++) {
-    const PaperS3Ui::Rect rect{80 + col * 76, 548, 60, 60};
-    const bool selected = (col == cursorPos);
-    renderer.fillRect(rect.x, rect.y, rect.width, rect.height, false);
-    renderer.drawRect(rect.x, rect.y, rect.width, rect.height);
-    if (selected) {
-      renderer.fillRect(rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2, true);
+void PoodleActivity::drawLegend() const {
+  const int top = 576;
+  const int swatchSize = 24;
+  const int gap = 18;
+  const int groupWidth = 116;
+  const int startX = (renderer.getScreenWidth() - groupWidth * 3 - gap * 2) / 2;
+
+  const auto drawLegendItem = [&](const int x, const char* label, const LetterState state) {
+    renderer.fillRect(x, top, swatchSize, swatchSize, state == LetterState::Correct);
+    renderer.drawRect(x, top, swatchSize, swatchSize, state != LetterState::Correct ? true : false);
+    if (state == LetterState::Present) {
+      renderer.drawRect(x + 4, top + 4, swatchSize - 8, swatchSize - 8, true);
     }
-    char text[2] = {currentGuess[col] == ' ' ? '_' : currentGuess[col], '\0'};
-    const int textX = rect.x + (rect.width - renderer.getTextWidth(UI_12_FONT_ID, text)) / 2;
-    const int textY = rect.y + (rect.height - renderer.getLineHeight(UI_12_FONT_ID)) / 2;
-    renderer.drawText(UI_12_FONT_ID, textX, textY, text, !selected);
+    if (state == LetterState::Absent) {
+      renderer.drawLine(x + 6, top + swatchSize - 6, x + swatchSize - 6, top + 6, true);
+    }
+    renderer.drawText(UI_10_FONT_ID, x + swatchSize + 10, top + 6, label);
+  };
+
+  drawLegendItem(startX, "Hit", LetterState::Correct);
+  drawLegendItem(startX + groupWidth + gap, "Present", LetterState::Present);
+  drawLegendItem(startX + (groupWidth + gap) * 2, "Miss", LetterState::Absent);
+}
+
+void PoodleActivity::drawKeyboard() {
+  for (int row = 0; row < kKeyboardRowCount; row++) {
+    const int rowLength = static_cast<int>(strlen(kKeyboardRows[row]));
+    for (int col = 0; col < rowLength; col++) {
+      const auto rect = keyboardKeyRect(renderer, row, col);
+      const char letter = kKeyboardRows[row][col];
+      const LetterState state = keyboardStates[letter - 'A'];
+      const bool fillCorrect = state == LetterState::Correct;
+
+      renderer.fillRect(rect.x, rect.y, rect.width, rect.height, fillCorrect);
+      renderer.drawRect(rect.x, rect.y, rect.width, rect.height, !fillCorrect);
+
+      if (state == LetterState::Present) {
+        renderer.drawRect(rect.x + 3, rect.y + 3, rect.width - 6, rect.height - 6, true);
+      } else if (state == LetterState::Absent) {
+        renderer.drawLine(rect.x + 8, rect.y + rect.height - 8, rect.x + rect.width - 8, rect.y + 8, true);
+        renderer.drawLine(rect.x + 8, rect.y + 8, rect.x + rect.width - 8, rect.y + rect.height - 8, true);
+      }
+
+      char text[2] = {letter, '\0'};
+      const int fontId = NOTOSANS_14_FONT_ID;
+      const int textX = rect.x + (rect.width - renderer.getTextWidth(fontId, text, EpdFontFamily::BOLD)) / 2;
+      const int textY = rect.y + (rect.height - renderer.getLineHeight(fontId)) / 2;
+      renderer.drawText(fontId, textX, textY, text, !fillCorrect, EpdFontFamily::BOLD);
+    }
   }
-  PaperS3Ui::drawPrimaryActionButton(renderer, "Submit");
-  PaperS3Ui::drawSideActionButton(renderer, false, "Keyboard");
-  PaperS3Ui::drawSideActionButton(renderer, true, "Clear");
-  PaperS3Ui::drawFooter(renderer, "Tap Keyboard to enter a word directly");
+}
+
+void PoodleActivity::drawActionButtons() const {
+  if (gameOver) {
+    PaperS3Ui::drawSideActionButton(renderer, false, "Back");
+    PaperS3Ui::drawPrimaryActionButton(renderer, "New Game");
+    PaperS3Ui::drawSideActionButton(renderer, true, "Reveal");
+    if (!won) {
+      renderer.drawCenteredText(UI_12_FONT_ID, 842, ("Answer: " + targetWord).c_str(), true, EpdFontFamily::BOLD);
+    }
+    return;
+  }
+
+  PaperS3Ui::drawSideActionButton(renderer, false, "Clear");
+  PaperS3Ui::drawPrimaryActionButton(renderer, "Enter");
+  PaperS3Ui::drawSideActionButton(renderer, true, "Delete");
 }

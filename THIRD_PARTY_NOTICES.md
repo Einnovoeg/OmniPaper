@@ -28,6 +28,7 @@ OmniPaper is derived from CrossPoint Reader and related open-source projects, th
 | OpenDyslexic | https://github.com/antijingoist/open-dyslexic | OFL-1.1 |
 | Ubuntu Font Family | https://github.com/canonical/Ubuntu-Sans-fonts | UFL-1.0 |
 | Poodle (gameplay source reference) | https://github.com/k-natori/Poodle | No repository-wide code license declared upstream |
+| Launcher (PaperS3 launcher UX reference) | https://github.com/bmorcelli/Launcher | MIT |
 | Sudoku gist (gameplay source reference) | https://gist.github.com/palaniraja/d5a55f9bd1f990410c8a0099844cec91 | No explicit license shown on gist page |
 | esp32-gameboy (games-section reference only) | https://github.com/lualiliu/esp32-gameboy | GPL-3.0 |
 | ESP32 Bus Pirate (adapted diagnostics component source) | https://github.com/geo-tp/ESP32-Bus-Pirate | MIT |
@@ -75,6 +76,7 @@ The following components have code included or adapted in OmniPaper. Credit is o
 - Adapted components are documented with their source repositories above and in `CODE_PROVENANCE.md`.
 - Direct adaptation currently includes:
   - EPDiy-derived font-data structure and conversion script provenance in `lib/EpdFont/EpdFontData.h` and `lib/EpdFont/scripts/fontconvert.py`
+  - PaperS3 launcher layout density and touch-launch affordance ideas informed by `bmorcelli/Launcher`, applied locally in `src/activities/launcher/LauncherActivity.cpp` and `src/activities/apps/PaperS3Ui.h`
   - trackpad gesture timing logic from `hollyhockberry/m5paper-trackpad` into `src/activities/apps/TrackpadActivity.cpp`
   - SSH UI workflow reference from `SUB0PT1MAL/M5Cardputer_Interactive_SSH_Client` with local implementation in `src/activities/apps/SshClientActivity.cpp`
   - keyboard host mode workflow adaptation informed by `robo8080/M5Paper_Keyboard` and `m5stack/M5Paper_FactoryTest` into `src/activities/apps/KeyboardHostActivity.cpp`

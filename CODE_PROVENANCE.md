@@ -93,6 +93,7 @@ Files:
 | Component | Source URL | License status | How code is sourced in this repository | Local files |
 |---|---|---|---|---|
 | Poodle game | https://github.com/k-natori/Poodle | No repository-wide code license declared upstream | Gameplay/rules referenced; implementation is local in this repository and does not copy upstream source files | `src/activities/apps/PoodleActivity.cpp` |
+| PaperS3 launcher polish | https://github.com/bmorcelli/Launcher | MIT | PaperS3 launcher layout density, metadata treatment, and touch-launch affordances informed this repository's local launcher refinements; no unrelated OTA/web installer code was copied | `src/activities/launcher/LauncherActivity.cpp`, `src/activities/apps/PaperS3Ui.h` |
 | Sudoku game | https://gist.github.com/palaniraja/d5a55f9bd1f990410c8a0099844cec91 | No explicit license shown on gist page | Puzzle/gameplay reference used; implementation is local in this repository and does not copy source from the gist | `src/activities/apps/SudokuActivity.cpp` |
 | Minesweeper game | https://github.com/lualiliu/esp32-gameboy | GPL-3.0 | Games-section reference only; OmniPaper implements a native PaperS3-friendly Minesweeper locally and does not copy emulator source or assets from the GPL repository | `src/activities/apps/MinesweeperActivity.cpp` |
 | I2C/GPIO/UART/EEPROM diagnostics | https://github.com/geo-tp/ESP32-Bus-Pirate | MIT | Feature workflow and tool scope sourced from upstream project; implementation adapted locally for M5Paper | `src/activities/apps/I2CToolsActivity.cpp`, `src/activities/apps/GpioMonitorActivity.cpp`, `src/activities/apps/UartRxMonitorActivity.cpp`, `src/activities/apps/I2cEepromDumpActivity.cpp` |
@@ -126,6 +127,7 @@ Primary sources used for this project:
 - miniz: <https://github.com/richgel999/miniz>
 - picojpeg: <https://github.com/richgel999/picojpeg>
 - Poodle: <https://github.com/k-natori/Poodle>
+- Launcher: <https://github.com/bmorcelli/Launcher>
 - Sudoku gist: <https://gist.github.com/palaniraja/d5a55f9bd1f990410c8a0099844cec91>
 - esp32-gameboy: <https://github.com/lualiliu/esp32-gameboy>
 - ESP32 Bus Pirate: <https://github.com/geo-tp/ESP32-Bus-Pirate>
