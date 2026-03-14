@@ -1,7 +1,8 @@
 #pragma once
 
-#include "../../IInputManager/include/IInputManager.h"
 #include <M5Unified.h>
+
+#include "../../IInputManager/include/IInputManager.h"
 
 // Input adapter for M5Paper family boards.
 //
@@ -62,8 +63,11 @@ class M5PaperInputAdapter : public IInputManager {
   // One-shot virtual button events generated from touch releases.
   uint8_t pendingTouchEventMask;
 
-  static constexpr unsigned long TAP_TIMEOUT = 200;   // ms
-  static constexpr int TAP_MAX_TRAVEL = 24;           // px
+  // PaperS3 taps feel slower than a phone because the e-paper pipeline adds
+  // visual latency. Keep tap recognition intentionally forgiving so normal
+  // human taps still register even when the user waits for the screen to react.
+  static constexpr unsigned long TAP_TIMEOUT = 450;  // ms
+  static constexpr int TAP_MAX_TRAVEL = 36;          // px
 
   // Helpers
   uint8_t mapM5ButtonsToLogical();

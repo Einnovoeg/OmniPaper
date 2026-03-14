@@ -16,7 +16,7 @@
 
 namespace {
 int overlayFontId(const GfxRenderer& renderer) {
-  return renderer.getScreenWidth() >= 520 ? UI_10_FONT_ID : SMALL_FONT_ID;
+  return renderer.getScreenWidth() >= 520 ? UI_12_FONT_ID : UI_10_FONT_ID;
 }
 
 std::string buildDateTimeText() {
@@ -95,8 +95,8 @@ void ScreenComponents::drawDeviceInfoOverlay(const GfxRenderer& renderer, const 
 
   const int screenWidth = renderer.getScreenWidth();
   const int lineHeight = renderer.getLineHeight(fontId);
-  const int topY = renderer.getScreenWidth() >= 520 ? 12 : 4;
-  const int bottomY = renderer.getScreenHeight() - lineHeight - 4;
+  const int topY = renderer.getScreenWidth() >= 520 ? 18 : 6;
+  const int bottomY = renderer.getScreenHeight() - lineHeight - 8;
 
   const bool isBottom = overlayPosition == CrossPointSettings::OVERLAY_BOTTOM ||
                         overlayPosition == CrossPointSettings::OVERLAY_BOTTOM_CORNERS;
@@ -107,7 +107,7 @@ void ScreenComponents::drawDeviceInfoOverlay(const GfxRenderer& renderer, const 
   drawBattery(renderer, 2, y, showBatteryPercentage);
 
   if (!isCorners) {
-    const int rightInset = renderer.getScreenWidth() >= 520 ? 12 : 4;
+    const int rightInset = renderer.getScreenWidth() >= 520 ? 16 : 6;
     const int wifiWidth = renderer.getTextWidth(fontId, wifiText.c_str());
     renderer.drawText(fontId, screenWidth - wifiWidth - rightInset, y, wifiText.c_str());
     renderer.drawCenteredText(fontId, y, dateTimeText.c_str());
@@ -117,8 +117,15 @@ void ScreenComponents::drawDeviceInfoOverlay(const GfxRenderer& renderer, const 
   const int batteryBlockWidth = showBatteryPercentage ? 58 : 24;
   renderer.drawText(fontId, batteryBlockWidth, y, wifiText.c_str());
 
+  // On PaperS3 portrait screens the top-right corner is usually reserved for a
+  // Back button, so keep the date centered instead of fighting that space.
+  if (!isBottom && renderer.getScreenWidth() >= 520) {
+    renderer.drawCenteredText(fontId, y, dateTimeText.c_str());
+    return;
+  }
+
   const int dateWidth = renderer.getTextWidth(fontId, dateTimeText.c_str());
-  renderer.drawText(fontId, screenWidth - dateWidth - (renderer.getScreenWidth() >= 520 ? 12 : 4), y,
+  renderer.drawText(fontId, screenWidth - dateWidth - (renderer.getScreenWidth() >= 520 ? 16 : 6), y,
                     dateTimeText.c_str());
 }
 

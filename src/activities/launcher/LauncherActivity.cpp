@@ -3,6 +3,7 @@
 #include <GfxRenderer.h>
 
 #include <algorithm>
+#include <string>
 
 #include "../apps/PaperS3Ui.h"
 #include "CrossPointSettings.h"
@@ -82,9 +83,9 @@ PaperS3Ui::Rect mainTileRect(const GfxRenderer& renderer, const int index, const
   constexpr int columns = 2;
   const int rows = (itemCount + columns - 1) / columns;
   constexpr int outerMargin = 24;
-  constexpr int tileGap = 18;
-  constexpr int topY = 108;
-  constexpr int bottomReserve = 116;
+  constexpr int tileGap = 16;
+  constexpr int topY = 122;
+  constexpr int bottomReserve = 122;
   const int tileWidth = (renderer.getScreenWidth() - outerMargin * 2 - tileGap) / columns;
   const int tileHeight = (renderer.getScreenHeight() - topY - bottomReserve - tileGap * (rows - 1)) / rows;
   const int row = index / columns;
@@ -98,15 +99,11 @@ PaperS3Ui::Rect mainTileRect(const GfxRenderer& renderer, const int index, const
 }
 
 PaperS3Ui::Rect submenuRowRect(const GfxRenderer& renderer, const int index) {
-  constexpr int outerMargin = 24;
-  constexpr int topY = 112;
-  constexpr int rowHeight = 62;
-  constexpr int rowGap = 12;
   PaperS3Ui::Rect rect;
-  rect.x = outerMargin;
-  rect.y = topY + index * (rowHeight + rowGap);
-  rect.width = renderer.getScreenWidth() - outerMargin * 2;
-  rect.height = rowHeight;
+  rect.x = PaperS3Ui::kOuterMargin;
+  rect.y = PaperS3Ui::kListTopY + index * (PaperS3Ui::kListRowHeight + PaperS3Ui::kListRowGap);
+  rect.width = renderer.getScreenWidth() - PaperS3Ui::kOuterMargin * 2;
+  rect.height = PaperS3Ui::kListRowHeight;
   return rect;
 }
 
@@ -240,6 +237,88 @@ const char* submenuBadge(const LauncherAction action) {
     case LauncherAction::Calculator:
       return "CALC";
     case LauncherAction::None:
+    default:
+      return "";
+  }
+}
+
+const char* mainTileDescription(const LauncherItemId id) {
+  switch (id) {
+    case LauncherItemId::Reader:
+      return "EPUB and text library";
+    case LauncherItemId::Dashboard:
+      return "Battery, USB, weather";
+    case LauncherItemId::Sensors:
+      return "Built-in and I2C tools";
+    case LauncherItemId::Weather:
+      return "Forecast and conditions";
+    case LauncherItemId::Network:
+      return "Wi-Fi, BLE and SSH";
+    case LauncherItemId::Games:
+      return "Poodle, Sudoku, Tetris";
+    case LauncherItemId::Images:
+      return "Viewer and sketchpad";
+    case LauncherItemId::Tools:
+      return "Notes, files and time";
+    case LauncherItemId::Settings:
+      return "Wireless and hardware";
+    case LauncherItemId::Calculator:
+      return "Scientific calculator";
+    default:
+      return "";
+  }
+}
+
+const char* submenuDescription(const LauncherAction action) {
+  switch (action) {
+    case LauncherAction::SensorsBuiltIn:
+      return "PaperS3 battery, RTC, touch and IMU";
+    case LauncherAction::SensorsPeripherals:
+      return "Inspect supported external boards";
+    case LauncherAction::SensorsI2CTools:
+      return "Scan and inspect the I2C bus";
+    case LauncherAction::NetworkWifiStatus:
+      return "Connection state, IP and RSSI";
+    case LauncherAction::NetworkWifiScan:
+      return "Find nearby wireless networks";
+    case LauncherAction::NetworkWifiTests:
+      return "Run connectivity checks";
+    case LauncherAction::NetworkWifiChannels:
+      return "Watch activity by Wi-Fi channel";
+    case LauncherAction::NetworkBleScan:
+      return "Scan nearby BLE advertisements";
+    case LauncherAction::NetworkWebPortal:
+      return "Serve local files over Wi-Fi";
+    case LauncherAction::NetworkKeyboardHost:
+      return "USB or BLE host keyboard bridge";
+    case LauncherAction::NetworkSshClient:
+      return "Run remote commands over SSH";
+    case LauncherAction::GamePoodle:
+      return "Touch-friendly daily word game";
+    case LauncherAction::GameSudoku:
+      return "Tap-to-fill number puzzle";
+    case LauncherAction::GameTetris:
+      return "Fast drop block puzzler";
+    case LauncherAction::ImagesViewer:
+      return "Browse images from storage";
+    case LauncherAction::ImagesDraw:
+      return "Sketch with the pen layer";
+    case LauncherAction::ToolsNotes:
+      return "Quick notes with the touch keyboard";
+    case LauncherAction::ToolsFileManager:
+      return "Browse SD and internal files";
+    case LauncherAction::ToolsTime:
+      return "Clock, RTC and timezone setup";
+    case LauncherAction::NetworkTrackpad:
+      return "Use touch as a remote pointer";
+    case LauncherAction::ToolsSleepTimer:
+      return "Schedule display sleep";
+    case LauncherAction::ToolsOtaUpdate:
+      return "Check and install firmware updates";
+    case LauncherAction::SettingsWifi:
+      return "Manage saved Wi-Fi credentials";
+    case LauncherAction::SettingsHardwareTest:
+      return "Run PaperS3 hardware diagnostics";
     default:
       return "";
   }
@@ -569,7 +648,7 @@ void LauncherActivity::render() {
         break;
     }
 #if defined(PLATFORM_M5PAPERS3)
-    PaperS3Ui::drawFooter(renderer, "Tap a row to open");
+    PaperS3Ui::drawFooter(renderer, "Tap a row directly");
 #else
     renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 20,
                               "Up/Down: Move   Confirm: Select   Back: Return");
@@ -589,18 +668,17 @@ void LauncherActivity::render() {
 void LauncherActivity::renderMainMenu() {
 #if defined(PLATFORM_M5PAPERS3)
   {
-    renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 22, "OmniPaper", true, EpdFontFamily::BOLD);
-    renderer.drawCenteredText(UI_12_FONT_ID, 54, "Launcher");
+    PaperS3Ui::drawScreenHeader(renderer, "OmniPaper", "PaperS3 launcher");
 
     const int count = static_cast<int>(visibleItems.size());
     for (int i = 0; i < count; i++) {
       const auto rect = mainTileRect(renderer, i, count);
       const bool selected = (i == selectionIndex);
-      const int iconBoxSize = 52;
+      const int iconBoxSize = 56;
       const int iconBoxX = rect.x + 18;
       const int iconBoxY = rect.y + (rect.height - iconBoxSize) / 2;
       const int labelX = iconBoxX + iconBoxSize + 18;
-      const int labelY = rect.y + 26;
+      const int labelY = rect.y + 24;
 
       renderer.fillRect(rect.x, rect.y, rect.width, rect.height, false);
       renderer.drawRect(rect.x, rect.y, rect.width, rect.height);
@@ -614,8 +692,13 @@ void LauncherActivity::renderMainMenu() {
       drawIconSymbol(iconBoxX + iconBoxSize / 2, iconBoxY + iconBoxSize / 2, visibleItems[i].id, selected);
 
       renderer.drawText(UI_12_FONT_ID, labelX, labelY, visibleItems[i].label, !selected, EpdFontFamily::BOLD);
-      renderer.drawText(UI_10_FONT_ID, labelX, labelY + 24,
-                        visibleItems[i].hasSubmenu ? "Open section" : "Tap to launch", !selected);
+      const int subtitleWidth = rect.x + rect.width - labelX - 18;
+      const std::string subtitle =
+          renderer.truncatedText(UI_10_FONT_ID, mainTileDescription(visibleItems[i].id), subtitleWidth);
+      renderer.drawText(UI_10_FONT_ID, labelX, labelY + 26, subtitle.c_str(), !selected);
+    }
+    if (!visibleItems.empty()) {
+      PaperS3Ui::drawFooterStatus(renderer, mainTileDescription(visibleItems[selectionIndex].id));
     }
     return;
   }
@@ -654,15 +737,16 @@ void LauncherActivity::renderMainMenu() {
 
 void LauncherActivity::renderSubmenu(const char* title, const std::vector<SubmenuItem>& items) {
 #if defined(PLATFORM_M5PAPERS3)
-  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 22, title, true, EpdFontFamily::BOLD);
+  PaperS3Ui::drawScreenHeader(renderer, title, "Touch an option to launch it");
   PaperS3Ui::drawBackButton(renderer);
 
   for (size_t i = 0; i < items.size(); i++) {
     const auto rect = submenuRowRect(renderer, static_cast<int>(i));
     const bool selected = static_cast<int>(i) == submenuSelection;
-    const int iconBoxSize = 36;
+    const int iconBoxSize = 40;
     const int iconBoxX = rect.x + 16;
     const int iconBoxY = rect.y + (rect.height - iconBoxSize) / 2;
+    const int textX = iconBoxX + iconBoxSize + 18;
 
     renderer.fillRect(rect.x, rect.y, rect.width, rect.height, false);
     renderer.drawRect(rect.x, rect.y, rect.width, rect.height);
@@ -681,8 +765,11 @@ void LauncherActivity::renderSubmenu(const char* title, const std::vector<Submen
     const int badgeY = iconBoxY + (iconBoxSize - renderer.getLineHeight(UI_10_FONT_ID)) / 2;
     renderer.drawText(UI_10_FONT_ID, badgeX, badgeY, badge, !selected, EpdFontFamily::BOLD);
 
-    renderer.drawText(UI_12_FONT_ID, iconBoxX + iconBoxSize + 18, rect.y + 18, items[i].label, !selected,
-                      EpdFontFamily::BOLD);
+    renderer.drawText(UI_12_FONT_ID, textX, rect.y + 15, items[i].label, !selected, EpdFontFamily::BOLD);
+    const int subtitleWidth = rect.x + rect.width - textX - 18;
+    const std::string subtitle =
+        renderer.truncatedText(UI_10_FONT_ID, submenuDescription(items[i].action), subtitleWidth);
+    renderer.drawText(UI_10_FONT_ID, textX, rect.y + 42, subtitle.c_str(), !selected);
   }
 
   const auto backRect = submenuRowRect(renderer, static_cast<int>(items.size()));
@@ -692,7 +779,13 @@ void LauncherActivity::renderSubmenu(const char* title, const std::vector<Submen
   if (selected) {
     renderer.fillRect(backRect.x + 1, backRect.y + 1, backRect.width - 2, backRect.height - 2, true);
   }
-  renderer.drawText(UI_12_FONT_ID, backRect.x + 18, backRect.y + 18, "Back", !selected, EpdFontFamily::BOLD);
+  renderer.drawText(UI_12_FONT_ID, backRect.x + 18, backRect.y + 15, "Back", !selected, EpdFontFamily::BOLD);
+  renderer.drawText(UI_10_FONT_ID, backRect.x + 18, backRect.y + 42, "Return to the launcher", !selected);
+  if (submenuSelection < static_cast<int>(items.size())) {
+    PaperS3Ui::drawFooterStatus(renderer, submenuDescription(items[submenuSelection].action));
+  } else {
+    PaperS3Ui::drawFooterStatus(renderer, "Return to the launcher");
+  }
   return;
 #endif
 

@@ -15,15 +15,15 @@ const char* const KeyboardEntryActivity::keyboardShift[NUM_ROWS] = {"~!@#$%^&*()
                                                                     "ZXCVBNM<>?", "SPECIAL ROW"};
 
 namespace {
-constexpr int kInputBoxX = 24;
-constexpr int kInputBoxY = 92;
-constexpr int kInputBoxWidth = 492;
-constexpr int kInputBoxHeight = 96;
-constexpr int kKeyboardStartY = 220;
-constexpr int kKeyUnitWidth = 34;
-constexpr int kKeyHeight = 52;
+constexpr int kInputBoxX = 18;
+constexpr int kInputBoxY = 110;
+constexpr int kInputBoxWidth = 504;
+constexpr int kInputBoxHeight = 108;
+constexpr int kKeyboardStartY = 236;
+constexpr int kKeyUnitWidth = 35;
+constexpr int kKeyHeight = 56;
 constexpr int kKeyGap = 4;
-constexpr int kKeyboardLeft = 27;
+constexpr int kKeyboardLeft = 18;
 constexpr int kNumRows = 5;
 constexpr int kSpecialRow = 4;
 constexpr int kShiftCol = 0;
@@ -373,16 +373,17 @@ void KeyboardEntryActivity::render() const {
   displayText += "_";
 
   // Render input text across multiple lines
-  int textY = kInputBoxY + 14;
+  constexpr int kInputFontId = UI_12_FONT_ID;
+  int textY = kInputBoxY + 16;
   int lineStartIdx = 0;
   int lineEndIdx = displayText.length();
   int linesDrawn = 0;
   while (lineStartIdx < static_cast<int>(displayText.length()) && linesDrawn < 3) {
     std::string lineText = displayText.substr(lineStartIdx, lineEndIdx - lineStartIdx);
-    const int textWidth = renderer.getTextWidth(UI_10_FONT_ID, lineText.c_str());
+    const int textWidth = renderer.getTextWidth(kInputFontId, lineText.c_str());
     if (textWidth <= (kInputBoxWidth - 24)) {
-      renderer.drawText(UI_10_FONT_ID, kInputBoxX + 12, textY, lineText.c_str());
-      textY += renderer.getLineHeight(UI_10_FONT_ID) + 4;
+      renderer.drawText(kInputFontId, kInputBoxX + 12, textY, lineText.c_str());
+      textY += renderer.getLineHeight(kInputFontId) + 4;
       lineStartIdx = lineEndIdx;
       lineEndIdx = displayText.length();
       linesDrawn++;
@@ -423,6 +424,7 @@ void KeyboardEntryActivity::render() const {
   }
 
   PaperS3Ui::drawFooter(const_cast<GfxRenderer&>(renderer), "Tap keys directly");
+  PaperS3Ui::drawFooterStatus(const_cast<GfxRenderer&>(renderer), "Done submits. Cancel returns without saving.");
 
   renderer.displayBuffer();
 }
@@ -434,8 +436,13 @@ void KeyboardEntryActivity::renderItemWithSelector(const int x, const int y, con
   if (isSelected) {
     renderer.fillRect(x + 1, y + 1, width - 2, height - 2, true);
   }
-  const int textWidth = renderer.getTextWidth(UI_10_FONT_ID, item);
+  int fontId = UI_12_FONT_ID;
+  if (renderer.getTextWidth(fontId, item) > (width - 10)) {
+    fontId = UI_10_FONT_ID;
+  }
+  const int textWidth = renderer.getTextWidth(fontId, item);
   const int textX = x + (width - textWidth) / 2;
-  const int textY = y + (height - renderer.getLineHeight(UI_10_FONT_ID)) / 2;
-  renderer.drawText(UI_10_FONT_ID, textX, textY, item, !isSelected);
+  const int textY = y + (height - renderer.getLineHeight(fontId)) / 2;
+  renderer.drawText(fontId, textX, textY, item, !isSelected,
+                    fontId == UI_12_FONT_ID ? EpdFontFamily::BOLD : EpdFontFamily::REGULAR);
 }

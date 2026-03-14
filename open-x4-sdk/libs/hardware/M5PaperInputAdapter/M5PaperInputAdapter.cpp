@@ -1,6 +1,7 @@
 #include "M5PaperInputAdapter.h"
 
 #include <Arduino.h>
+
 #include <cstdlib>
 
 // Legacy fallback touch areas. PaperS3 uses logical portrait hit-testing in
@@ -8,24 +9,14 @@
 // PaperS3 UI chrome.
 #if defined(PLATFORM_M5PAPERS3)
 const M5PaperInputAdapter::ButtonArea M5PaperInputAdapter::BUTTON_AREAS[NUM_BUTTON_AREAS] = {
-    {0, 0, 0, 0, BTN_LEFT},
-    {0, 0, 0, 0, BTN_CONFIRM},
-    {0, 0, 0, 0, BTN_RIGHT},
-    {0, 0, 0, 0, BTN_UP},
-    {0, 0, 0, 0, BTN_DOWN},
-    {0, 0, 0, 0, BTN_BACK}
-};
+    {0, 0, 0, 0, BTN_LEFT}, {0, 0, 0, 0, BTN_CONFIRM}, {0, 0, 0, 0, BTN_RIGHT},
+    {0, 0, 0, 0, BTN_UP},   {0, 0, 0, 0, BTN_DOWN},    {0, 0, 0, 0, BTN_BACK}};
 #else
 // Legacy M5Paper touch zones remain narrow because most navigation still comes
 // from the front buttons rather than touch-first interaction.
 const M5PaperInputAdapter::ButtonArea M5PaperInputAdapter::BUTTON_AREAS[NUM_BUTTON_AREAS] = {
-    {40, 480, 80, 40, BTN_LEFT},
-    {480, 480, 80, 40, BTN_CONFIRM},
-    {840, 480, 80, 40, BTN_RIGHT},
-    {40, 240, 80, 40, BTN_UP},
-    {840, 240, 80, 40, BTN_DOWN},
-    {880, 40, 80, 40, BTN_BACK}
-};
+    {40, 480, 80, 40, BTN_LEFT}, {480, 480, 80, 40, BTN_CONFIRM}, {840, 480, 80, 40, BTN_RIGHT},
+    {40, 240, 80, 40, BTN_UP},   {840, 240, 80, 40, BTN_DOWN},    {880, 40, 80, 40, BTN_BACK}};
 #endif
 
 const char* M5PaperInputAdapter::BUTTON_NAMES[] = {"BACK", "CONFIRM", "LEFT", "RIGHT", "UP", "DOWN", "POWER"};
@@ -190,8 +181,14 @@ uint8_t M5PaperInputAdapter::mapM5ButtonsToLogical() {
 void M5PaperInputAdapter::updateTouchState() {
   touchTapDetected = false;
 
+  if (!M5.Touch.isEnabled()) {
+    touchActive = false;
+    return;
+  }
+
   const auto detail = M5.Touch.getDetail();
-  if (detail.isPressed()) {
+  const bool touchPressed = detail.isPressed() || (M5.Touch.getCount() > 0);
+  if (touchPressed) {
     touchActive = true;
     touchX = detail.x;
     touchY = detail.y;
@@ -216,9 +213,9 @@ void M5PaperInputAdapter::updateTouchState() {
   const int adx = std::abs(dx);
   const int ady = std::abs(dy);
 
-  // Short low-travel release -> tap. For PaperS3 this is the primary touch
-  // interaction mode; swipe-to-select was intentionally removed because it
-  // made the UI feel indirect on a direct-touch screen.
+  // Short low-travel release -> tap. PaperS3 is now explicitly tap-first:
+  // we intentionally do not interpret casual horizontal motion as navigation
+  // because that made direct-touch targets feel unreliable in practice.
   if (touchDuration <= TAP_TIMEOUT && adx <= TAP_MAX_TRAVEL && ady <= TAP_MAX_TRAVEL) {
     touchTapDetected = true;
     const uint8_t touchButton = getButtonFromTouch(lastTouchX, lastTouchY);
@@ -249,12 +246,8 @@ uint8_t M5PaperInputAdapter::getButtonFromTouch(const uint16_t x, const uint16_t
   };
 
   constexpr LogicalArea logicalAreas[] = {
-      {24, 862, 160, 54, BTN_LEFT},
-      {160, 862, 220, 54, BTN_CONFIRM},
-      {356, 862, 160, 54, BTN_RIGHT},
-      {24, 232, 112, 56, BTN_UP},
-      {404, 232, 112, 56, BTN_DOWN},
-      {408, 18, 112, 46, BTN_BACK},
+      {20, 848, 156, 72, BTN_LEFT}, {182, 848, 176, 72, BTN_CONFIRM}, {364, 848, 156, 72, BTN_RIGHT},
+      {20, 238, 126, 66, BTN_UP},   {394, 238, 126, 66, BTN_DOWN},    {396, 38, 120, 52, BTN_BACK},
   };
 
   for (const auto& area : logicalAreas) {

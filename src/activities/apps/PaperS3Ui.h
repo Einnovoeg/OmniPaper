@@ -9,14 +9,14 @@ namespace PaperS3Ui {
 // Shared card chrome for the touch-first PaperS3 dashboards and diagnostics.
 constexpr int kOuterMargin = 24;
 constexpr int kCardGap = 16;
-constexpr int kTopY = 92;
-constexpr int kFooterOffset = 34;
-constexpr int kFooterStatusOffset = 66;
-constexpr int kHeaderHeight = 34;
-constexpr int kCardInnerPadding = 14;
-constexpr int kListTopY = 132;
-constexpr int kListRowHeight = 62;
-constexpr int kListRowGap = 12;
+constexpr int kTopY = 108;
+constexpr int kFooterOffset = 36;
+constexpr int kFooterStatusOffset = 70;
+constexpr int kHeaderHeight = 38;
+constexpr int kCardInnerPadding = 16;
+constexpr int kListTopY = 148;
+constexpr int kListRowHeight = 70;
+constexpr int kListRowGap = 14;
 
 struct Rect {
   int x = 0;
@@ -75,28 +75,28 @@ inline bool rawTouchToPortrait(const uint16_t rawX, const uint16_t rawY, int& lo
 
 inline Rect backButtonRect(const GfxRenderer& renderer) {
   Rect rect;
-  rect.x = renderer.getScreenWidth() - 132;
-  rect.y = 28;
-  rect.width = 112;
-  rect.height = 46;
+  rect.x = renderer.getScreenWidth() - 144;
+  rect.y = 38;
+  rect.width = 120;
+  rect.height = 52;
   return rect;
 }
 
 inline Rect primaryActionRect(const GfxRenderer& renderer) {
   Rect rect;
-  rect.x = (renderer.getScreenWidth() - 220) / 2;
-  rect.y = renderer.getScreenHeight() - 98;
-  rect.width = 220;
-  rect.height = 54;
+  rect.x = (renderer.getScreenWidth() - 228) / 2;
+  rect.y = renderer.getScreenHeight() - 106;
+  rect.width = 228;
+  rect.height = 58;
   return rect;
 }
 
 inline Rect sideActionRect(const GfxRenderer& renderer, const bool rightSide) {
   Rect rect;
-  rect.width = 160;
-  rect.height = 54;
+  rect.width = 164;
+  rect.height = 58;
   rect.x = rightSide ? (renderer.getScreenWidth() - kOuterMargin - rect.width) : kOuterMargin;
-  rect.y = renderer.getScreenHeight() - 98;
+  rect.y = renderer.getScreenHeight() - 106;
   return rect;
 }
 
@@ -110,9 +110,9 @@ inline Rect listRowRect(const GfxRenderer& renderer, const int index) {
 }
 
 inline void drawScreenHeader(GfxRenderer& renderer, const char* title, const char* subtitle = nullptr) {
-  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 30, title, true, EpdFontFamily::BOLD);
+  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 38, title, true, EpdFontFamily::BOLD);
   if (subtitle != nullptr && subtitle[0] != '\0') {
-    renderer.drawCenteredText(UI_12_FONT_ID, 64, subtitle);
+    renderer.drawCenteredText(UI_12_FONT_ID, 74, subtitle);
   }
 }
 
@@ -120,30 +120,30 @@ inline void drawBackButton(GfxRenderer& renderer, const char* label = "Back") {
   const Rect rect = backButtonRect(renderer);
   renderer.fillRect(rect.x, rect.y, rect.width, rect.height, false);
   renderer.drawRect(rect.x, rect.y, rect.width, rect.height);
-  const int textWidth = renderer.getTextWidth(UI_12_FONT_ID, label);
+  const int textWidth = renderer.getTextWidth(UI_12_FONT_ID, label, EpdFontFamily::BOLD);
   const int textX = rect.x + (rect.width - textWidth) / 2;
   const int textY = rect.y + (rect.height - renderer.getLineHeight(UI_12_FONT_ID)) / 2;
-  renderer.drawText(UI_12_FONT_ID, textX, textY, label);
+  renderer.drawText(UI_12_FONT_ID, textX, textY, label, true, EpdFontFamily::BOLD);
 }
 
 inline void drawPrimaryActionButton(GfxRenderer& renderer, const char* label) {
   const Rect rect = primaryActionRect(renderer);
   renderer.fillRect(rect.x, rect.y, rect.width, rect.height, false);
   renderer.drawRect(rect.x, rect.y, rect.width, rect.height);
-  const int textWidth = renderer.getTextWidth(UI_12_FONT_ID, label);
+  const int textWidth = renderer.getTextWidth(UI_12_FONT_ID, label, EpdFontFamily::BOLD);
   const int textX = rect.x + (rect.width - textWidth) / 2;
   const int textY = rect.y + (rect.height - renderer.getLineHeight(UI_12_FONT_ID)) / 2;
-  renderer.drawText(UI_12_FONT_ID, textX, textY, label);
+  renderer.drawText(UI_12_FONT_ID, textX, textY, label, true, EpdFontFamily::BOLD);
 }
 
 inline void drawSideActionButton(GfxRenderer& renderer, const bool rightSide, const char* label) {
   const Rect rect = sideActionRect(renderer, rightSide);
   renderer.fillRect(rect.x, rect.y, rect.width, rect.height, false);
   renderer.drawRect(rect.x, rect.y, rect.width, rect.height);
-  const int textWidth = renderer.getTextWidth(UI_12_FONT_ID, label);
+  const int textWidth = renderer.getTextWidth(UI_12_FONT_ID, label, EpdFontFamily::BOLD);
   const int textX = rect.x + (rect.width - textWidth) / 2;
   const int textY = rect.y + (rect.height - renderer.getLineHeight(UI_12_FONT_ID)) / 2;
-  renderer.drawText(UI_12_FONT_ID, textX, textY, label);
+  renderer.drawText(UI_12_FONT_ID, textX, textY, label, true, EpdFontFamily::BOLD);
 }
 
 inline void drawListRow(GfxRenderer& renderer, const Rect& rect, const bool selected, const char* title,
@@ -157,12 +157,12 @@ inline void drawListRow(GfxRenderer& renderer, const Rect& rect, const bool sele
   renderer.drawText(UI_12_FONT_ID, rect.x + 18, rect.y + 16, title, !selected, EpdFontFamily::BOLD);
 
   if (subtitle != nullptr && subtitle[0] != '\0') {
-    renderer.drawText(UI_10_FONT_ID, rect.x + 18, rect.y + 39, subtitle, !selected);
+    renderer.drawText(UI_10_FONT_ID, rect.x + 18, rect.y + 43, subtitle, !selected);
   }
 
   if (trailing != nullptr && trailing[0] != '\0') {
     const int width = renderer.getTextWidth(UI_10_FONT_ID, trailing);
-    renderer.drawText(UI_10_FONT_ID, rect.x + rect.width - width - 18, rect.y + 20, trailing, !selected);
+    renderer.drawText(UI_10_FONT_ID, rect.x + rect.width - width - 18, rect.y + 22, trailing, !selected);
   }
 }
 
