@@ -4,6 +4,23 @@ All notable changes to OmniPaper are documented in this file.
 
 The release tag must match the version in `platformio.ini` exactly, without a leading `v`, so OTA version checks and release asset names stay aligned.
 
+## [0.18.4] - 2026-03-15
+
+### Changed
+
+- Replaced the generic PaperS3 launcher overlay with a dedicated top status strip so battery, Wi-Fi, and time no longer fight the PaperS3 header/back-button area.
+- Lowered the shared PaperS3 header/back/footer geometry again to keep titles, navigation chips, and footer text inside the visible safe area on-device.
+- Rebuilt the PaperS3 drawing screen as a portrait-first canvas with batched touch stroke flushing instead of the older landscape/raw-touch implementation.
+- Trimmed the default PaperS3 dashboard, sensors, and hardware-test overview probes down to the safest always-on telemetry while keeping deeper diagnostics available in dedicated screens.
+
+### Fixed
+
+- Implemented diagonal line drawing in the shared renderer, which restores PaperS3 launcher icons, submenu arrows, and other diagonal UI glyphs that were previously missing.
+- Realigned the PaperS3 virtual Back touch zone with the visible Back chip after the shared header moved downward.
+- Fixed the PaperS3 Wi-Fi save/forget prompts so touch selection now actually writes or removes SD-backed credentials instead of behaving like a button-only dialog.
+- Reduced PaperS3 touch drawing latency by batching canvas updates during a stroke instead of refreshing the panel after every single touch sample.
+- Removed several high-risk live PMIC/touch/IMU overview reads from the PaperS3 dashboard and diagnostics screens to reduce the crash/reset reports coming from those entry points.
+
 ## [0.18.3] - 2026-03-14
 
 ### Changed
