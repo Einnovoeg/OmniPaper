@@ -268,7 +268,7 @@ uint8_t M5PaperInputAdapter::getButtonFromTouch(const uint16_t x, const uint16_t
 
   constexpr LogicalArea logicalAreas[] = {
       {20, 848, 156, 72, BTN_LEFT}, {182, 848, 176, 72, BTN_CONFIRM}, {364, 848, 156, 72, BTN_RIGHT},
-      {20, 238, 126, 66, BTN_UP},   {394, 238, 126, 66, BTN_DOWN},    {388, 82, 128, 56, BTN_BACK},
+      {20, 238, 126, 66, BTN_UP},   {394, 238, 126, 66, BTN_DOWN},    {388, 94, 128, 56, BTN_BACK},
   };
 
   for (const auto& area : logicalAreas) {

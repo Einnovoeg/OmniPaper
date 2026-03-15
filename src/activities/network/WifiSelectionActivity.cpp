@@ -329,6 +329,28 @@ void WifiSelectionActivity::loop() {
 
   // Handle save prompt state
   if (state == WifiSelectionState::SAVE_PROMPT) {
+#if defined(PLATFORM_M5PAPERS3)
+    if (hasTap) {
+      if (PaperS3Ui::listRowRect(renderer, 0).contains(tapX, tapY)) {
+        savePromptSelection = 0;
+        const bool saved = WIFI_STORE.addCredential(selectedSSID, enteredPassword);
+        if (!saved) {
+          connectionError = "Failed to save to SD";
+          updateRequired = true;
+          renderIfNeeded();
+          return;
+        }
+        onComplete(true);
+        return;
+      }
+      if (PaperS3Ui::listRowRect(renderer, 1).contains(tapX, tapY)) {
+        savePromptSelection = 1;
+        onComplete(true);
+        return;
+      }
+    }
+#endif
+
     if (mappedInput.wasPressed(MappedInputManager::Button::Up) ||
         mappedInput.wasPressed(MappedInputManager::Button::Left)) {
       if (savePromptSelection > 0) {
@@ -345,8 +367,14 @@ void WifiSelectionActivity::loop() {
       if (savePromptSelection == 0) {
         // User chose "Yes" - save the password
         xSemaphoreTake(renderingMutex, portMAX_DELAY);
-        WIFI_STORE.addCredential(selectedSSID, enteredPassword);
+        const bool saved = WIFI_STORE.addCredential(selectedSSID, enteredPassword);
         xSemaphoreGive(renderingMutex);
+        if (!saved) {
+          connectionError = "Failed to save to SD";
+          updateRequired = true;
+          renderIfNeeded();
+          return;
+        }
       }
       // Complete - parent will start web server
       onComplete(true);
@@ -362,6 +390,33 @@ void WifiSelectionActivity::loop() {
 
   // Handle forget prompt state (connection failed with saved credentials)
   if (state == WifiSelectionState::FORGET_PROMPT) {
+#if defined(PLATFORM_M5PAPERS3)
+    if (hasTap) {
+      if (PaperS3Ui::listRowRect(renderer, 0).contains(tapX, tapY)) {
+        forgetPromptSelection = 0;
+        state = WifiSelectionState::NETWORK_LIST;
+        updateRequired = true;
+        renderIfNeeded();
+        return;
+      }
+      if (PaperS3Ui::listRowRect(renderer, 1).contains(tapX, tapY)) {
+        forgetPromptSelection = 1;
+        xSemaphoreTake(renderingMutex, portMAX_DELAY);
+        WIFI_STORE.removeCredential(selectedSSID);
+        xSemaphoreGive(renderingMutex);
+        const auto network = find_if(networks.begin(), networks.end(),
+                                     [this](const WifiNetworkInfo& net) { return net.ssid == selectedSSID; });
+        if (network != networks.end()) {
+          network->hasSavedPassword = false;
+        }
+        state = WifiSelectionState::NETWORK_LIST;
+        updateRequired = true;
+        renderIfNeeded();
+        return;
+      }
+    }
+#endif
+
     if (mappedInput.wasPressed(MappedInputManager::Button::Up) ||
         mappedInput.wasPressed(MappedInputManager::Button::Left)) {
       if (forgetPromptSelection > 0) {
@@ -770,7 +825,8 @@ void WifiSelectionActivity::renderSavePrompt() const {
                          savePromptSelection == 0, "Yes", "", "Store credentials on SD card");
   PaperS3Ui::drawListRow(const_cast<GfxRenderer&>(renderer), PaperS3Ui::listRowRect(renderer, 1),
                          savePromptSelection == 1, "No", "", "Connect for this session only");
-  PaperS3Ui::drawFooterStatus(const_cast<GfxRenderer&>(renderer), cachedMacAddress.c_str());
+  PaperS3Ui::drawFooterStatus(const_cast<GfxRenderer&>(renderer),
+                              connectionError.empty() ? cachedMacAddress.c_str() : connectionError.c_str());
   PaperS3Ui::drawFooter(const_cast<GfxRenderer&>(renderer), "Use touch or buttons to choose");
   return;
 #endif

@@ -240,11 +240,8 @@ void HardwareTestActivity::renderPaperS3() {
   const auto layout = PaperS3Ui::fourCardLayout(renderer);
   const int smallLineStep = renderer.getLineHeight(SMALL_FONT_ID) + 4;
   const bool sdOk = SdMan.ready();
-  const auto touch = M5.Touch.isEnabled() ? M5.Touch.getDetail() : m5::touch_detail_t{};
-  const uint8_t touchCount = M5.Touch.isEnabled() ? M5.Touch.getCount() : 0;
   const int batteryPct = gpio.getBatteryPercentage();
   const int16_t batteryMv = M5.Power.getBatteryVoltage();
-  const int32_t batteryCurrentMa = M5.Power.getBatteryCurrent();
   const int16_t vbusMv = M5.Power.getVBUSVoltage();
   const bool usbCablePresent = PaperS3Ui::usbCablePresent(vbusMv);
   const bool charging = (M5.Power.isCharging() == m5::Power_Class::is_charging);
@@ -254,9 +251,9 @@ void HardwareTestActivity::renderPaperS3() {
   PaperS3Ui::drawPrimaryActionButton(renderer, "Speaker Test");
 
   PaperS3Ui::drawCard(renderer, layout.leftX, layout.topY, layout.cardWidth, layout.cardHeight, "Navigation");
-  PaperS3Ui::drawCard(renderer, layout.rightX, layout.topY, layout.cardWidth, layout.cardHeight, "Touch + Power");
+  PaperS3Ui::drawCard(renderer, layout.rightX, layout.topY, layout.cardWidth, layout.cardHeight, "Power + USB");
   PaperS3Ui::drawCard(renderer, layout.leftX, layout.bottomY, layout.cardWidth, layout.cardHeight, "Peripherals");
-  PaperS3Ui::drawCard(renderer, layout.rightX, layout.bottomY, layout.cardWidth, layout.cardHeight, "Sensors");
+  PaperS3Ui::drawCard(renderer, layout.rightX, layout.bottomY, layout.cardWidth, layout.cardHeight, "Status");
 
   char line[128];
   int x = PaperS3Ui::bodyX(layout.leftX);
@@ -282,23 +279,23 @@ void HardwareTestActivity::renderPaperS3() {
 
   x = PaperS3Ui::bodyX(layout.rightX);
   y = PaperS3Ui::bodyY(layout.topY);
-  snprintf(line, sizeof(line), "Touch points: %u", touchCount);
-  renderer.drawText(SMALL_FONT_ID, x, y, line);
-  y += smallLineStep;
-  snprintf(line, sizeof(line), "Touch state: %s", touch.isPressed() ? "Pressed" : "Idle");
-  renderer.drawText(SMALL_FONT_ID, x, y, line);
-  y += smallLineStep;
-  snprintf(line, sizeof(line), "Touch XY: (%d, %d)", touch.x, touch.y);
-  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  renderer.drawText(SMALL_FONT_ID, x, y, "Power telemetry");
   y += smallLineStep;
   snprintf(line, sizeof(line), "Battery: %d%%  %d mV", batteryPct, batteryMv);
   renderer.drawText(SMALL_FONT_ID, x, y, line);
   y += smallLineStep;
-  snprintf(line, sizeof(line), "Current: %ld mA", static_cast<long>(batteryCurrentMa));
-  renderer.drawText(SMALL_FONT_ID, x, y, line);
-  y += smallLineStep;
   snprintf(line, sizeof(line), "Charge/VBUS: %s / %d mV", PaperS3Ui::yesNo(charging), vbusMv);
   renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  snprintf(line, sizeof(line), "USB cable: %s", PaperS3Ui::presentAbsent(usbCablePresent));
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  snprintf(line, sizeof(line), "CDC session: %s", PaperS3Ui::openWaiting(static_cast<bool>(Serial)));
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  renderer.drawText(SMALL_FONT_ID, x, y, "Touch/IMU live probes trimmed");
+  y += smallLineStep;
+  renderer.drawText(SMALL_FONT_ID, x, y, "for PaperS3 stability.");
 
   x = PaperS3Ui::bodyX(layout.leftX);
   y = PaperS3Ui::bodyY(layout.bottomY);
@@ -311,17 +308,7 @@ void HardwareTestActivity::renderPaperS3() {
   }
   renderer.drawText(SMALL_FONT_ID, x, y, line);
   y += smallLineStep;
-  snprintf(line, sizeof(line), "USB cable: %s", PaperS3Ui::presentAbsent(usbCablePresent));
-  renderer.drawText(SMALL_FONT_ID, x, y, line);
-  y += smallLineStep;
-  snprintf(line, sizeof(line), "CDC session: %s", PaperS3Ui::openWaiting(static_cast<bool>(Serial)));
-  renderer.drawText(SMALL_FONT_ID, x, y, line);
-  y += smallLineStep;
-  snprintf(line, sizeof(line), "Speaker: %s", PaperS3Ui::readyOff(M5.Speaker.isEnabled()));
-  renderer.drawText(SMALL_FONT_ID, x, y, line);
-  y += smallLineStep;
-  snprintf(line, sizeof(line), "IMU: %s", PaperS3Ui::readyOff(M5.Imu.isEnabled()));
-  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  renderer.drawText(SMALL_FONT_ID, x, y, "Speaker test remains manual.");
   y += smallLineStep;
   renderer.drawText(SMALL_FONT_ID, x, y, sdOk ? "SD: OK" : "SD: ERROR");
 
@@ -336,18 +323,7 @@ void HardwareTestActivity::renderPaperS3() {
   }
   renderer.drawText(SMALL_FONT_ID, x, y, line);
   y += smallLineStep;
-
-  if (M5.Imu.isEnabled()) {
-    M5.Imu.update();
-    const m5::imu_data_t imu = M5.Imu.getImuData();
-    snprintf(line, sizeof(line), "Acc: %.2f %.2f %.2f", imu.accel.x, imu.accel.y, imu.accel.z);
-    renderer.drawText(SMALL_FONT_ID, x, y, line);
-    y += smallLineStep;
-    snprintf(line, sizeof(line), "Gyr: %.2f %.2f %.2f", imu.gyro.x, imu.gyro.y, imu.gyro.z);
-    renderer.drawText(SMALL_FONT_ID, x, y, line);
-  } else {
-    renderer.drawText(SMALL_FONT_ID, x, y, "IMU: Not enabled");
-  }
+  renderer.drawText(SMALL_FONT_ID, x, y, "Use Sensors for overview telemetry");
 
   if (!statusMessage.empty()) {
     PaperS3Ui::drawFooterStatus(renderer, statusMessage.c_str());

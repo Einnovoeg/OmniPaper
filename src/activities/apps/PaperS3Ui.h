@@ -10,13 +10,16 @@ namespace PaperS3Ui {
 constexpr int kOuterMargin = 24;
 constexpr int kCardGap = 16;
 constexpr int kTopY = 176;
-constexpr int kFooterOffset = 42;
-constexpr int kFooterStatusOffset = 82;
+constexpr int kFooterOffset = 54;
+constexpr int kFooterStatusOffset = 94;
 constexpr int kHeaderHeight = 50;
 constexpr int kCardInnerPadding = 16;
 constexpr int kListTopY = 222;
 constexpr int kListRowHeight = 76;
 constexpr int kListRowGap = 14;
+constexpr int kHeaderTitleY = 106;
+constexpr int kHeaderSubtitleY = 142;
+constexpr int kBackButtonY = 94;
 
 struct Rect {
   int x = 0;
@@ -76,7 +79,7 @@ inline bool rawTouchToPortrait(const uint16_t rawX, const uint16_t rawY, int& lo
 inline Rect backButtonRect(const GfxRenderer& renderer) {
   Rect rect;
   rect.x = renderer.getScreenWidth() - 152;
-  rect.y = 82;
+  rect.y = kBackButtonY;
   rect.width = 128;
   rect.height = 56;
   return rect;
@@ -110,11 +113,11 @@ inline Rect listRowRect(const GfxRenderer& renderer, const int index) {
 }
 
 inline void drawScreenHeader(GfxRenderer& renderer, const char* title, const char* subtitle = nullptr) {
-  // The PaperS3 header intentionally sits below the device overlay area so the
-  // title, subtitle, and Back button do not fight for the same top-right space.
-  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 92, title, true, EpdFontFamily::BOLD);
+  // The PaperS3 header intentionally sits below the device status strip and
+  // above the first interactive row so touch targets are visually separated.
+  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, kHeaderTitleY, title, true, EpdFontFamily::BOLD);
   if (subtitle != nullptr && subtitle[0] != '\0') {
-    renderer.drawCenteredText(NOTOSANS_14_FONT_ID, 126, subtitle);
+    renderer.drawCenteredText(NOTOSANS_14_FONT_ID, kHeaderSubtitleY, subtitle);
   }
 }
 

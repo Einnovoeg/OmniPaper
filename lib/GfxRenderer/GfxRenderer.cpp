@@ -127,8 +127,30 @@ void GfxRenderer::drawLine(int x1, int y1, int x2, int y2, const bool state) con
       drawPixel(x, y1, state);
     }
   } else {
-    // TODO: Implement
-    Serial.printf("[%lu] [GFX] Line drawing not supported\n", millis());
+    // Use Bresenham so launcher icons and PaperS3 affordances can draw simple
+    // diagonals without every caller needing a custom rasterizer.
+    const int dx = std::abs(x2 - x1);
+    const int sx = x1 < x2 ? 1 : -1;
+    const int dy = -std::abs(y2 - y1);
+    const int sy = y1 < y2 ? 1 : -1;
+    int err = dx + dy;
+
+    while (true) {
+      drawPixel(x1, y1, state);
+      if (x1 == x2 && y1 == y2) {
+        break;
+      }
+
+      const int twiceErr = err * 2;
+      if (twiceErr >= dy) {
+        err += dy;
+        x1 += sx;
+      }
+      if (twiceErr <= dx) {
+        err += dx;
+        y1 += sy;
+      }
+    }
   }
 }
 

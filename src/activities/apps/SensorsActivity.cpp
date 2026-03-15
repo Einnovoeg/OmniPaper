@@ -230,20 +230,12 @@ void SensorsActivity::updateData() {
 
 #ifdef PLATFORM_M5PAPER
   snapshot.batteryMv = M5.Power.getBatteryVoltage();
-  snapshot.batteryCurrentMa = M5.Power.getBatteryCurrent();
   snapshot.charging = (M5.Power.isCharging() == m5::Power_Class::is_charging);
   snapshot.rtcAvailable = M5.Rtc.isEnabled();
-  snapshot.speakerAvailable = M5.Speaker.isEnabled();
 #if defined(PLATFORM_M5PAPERS3)
   snapshot.vbusMv = M5.Power.getVBUSVoltage();
   snapshot.usbCablePresent = PaperS3Ui::usbCablePresent(snapshot.vbusMv);
   snapshot.usbSerialOpen = static_cast<bool>(Serial);
-  snapshot.touchCount = M5.Touch.isEnabled() ? M5.Touch.getCount() : 0;
-  if (snapshot.touchCount > 0) {
-    const auto detail = M5.Touch.getDetail();
-    snapshot.touchX = detail.x;
-    snapshot.touchY = detail.y;
-  }
 #endif
 #endif
 
@@ -270,6 +262,7 @@ void SensorsActivity::updateData() {
 #endif
 
 #ifdef PLATFORM_M5PAPER
+#if !defined(PLATFORM_M5PAPERS3)
     float ax = 0.0f;
     float ay = 0.0f;
     float az = 0.0f;
@@ -285,6 +278,7 @@ void SensorsActivity::updateData() {
       snapshot.gyroY = gy;
       snapshot.gyroZ = gz;
     }
+#endif
 #endif
   }
 
@@ -428,8 +422,8 @@ void SensorsActivity::renderPaperS3BuiltIn() {
 
   PaperS3Ui::drawCard(renderer, layout.leftX, layout.topY, layout.cardWidth, layout.cardHeight, "Power");
   PaperS3Ui::drawCard(renderer, layout.rightX, layout.topY, layout.cardWidth, layout.cardHeight, "Radio + System");
-  PaperS3Ui::drawCard(renderer, layout.leftX, layout.bottomY, layout.cardWidth, layout.cardHeight, "Peripherals");
-  PaperS3Ui::drawCard(renderer, layout.rightX, layout.bottomY, layout.cardWidth, layout.cardHeight, "Motion + Input");
+  PaperS3Ui::drawCard(renderer, layout.leftX, layout.bottomY, layout.cardWidth, layout.cardHeight, "Stability");
+  PaperS3Ui::drawCard(renderer, layout.rightX, layout.bottomY, layout.cardWidth, layout.cardHeight, "Diagnostics");
 
   char line[128];
   int x = PaperS3Ui::bodyX(layout.leftX);
@@ -438,9 +432,6 @@ void SensorsActivity::renderPaperS3BuiltIn() {
   renderer.drawText(UI_12_FONT_ID, x, y, line);
   y += renderer.getLineHeight(UI_12_FONT_ID) + 6;
   snprintf(line, sizeof(line), "Voltage: %d mV", snapshot.batteryMv);
-  renderer.drawText(SMALL_FONT_ID, x, y, line);
-  y += smallLineStep;
-  snprintf(line, sizeof(line), "Current: %ld mA", static_cast<long>(snapshot.batteryCurrentMa));
   renderer.drawText(SMALL_FONT_ID, x, y, line);
   y += smallLineStep;
   snprintf(line, sizeof(line), "Charging: %s", PaperS3Ui::yesNo(snapshot.charging));
@@ -467,41 +458,31 @@ void SensorsActivity::renderPaperS3BuiltIn() {
   y += smallLineStep;
   snprintf(line, sizeof(line), "Uptime: %s", uptimeLabel.c_str());
   renderer.drawText(SMALL_FONT_ID, x, y, line);
+  y += smallLineStep;
+  snprintf(line, sizeof(line), "RTC mirror: %s", PaperS3Ui::readyOff(snapshot.rtcAvailable));
+  renderer.drawText(SMALL_FONT_ID, x, y, line);
 
   x = PaperS3Ui::bodyX(layout.leftX);
   y = PaperS3Ui::bodyY(layout.bottomY);
-  renderer.drawText(SMALL_FONT_ID, x, y, "No built-in UV sensor");
+  renderer.drawText(SMALL_FONT_ID, x, y, "PaperS3 keeps this view stable");
   y += smallLineStep;
-  renderer.drawText(SMALL_FONT_ID, x, y, "No built-in env sensor");
+  renderer.drawText(SMALL_FONT_ID, x, y, "Battery, USB, WiFi and RTC are");
   y += smallLineStep;
-  renderer.drawText(SMALL_FONT_ID, x, y, "Use Optional Devices");
+  renderer.drawText(SMALL_FONT_ID, x, y, "shown here. Bus discovery stays in");
   y += smallLineStep;
-  snprintf(line, sizeof(line), "RTC: %s", PaperS3Ui::readyOff(snapshot.rtcAvailable));
-  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  renderer.drawText(SMALL_FONT_ID, x, y, "Optional Devices and Hardware Test.");
   y += smallLineStep;
-  snprintf(line, sizeof(line), "Speaker path: %s", PaperS3Ui::readyOff(snapshot.speakerAvailable));
-  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  renderer.drawText(SMALL_FONT_ID, x, y, "This avoids touch/IMU race resets.");
 
   x = PaperS3Ui::bodyX(layout.rightX);
   y = PaperS3Ui::bodyY(layout.bottomY);
-  snprintf(line, sizeof(line), "Touch points: %u", snapshot.touchCount);
-  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  renderer.drawText(SMALL_FONT_ID, x, y, "Touch diagnostics moved to");
   y += smallLineStep;
-  if (snapshot.touchCount > 0) {
-    snprintf(line, sizeof(line), "Touch XY: (%d, %d)", snapshot.touchX, snapshot.touchY);
-    renderer.drawText(SMALL_FONT_ID, x, y, line);
-    y += smallLineStep;
-  }
-
-  if (snapshot.hasImu) {
-    snprintf(line, sizeof(line), "Acc: %.2f %.2f %.2f", snapshot.accelX, snapshot.accelY, snapshot.accelZ);
-    renderer.drawText(SMALL_FONT_ID, x, y, line);
-    y += smallLineStep;
-    snprintf(line, sizeof(line), "Gyr: %.2f %.2f %.2f", snapshot.gyroX, snapshot.gyroY, snapshot.gyroZ);
-    renderer.drawText(SMALL_FONT_ID, x, y, line);
-  } else {
-    renderer.drawText(SMALL_FONT_ID, x, y, "IMU: Not available");
-  }
+  renderer.drawText(SMALL_FONT_ID, x, y, "Hardware Test for now.");
+  y += smallLineStep;
+  renderer.drawText(SMALL_FONT_ID, x, y, "Speaker/IMU probes are not");
+  y += smallLineStep;
+  renderer.drawText(SMALL_FONT_ID, x, y, "run in the overview screen.");
 }
 #endif
 

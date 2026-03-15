@@ -22,36 +22,24 @@ namespace {
 #if defined(PLATFORM_M5PAPERS3)
 struct PaperS3DashboardState {
   int16_t batteryMv = 0;
-  int32_t batteryCurrentMa = 0;
   int16_t vbusMv = 0;
   bool usbCablePresent = false;
   bool charging = false;
   bool rtcReady = false;
-  bool imuReady = false;
-  bool speakerReady = false;
   bool usbSerialOpen = false;
-  uint8_t touchCount = 0;
-  int touchX = 0;
-  int touchY = 0;
 };
 
 PaperS3DashboardState readPaperS3DashboardState() {
   PaperS3DashboardState state;
+  // Keep the launcher/dashboard path on the lowest-risk PMIC/RTC queries. The
+  // more aggressive touch/IMU/current probes are useful for diagnostics, but
+  // they are not worth destabilizing the first status screen the user sees.
   state.batteryMv = M5.Power.getBatteryVoltage();
-  state.batteryCurrentMa = M5.Power.getBatteryCurrent();
   state.vbusMv = M5.Power.getVBUSVoltage();
   state.usbCablePresent = PaperS3Ui::usbCablePresent(state.vbusMv);
   state.charging = (M5.Power.isCharging() == m5::Power_Class::is_charging);
   state.rtcReady = M5.Rtc.isEnabled();
-  state.imuReady = M5.Imu.isEnabled();
-  state.speakerReady = M5.Speaker.isEnabled();
   state.usbSerialOpen = static_cast<bool>(Serial);
-  state.touchCount = M5.Touch.isEnabled() ? M5.Touch.getCount() : 0;
-  if (state.touchCount > 0) {
-    const auto detail = M5.Touch.getDetail();
-    state.touchX = detail.x;
-    state.touchY = detail.y;
-  }
   return state;
 }
 
@@ -399,9 +387,6 @@ void DashboardActivity::renderPaperS3() {
   snprintf(line, sizeof(line), "Voltage: %d mV", state.batteryMv);
   renderer.drawText(SMALL_FONT_ID, x, y, line);
   y += smallLineStep;
-  snprintf(line, sizeof(line), "Current: %ld mA", static_cast<long>(state.batteryCurrentMa));
-  renderer.drawText(SMALL_FONT_ID, x, y, line);
-  y += smallLineStep;
   snprintf(line, sizeof(line), "Charging: %s", PaperS3Ui::yesNo(state.charging));
   renderer.drawText(SMALL_FONT_ID, x, y, line);
   y += smallLineStep;
@@ -454,19 +439,10 @@ void DashboardActivity::renderPaperS3() {
   snprintf(line, sizeof(line), "CDC session: %s", PaperS3Ui::openWaiting(state.usbSerialOpen));
   renderer.drawText(SMALL_FONT_ID, x, y, line);
   y += smallLineStep;
-  snprintf(line, sizeof(line), "Touch points: %u", state.touchCount);
+  snprintf(line, sizeof(line), "RTC mirror: %s", PaperS3Ui::readyOff(state.rtcReady));
   renderer.drawText(SMALL_FONT_ID, x, y, line);
   y += smallLineStep;
-  if (state.touchCount > 0) {
-    snprintf(line, sizeof(line), "Touch: (%d, %d)", state.touchX, state.touchY);
-    renderer.drawText(SMALL_FONT_ID, x, y, line);
-    y += smallLineStep;
-  }
-  snprintf(line, sizeof(line), "IMU: %s", PaperS3Ui::readyOff(state.imuReady));
-  renderer.drawText(SMALL_FONT_ID, x, y, line);
-  y += smallLineStep;
-  snprintf(line, sizeof(line), "Speaker: %s", PaperS3Ui::readyOff(state.speakerReady));
-  renderer.drawText(SMALL_FONT_ID, x, y, line);
+  renderer.drawText(SMALL_FONT_ID, x, y, "Touch/IMU live stats: Sensors");
 
   PaperS3Ui::drawFooter(renderer, "Tap Refresh to update weather");
   renderer.displayBuffer();

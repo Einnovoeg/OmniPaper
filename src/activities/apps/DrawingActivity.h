@@ -14,6 +14,11 @@ class DrawingActivity final : public Activity {
  private:
   std::function<void()> onExit;
   bool needsRender = true;
+  bool touchStrokeActive = false;
+  bool hasDirtyStroke = false;
+  int lastStrokeX = 0;
+  int lastStrokeY = 0;
+  unsigned long lastFlushMs = 0;
 
   void renderOverlay();
 };

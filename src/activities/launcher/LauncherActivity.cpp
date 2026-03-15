@@ -1,15 +1,21 @@
 #include "LauncherActivity.h"
 
 #include <GfxRenderer.h>
+#include <WiFi.h>
 
 #include <algorithm>
 #include <string>
 
 #include "../apps/PaperS3Ui.h"
+#include "util/TimeUtils.h"
 #include "CrossPointSettings.h"
 #include "MappedInputManager.h"
 #include "ScreenComponents.h"
 #include "fontIds.h"
+
+#ifdef PLATFORM_M5PAPER
+#include <M5Unified.h>
+#endif
 
 namespace {
 const LauncherActivity::MenuItem kAllItems[] = {
@@ -85,8 +91,8 @@ PaperS3Ui::Rect mainTileRect(const GfxRenderer& renderer, const int index, const
   const int rows = (itemCount + columns - 1) / columns;
   constexpr int outerMargin = 24;
   constexpr int tileGap = 16;
-  constexpr int topY = 190;
-  constexpr int bottomReserve = 124;
+  constexpr int topY = 198;
+  constexpr int bottomReserve = 132;
   const int tileWidth = (renderer.getScreenWidth() - outerMargin * 2 - tileGap) / columns;
   const int tileHeight = (renderer.getScreenHeight() - topY - bottomReserve - tileGap * (rows - 1)) / rows;
   const int row = index / columns;
@@ -113,6 +119,61 @@ bool readPaperS3Tap(const MappedInputManager& mappedInput, int& x, int& y) {
     return false;
   }
   return PaperS3Ui::rawTouchToPortrait(mappedInput.getTouchX(), mappedInput.getTouchY(), x, y);
+}
+
+std::string launcherDateTimeText() {
+  std::tm localTime{};
+  if (!TimeUtils::getLocalTimeWithOffset(localTime, SETTINGS.timezoneOffsetMinutes)) {
+    return "--:--";
+  }
+
+  char buffer[24];
+  snprintf(buffer, sizeof(buffer), "%02d:%02d  %02d/%02d", localTime.tm_hour, localTime.tm_min, localTime.tm_mon + 1,
+           localTime.tm_mday);
+  return std::string(buffer);
+}
+
+std::string launcherWifiText() {
+  if (WiFi.status() != WL_CONNECTED) {
+    return "WiFi off";
+  }
+
+  char buffer[24];
+  snprintf(buffer, sizeof(buffer), "WiFi %ddBm", WiFi.RSSI());
+  return std::string(buffer);
+}
+
+void drawPaperS3StatusStrip(GfxRenderer& renderer) {
+  constexpr int stripY = 26;
+  constexpr int stripHeight = 44;
+  constexpr int inset = 24;
+
+  renderer.drawRect(inset, stripY, renderer.getScreenWidth() - inset * 2, stripHeight);
+
+  char batteryText[24];
+#ifdef PLATFORM_M5PAPER
+  int batteryPct = M5.Power.getBatteryLevel();
+  if (batteryPct < 0) {
+    batteryPct = 0;
+  }
+  if (batteryPct > 100) {
+    batteryPct = 100;
+  }
+#else
+  constexpr int batteryPct = 0;
+#endif
+  snprintf(batteryText, sizeof(batteryText), "Battery %d%%", batteryPct);
+  renderer.drawText(UI_10_FONT_ID, inset + 14, stripY + 11, batteryText, true, EpdFontFamily::BOLD);
+
+  const std::string wifi = launcherWifiText();
+  const int wifiWidth = renderer.getTextWidth(UI_10_FONT_ID, wifi.c_str(), EpdFontFamily::BOLD);
+  renderer.drawText(UI_10_FONT_ID, (renderer.getScreenWidth() - wifiWidth) / 2, stripY + 11, wifi.c_str(), true,
+                    EpdFontFamily::BOLD);
+
+  const std::string dateTime = launcherDateTimeText();
+  const int dateTimeWidth = renderer.getTextWidth(UI_10_FONT_ID, dateTime.c_str(), EpdFontFamily::BOLD);
+  renderer.drawText(UI_10_FONT_ID, renderer.getScreenWidth() - inset - dateTimeWidth - 14, stripY + 11,
+                    dateTime.c_str(), true, EpdFontFamily::BOLD);
 }
 
 LauncherItemId submenuItemToIcon(const LauncherAction action) {
@@ -664,7 +725,7 @@ void LauncherActivity::render() {
 
 #if defined(PLATFORM_M5PAPERS3)
   if (menuState == MenuState::Main) {
-    ScreenComponents::drawDeviceInfoOverlay(renderer, SETTINGS.infoOverlayPosition);
+    drawPaperS3StatusStrip(renderer);
   }
 #else
   ScreenComponents::drawDeviceInfoOverlay(renderer, SETTINGS.infoOverlayPosition);
