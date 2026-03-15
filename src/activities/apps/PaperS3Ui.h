@@ -9,12 +9,12 @@ namespace PaperS3Ui {
 // Shared card chrome for the touch-first PaperS3 dashboards and diagnostics.
 constexpr int kOuterMargin = 24;
 constexpr int kCardGap = 16;
-constexpr int kTopY = 144;
+constexpr int kTopY = 176;
 constexpr int kFooterOffset = 42;
 constexpr int kFooterStatusOffset = 82;
-constexpr int kHeaderHeight = 46;
+constexpr int kHeaderHeight = 50;
 constexpr int kCardInnerPadding = 16;
-constexpr int kListTopY = 188;
+constexpr int kListTopY = 222;
 constexpr int kListRowHeight = 76;
 constexpr int kListRowGap = 14;
 
@@ -76,7 +76,7 @@ inline bool rawTouchToPortrait(const uint16_t rawX, const uint16_t rawY, int& lo
 inline Rect backButtonRect(const GfxRenderer& renderer) {
   Rect rect;
   rect.x = renderer.getScreenWidth() - 152;
-  rect.y = 58;
+  rect.y = 82;
   rect.width = 128;
   rect.height = 56;
   return rect;
@@ -112,9 +112,9 @@ inline Rect listRowRect(const GfxRenderer& renderer, const int index) {
 inline void drawScreenHeader(GfxRenderer& renderer, const char* title, const char* subtitle = nullptr) {
   // The PaperS3 header intentionally sits below the device overlay area so the
   // title, subtitle, and Back button do not fight for the same top-right space.
-  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 58, title, true, EpdFontFamily::BOLD);
+  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 92, title, true, EpdFontFamily::BOLD);
   if (subtitle != nullptr && subtitle[0] != '\0') {
-    renderer.drawCenteredText(NOTOSANS_14_FONT_ID, 96, subtitle);
+    renderer.drawCenteredText(NOTOSANS_14_FONT_ID, 126, subtitle);
   }
 }
 
@@ -194,7 +194,7 @@ inline void drawFooter(GfxRenderer& renderer, const char* text) {
 }
 
 inline void drawFooterStatus(GfxRenderer& renderer, const char* text, const bool invert = false) {
-  renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() - kFooterStatusOffset, text, !invert,
+  renderer.drawCenteredText(NOTOSANS_14_FONT_ID, renderer.getScreenHeight() - kFooterStatusOffset, text, !invert,
                             EpdFontFamily::BOLD);
 }
 

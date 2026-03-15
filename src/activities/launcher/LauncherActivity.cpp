@@ -85,8 +85,8 @@ PaperS3Ui::Rect mainTileRect(const GfxRenderer& renderer, const int index, const
   const int rows = (itemCount + columns - 1) / columns;
   constexpr int outerMargin = 24;
   constexpr int tileGap = 16;
-  constexpr int topY = 136;
-  constexpr int bottomReserve = 122;
+  constexpr int topY = 190;
+  constexpr int bottomReserve = 124;
   const int tileWidth = (renderer.getScreenWidth() - outerMargin * 2 - tileGap) / columns;
   const int tileHeight = (renderer.getScreenHeight() - topY - bottomReserve - tileGap * (rows - 1)) / rows;
   const int row = index / columns;
@@ -249,7 +249,7 @@ const char* submenuBadge(const LauncherAction action) {
 const char* mainTileDescription(const LauncherItemId id) {
   switch (id) {
     case LauncherItemId::Reader:
-      return "EPUB and text library";
+      return "Browse storage and open books";
     case LauncherItemId::Dashboard:
       return "Battery, USB, weather";
     case LauncherItemId::Sensors:
@@ -259,7 +259,7 @@ const char* mainTileDescription(const LauncherItemId id) {
     case LauncherItemId::Network:
       return "Wi-Fi, BLE and SSH";
     case LauncherItemId::Games:
-      return "Poodle, Sudoku, Mines";
+      return "Poodle, Sudoku, Mines, Tetris";
     case LauncherItemId::Images:
       return "Viewer and sketchpad";
     case LauncherItemId::Tools:
@@ -273,10 +273,9 @@ const char* mainTileDescription(const LauncherItemId id) {
   }
 }
 
-const char* mainTileMeta(const LauncherActivity::MenuItem& item) { return item.hasSubmenu ? "MENU" : "APP"; }
-
 const char* mainTileTapHint(const LauncherActivity::MenuItem& item) {
-  return item.hasSubmenu ? "Tap to browse" : "Tap to launch";
+  (void)item;
+  return "";
 }
 
 const char* submenuDescription(const LauncherAction action) {
@@ -631,9 +630,7 @@ void LauncherActivity::render() {
 
   if (menuState == MenuState::Main) {
     renderMainMenu();
-#if defined(PLATFORM_M5PAPERS3)
-    PaperS3Ui::drawFooter(renderer, "Tap a tile directly");
-#else
+#if !defined(PLATFORM_M5PAPERS3)
     renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 20, "Arrows: Move   Confirm: Select");
 #endif
   } else {
@@ -659,9 +656,7 @@ void LauncherActivity::render() {
       default:
         break;
     }
-#if defined(PLATFORM_M5PAPERS3)
-    PaperS3Ui::drawFooter(renderer, "Tap a row directly");
-#else
+#if !defined(PLATFORM_M5PAPERS3)
     renderer.drawCenteredText(SMALL_FONT_ID, renderer.getScreenHeight() - 20,
                               "Up/Down: Move   Confirm: Select   Back: Return");
 #endif
@@ -680,7 +675,7 @@ void LauncherActivity::render() {
 void LauncherActivity::renderMainMenu() {
 #if defined(PLATFORM_M5PAPERS3)
   {
-    PaperS3Ui::drawScreenHeader(renderer, "OmniPaper", "PaperS3 launcher");
+    PaperS3Ui::drawScreenHeader(renderer, "OmniPaper", "Reader, tools, and diagnostics");
 
     const int count = static_cast<int>(visibleItems.size());
     for (int i = 0; i < count; i++) {
@@ -699,22 +694,20 @@ void LauncherActivity::renderMainMenu() {
         renderer.drawRect(rect.x + 3, rect.y + 3, rect.width - 6, rect.height - 6, false);
       }
 
-      renderer.fillRect(iconBoxX, iconBoxY, iconBoxSize, iconBoxSize, selected ? false : true);
-      renderer.drawRect(iconBoxX, iconBoxY, iconBoxSize, iconBoxSize, selected ? false : true);
+      renderer.fillRect(iconBoxX, iconBoxY, iconBoxSize, iconBoxSize, false);
+      renderer.drawRect(iconBoxX, iconBoxY, iconBoxSize, iconBoxSize, true);
       drawIconSymbol(iconBoxX + iconBoxSize / 2, iconBoxY + iconBoxSize / 2, visibleItems[i].id, selected);
-
-      const char* meta = mainTileMeta(visibleItems[i]);
-      const int metaWidth = renderer.getTextWidth(UI_10_FONT_ID, meta, EpdFontFamily::BOLD) + 18;
-      const int metaX = rect.x + rect.width - metaWidth - 16;
-      renderer.drawRect(metaX, rect.y + 16, metaWidth, 24, !selected);
-      renderer.drawText(UI_10_FONT_ID, metaX + 9, rect.y + 21, meta, !selected, EpdFontFamily::BOLD);
 
       renderer.drawText(NOTOSANS_14_FONT_ID, labelX, labelY, visibleItems[i].label, !selected, EpdFontFamily::BOLD);
       const int subtitleWidth = rect.x + rect.width - labelX - 18;
       const std::string subtitle =
           renderer.truncatedText(UI_12_FONT_ID, mainTileDescription(visibleItems[i].id), subtitleWidth);
       renderer.drawText(UI_12_FONT_ID, labelX, labelY + 30, subtitle.c_str(), !selected);
-      renderer.drawText(UI_10_FONT_ID, labelX, rect.y + rect.height - 28, mainTileTapHint(visibleItems[i]), !selected);
+
+      const char* hint = mainTileTapHint(visibleItems[i]);
+      if (hint[0] != '\0') {
+        renderer.drawText(UI_10_FONT_ID, labelX, rect.y + rect.height - 28, hint, !selected);
+      }
 
       if (visibleItems[i].hasSubmenu) {
         renderer.drawLine(rect.x + rect.width - 34, rect.y + rect.height - 30, rect.x + rect.width - 24,
@@ -765,7 +758,7 @@ void LauncherActivity::renderMainMenu() {
 
 void LauncherActivity::renderSubmenu(const char* title, const std::vector<SubmenuItem>& items) {
 #if defined(PLATFORM_M5PAPERS3)
-  PaperS3Ui::drawScreenHeader(renderer, title, "Tap an option to launch it");
+  PaperS3Ui::drawScreenHeader(renderer, title);
   PaperS3Ui::drawBackButton(renderer);
 
   for (size_t i = 0; i < items.size(); i++) {
@@ -782,8 +775,8 @@ void LauncherActivity::renderSubmenu(const char* title, const std::vector<Submen
       renderer.fillRect(rect.x + 1, rect.y + 1, rect.width - 2, rect.height - 2, true);
     }
 
-    renderer.fillRect(iconBoxX, iconBoxY, iconBoxSize, iconBoxSize, selected ? false : true);
-    renderer.drawRect(iconBoxX, iconBoxY, iconBoxSize, iconBoxSize, selected ? false : true);
+    renderer.fillRect(iconBoxX, iconBoxY, iconBoxSize, iconBoxSize, false);
+    renderer.drawRect(iconBoxX, iconBoxY, iconBoxSize, iconBoxSize, true);
 
     drawSubmenuActionIcon(iconBoxX + iconBoxSize / 2, iconBoxY + iconBoxSize / 2, items[i].action, selected);
 
@@ -857,7 +850,8 @@ void LauncherActivity::drawCircle(int cx, int cy, int radius, bool fill, bool co
 }
 
 void LauncherActivity::drawIconSymbol(int cx, int cy, LauncherItemId id, bool selected) const {
-  bool black = !selected;  // invert when selected
+  (void)selected;
+  const bool black = true;
   switch (id) {
     case LauncherItemId::Reader:
       renderer.drawRect(cx - 16, cy - 10, 32, 20, black);
@@ -913,7 +907,8 @@ void LauncherActivity::drawIconSymbol(int cx, int cy, LauncherItemId id, bool se
 }
 
 void LauncherActivity::drawSubmenuActionIcon(int cx, int cy, LauncherAction action, bool selected) const {
-  const bool black = !selected;
+  (void)selected;
+  const bool black = true;
   switch (action) {
     case LauncherAction::SensorsBuiltIn:
       renderer.drawRect(cx - 11, cy - 11, 22, 22, black);

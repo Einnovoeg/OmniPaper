@@ -9,18 +9,22 @@ void EpubReaderMenuActivity::onEnter() {
   renderingMutex = xSemaphoreCreateMutex();
   updateRequired = true;
 
+#if !defined(PLATFORM_M5PAPERS3)
   xTaskCreate(&EpubReaderMenuActivity::taskTrampoline, "EpubMenuTask", 4096, this, 1, &displayTaskHandle);
+#endif
 }
 
 void EpubReaderMenuActivity::onExit() {
   ActivityWithSubactivity::onExit();
-  xSemaphoreTake(renderingMutex, portMAX_DELAY);
-  if (displayTaskHandle) {
-    vTaskDelete(displayTaskHandle);
-    displayTaskHandle = nullptr;
+  if (renderingMutex) {
+    xSemaphoreTake(renderingMutex, portMAX_DELAY);
+    if (displayTaskHandle) {
+      vTaskDelete(displayTaskHandle);
+      displayTaskHandle = nullptr;
+    }
+    vSemaphoreDelete(renderingMutex);
+    renderingMutex = nullptr;
   }
-  vSemaphoreDelete(renderingMutex);
-  renderingMutex = nullptr;
 }
 
 void EpubReaderMenuActivity::taskTrampoline(void* param) {
@@ -69,6 +73,15 @@ void EpubReaderMenuActivity::loop() {
     onBack();
     return;  // Also return here just in case
   }
+
+#if defined(PLATFORM_M5PAPERS3)
+  if (updateRequired && renderingMutex) {
+    updateRequired = false;
+    xSemaphoreTake(renderingMutex, portMAX_DELAY);
+    renderScreen();
+    xSemaphoreGive(renderingMutex);
+  }
+#endif
 }
 
 void EpubReaderMenuActivity::renderScreen() {

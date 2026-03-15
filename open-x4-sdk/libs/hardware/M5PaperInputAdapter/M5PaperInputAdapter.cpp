@@ -193,6 +193,20 @@ void M5PaperInputAdapter::updateTouchState() {
     touchX = detail.x;
     touchY = detail.y;
 
+#if defined(PLATFORM_M5PAPERS3)
+    // PaperS3 feels much more responsive if touch-first screens react on the
+    // initial press event instead of waiting for a quick release. The release
+    // path is still tracked for drag/travel bookkeeping, but direct-touch UI
+    // affordances should fire as soon as the finger lands.
+    if (detail.wasPressed() || !lastTouchActive) {
+      touchTapDetected = true;
+      const uint8_t touchButton = getButtonFromTouch(touchX, touchY);
+      if (touchButton < 7) {
+        pendingTouchEventMask |= static_cast<uint8_t>(1 << touchButton);
+      }
+    }
+#endif
+
     if (!lastTouchActive) {
       touchStartTime = millis();
       touchStartX = touchX;
@@ -206,6 +220,13 @@ void M5PaperInputAdapter::updateTouchState() {
   if (!lastTouchActive) {
     return;
   }
+
+#if defined(PLATFORM_M5PAPERS3)
+  // PaperS3 one-shot tap events are generated on touch begin above so direct
+  // touch feels immediate. Release still updates active state and travel data,
+  // but does not emit a second tap event here.
+  return;
+#endif
 
   const unsigned long touchDuration = millis() - touchStartTime;
   const int dx = static_cast<int>(lastTouchX) - static_cast<int>(touchStartX);
@@ -247,7 +268,7 @@ uint8_t M5PaperInputAdapter::getButtonFromTouch(const uint16_t x, const uint16_t
 
   constexpr LogicalArea logicalAreas[] = {
       {20, 848, 156, 72, BTN_LEFT}, {182, 848, 176, 72, BTN_CONFIRM}, {364, 848, 156, 72, BTN_RIGHT},
-      {20, 238, 126, 66, BTN_UP},   {394, 238, 126, 66, BTN_DOWN},    {396, 38, 120, 52, BTN_BACK},
+      {20, 238, 126, 66, BTN_UP},   {394, 238, 126, 66, BTN_DOWN},    {388, 82, 128, 56, BTN_BACK},
   };
 
   for (const auto& area : logicalAreas) {

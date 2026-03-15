@@ -74,25 +74,29 @@ void EpubReaderChapterSelectionActivity::onEnter() {
 
   // Trigger first update
   updateRequired = true;
+#if !defined(PLATFORM_M5PAPERS3)
   xTaskCreate(&EpubReaderChapterSelectionActivity::taskTrampoline, "EpubReaderChapterSelectionActivityTask",
               4096,               // Stack size
               this,               // Parameters
               1,                  // Priority
               &displayTaskHandle  // Task handle
   );
+#endif
 }
 
 void EpubReaderChapterSelectionActivity::onExit() {
   ActivityWithSubactivity::onExit();
 
   // Wait until not rendering to delete task to avoid killing mid-instruction to EPD
-  xSemaphoreTake(renderingMutex, portMAX_DELAY);
-  if (displayTaskHandle) {
-    vTaskDelete(displayTaskHandle);
-    displayTaskHandle = nullptr;
+  if (renderingMutex) {
+    xSemaphoreTake(renderingMutex, portMAX_DELAY);
+    if (displayTaskHandle) {
+      vTaskDelete(displayTaskHandle);
+      displayTaskHandle = nullptr;
+    }
+    vSemaphoreDelete(renderingMutex);
+    renderingMutex = nullptr;
   }
-  vSemaphoreDelete(renderingMutex);
-  renderingMutex = nullptr;
 }
 
 void EpubReaderChapterSelectionActivity::launchSyncActivity() {
@@ -160,6 +164,15 @@ void EpubReaderChapterSelectionActivity::loop() {
     }
     updateRequired = true;
   }
+
+#if defined(PLATFORM_M5PAPERS3)
+  if (updateRequired && !subActivity && renderingMutex) {
+    updateRequired = false;
+    xSemaphoreTake(renderingMutex, portMAX_DELAY);
+    renderScreen();
+    xSemaphoreGive(renderingMutex);
+  }
+#endif
 }
 
 void EpubReaderChapterSelectionActivity::displayTaskLoop() {

@@ -249,7 +249,7 @@ void HardwareTestActivity::renderPaperS3() {
   const bool usbCablePresent = PaperS3Ui::usbCablePresent(vbusMv);
   const bool charging = (M5.Power.isCharging() == m5::Power_Class::is_charging);
 
-  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 22, "Hardware Test", true, EpdFontFamily::BOLD);
+  PaperS3Ui::drawScreenHeader(renderer, "Hardware Test", "PaperS3 touch and sensor diagnostics");
   PaperS3Ui::drawBackButton(renderer);
   PaperS3Ui::drawPrimaryActionButton(renderer, "Speaker Test");
 

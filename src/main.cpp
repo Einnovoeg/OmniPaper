@@ -469,7 +469,15 @@ void handleLauncherAction(LauncherAction action) {
         pendingReaderPath.clear();
         onGoToReader(path, MyLibraryActivity::Tab::Recent);
       } else {
+#if defined(PLATFORM_M5PAPERS3)
+        exitActivity();
+        enterNewActivity(
+            new FileManagerActivity(renderer, mappedInputManager, onGoLauncher, [](const std::string& path) {
+              onGoToReader(path, MyLibraryActivity::Tab::Recent);
+            }));
+#else
         onGoToMyLibrary();
+#endif
       }
       break;
     case LauncherAction::Dashboard:

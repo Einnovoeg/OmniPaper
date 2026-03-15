@@ -87,11 +87,13 @@ void WifiSelectionActivity::startWifiScan() {
   // much better if we fully reset the scan state instead of reusing whatever a
   // previous AP/STA activity left behind.
   WiFi.persistent(false);
+  WiFi.mode(WIFI_OFF);
+  delay(80);
   WiFi.mode(WIFI_STA);
   WiFi.setSleep(false);
-  WiFi.disconnect(false, true);
+  WiFi.disconnect(false, false);
   WiFi.scanDelete();
-  delay(150);
+  delay(180);
 
   // PaperS3 is more reliable if scan orchestration stays on the foreground
   // loop. The scanning frame is rendered first so the device still shows

@@ -16,7 +16,7 @@
 
 namespace {
 int overlayFontId(const GfxRenderer& renderer) {
-  return renderer.getScreenWidth() >= 520 ? UI_12_FONT_ID : UI_10_FONT_ID;
+  return renderer.getScreenWidth() >= 520 ? NOTOSANS_14_FONT_ID : UI_10_FONT_ID;
 }
 
 std::string buildDateTimeText() {
@@ -95,7 +95,7 @@ void ScreenComponents::drawDeviceInfoOverlay(const GfxRenderer& renderer, const 
 
   const int screenWidth = renderer.getScreenWidth();
   const int lineHeight = renderer.getLineHeight(fontId);
-  const int topY = renderer.getScreenWidth() >= 520 ? 10 : 6;
+  const int topY = renderer.getScreenWidth() >= 520 ? 36 : 6;
   const int bottomY = renderer.getScreenHeight() - lineHeight - 8;
 
   const bool isBottom = overlayPosition == CrossPointSettings::OVERLAY_BOTTOM ||
@@ -111,8 +111,8 @@ void ScreenComponents::drawDeviceInfoOverlay(const GfxRenderer& renderer, const 
     // Back button. Keep the Wi-Fi label on the left block so the overlay stays
     // readable instead of colliding with the touch chrome.
     if (!isBottom && renderer.getScreenWidth() >= 520) {
-      const int batteryBlockWidth = showBatteryPercentage ? 58 : 24;
-      renderer.drawText(fontId, batteryBlockWidth + 10, y, wifiText.c_str());
+      const int batteryBlockWidth = showBatteryPercentage ? 72 : 28;
+      renderer.drawText(fontId, batteryBlockWidth + 14, y, wifiText.c_str());
       renderer.drawCenteredText(fontId, y, dateTimeText.c_str());
       return;
     }

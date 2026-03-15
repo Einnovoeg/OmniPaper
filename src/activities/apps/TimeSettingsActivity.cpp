@@ -28,16 +28,8 @@ std::string formatOffset(const int16_t minutes) {
 
 #if defined(PLATFORM_M5PAPERS3)
 PaperS3Ui::Rect timeRowRect(const GfxRenderer& renderer, const int index) {
-  constexpr int outerMargin = 24;
-  constexpr int topY = 150;
-  constexpr int rowHeight = 68;
-  constexpr int rowGap = 14;
-  PaperS3Ui::Rect rect;
-  rect.x = outerMargin;
-  rect.y = topY + index * (rowHeight + rowGap);
-  rect.width = renderer.getScreenWidth() - outerMargin * 2;
-  rect.height = rowHeight;
-  return rect;
+  return {PaperS3Ui::kOuterMargin, 250 + index * (PaperS3Ui::kListRowHeight + PaperS3Ui::kListRowGap),
+          renderer.getScreenWidth() - PaperS3Ui::kOuterMargin * 2, PaperS3Ui::kListRowHeight};
 }
 #endif
 }  // namespace
@@ -183,19 +175,21 @@ void TimeSettingsActivity::performSync() {
 void TimeSettingsActivity::render() {
   renderer.clearScreen();
   PaperS3Ui::applyDefaultOrientation(renderer);
-  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 22, "Time Settings", true, EpdFontFamily::BOLD);
 
 #if defined(PLATFORM_M5PAPERS3)
+  PaperS3Ui::drawScreenHeader(renderer, "Time Settings", "Clock, NTP, and timezone");
   PaperS3Ui::drawBackButton(renderer);
+#else
+  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 22, "Time Settings", true, EpdFontFamily::BOLD);
 #endif
 
   std::tm localTime{};
   if (TimeUtils::getLocalTimeWithOffset(localTime, SETTINGS.timezoneOffsetMinutes)) {
     char timeLine[32];
     snprintf(timeLine, sizeof(timeLine), "%02d:%02d:%02d", localTime.tm_hour, localTime.tm_min, localTime.tm_sec);
-    renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 78, timeLine);
+    renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 166, timeLine);
   } else {
-    renderer.drawCenteredText(UI_12_FONT_ID, 82, "Time not synced");
+    renderer.drawCenteredText(UI_12_FONT_ID, 170, "Time not synced");
   }
 
   const char* items[kMaxItems] = {"Sync NTP", "Timezone", "Back"};

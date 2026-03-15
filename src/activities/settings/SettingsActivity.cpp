@@ -78,16 +78,9 @@ const SettingInfo systemSettings[systemSettingsCount] = {
 
 #if defined(PLATFORM_M5PAPERS3)
 PaperS3Ui::Rect categoryRowRect(const GfxRenderer& renderer, const int index) {
-  constexpr int outerMargin = 24;
-  constexpr int topY = 120;
-  constexpr int rowHeight = 68;
-  constexpr int rowGap = 12;
-  PaperS3Ui::Rect rect;
-  rect.x = outerMargin;
-  rect.y = topY + index * (rowHeight + rowGap);
-  rect.width = renderer.getScreenWidth() - outerMargin * 2;
-  rect.height = rowHeight;
-  return rect;
+  return {PaperS3Ui::kOuterMargin,
+          PaperS3Ui::kListTopY + index * (PaperS3Ui::kListRowHeight + PaperS3Ui::kListRowGap),
+          renderer.getScreenWidth() - PaperS3Ui::kOuterMargin * 2, PaperS3Ui::kListRowHeight};
 }
 #endif
 }  // namespace
@@ -107,25 +100,29 @@ void SettingsActivity::onEnter() {
   // Trigger first update
   updateRequired = true;
 
+#if !defined(PLATFORM_M5PAPERS3)
   xTaskCreate(&SettingsActivity::taskTrampoline, "SettingsActivityTask",
               4096,               // Stack size
               this,               // Parameters
               1,                  // Priority
               &displayTaskHandle  // Task handle
   );
+#endif
 }
 
 void SettingsActivity::onExit() {
   ActivityWithSubactivity::onExit();
 
   // Wait until not rendering to delete task to avoid killing mid-instruction to EPD
-  xSemaphoreTake(renderingMutex, portMAX_DELAY);
-  if (displayTaskHandle) {
-    vTaskDelete(displayTaskHandle);
-    displayTaskHandle = nullptr;
+  if (renderingMutex) {
+    xSemaphoreTake(renderingMutex, portMAX_DELAY);
+    if (displayTaskHandle) {
+      vTaskDelete(displayTaskHandle);
+      displayTaskHandle = nullptr;
+    }
+    vSemaphoreDelete(renderingMutex);
+    renderingMutex = nullptr;
   }
-  vSemaphoreDelete(renderingMutex);
-  renderingMutex = nullptr;
 }
 
 void SettingsActivity::loop() {
@@ -181,6 +178,15 @@ void SettingsActivity::loop() {
     selectedCategoryIndex = (selectedCategoryIndex < categoryCount - 1) ? (selectedCategoryIndex + 1) : 0;
     updateRequired = true;
   }
+
+#if defined(PLATFORM_M5PAPERS3)
+  if (updateRequired && !subActivity && renderingMutex) {
+    updateRequired = false;
+    xSemaphoreTake(renderingMutex, portMAX_DELAY);
+    render();
+    xSemaphoreGive(renderingMutex);
+  }
+#endif
 }
 
 void SettingsActivity::enterCategory(int categoryIndex) {
@@ -242,10 +248,8 @@ void SettingsActivity::render() const {
   const auto pageWidth = renderer.getScreenWidth();
   const auto pageHeight = renderer.getScreenHeight();
 
-  // Draw header
-  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 22, "Settings", true, EpdFontFamily::BOLD);
-
 #if defined(PLATFORM_M5PAPERS3)
+  PaperS3Ui::drawScreenHeader(renderer, "Settings", "Display, reader, controls, and system");
   PaperS3Ui::drawBackButton(renderer);
 
   for (int i = 0; i < categoryCount; i++) {
@@ -265,6 +269,9 @@ void SettingsActivity::render() const {
   renderer.displayBuffer();
   return;
 #endif
+
+  // Draw header
+  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 22, "Settings", true, EpdFontFamily::BOLD);
 
   // Draw selection
   renderer.fillRect(0, 60 + selectedCategoryIndex * 30 - 2, pageWidth - 1, 30);

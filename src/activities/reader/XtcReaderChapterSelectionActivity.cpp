@@ -54,24 +54,28 @@ void XtcReaderChapterSelectionActivity::onEnter() {
   selectorIndex = findChapterIndexForPage(currentPage);
 
   updateRequired = true;
+#if !defined(PLATFORM_M5PAPERS3)
   xTaskCreate(&XtcReaderChapterSelectionActivity::taskTrampoline, "XtcReaderChapterSelectionActivityTask",
               4096,               // Stack size
               this,               // Parameters
               1,                  // Priority
               &displayTaskHandle  // Task handle
   );
+#endif
 }
 
 void XtcReaderChapterSelectionActivity::onExit() {
   Activity::onExit();
 
-  xSemaphoreTake(renderingMutex, portMAX_DELAY);
-  if (displayTaskHandle) {
-    vTaskDelete(displayTaskHandle);
-    displayTaskHandle = nullptr;
+  if (renderingMutex) {
+    xSemaphoreTake(renderingMutex, portMAX_DELAY);
+    if (displayTaskHandle) {
+      vTaskDelete(displayTaskHandle);
+      displayTaskHandle = nullptr;
+    }
+    vSemaphoreDelete(renderingMutex);
+    renderingMutex = nullptr;
   }
-  vSemaphoreDelete(renderingMutex);
-  renderingMutex = nullptr;
 }
 
 void XtcReaderChapterSelectionActivity::loop() {
@@ -113,6 +117,15 @@ void XtcReaderChapterSelectionActivity::loop() {
     }
     updateRequired = true;
   }
+
+#if defined(PLATFORM_M5PAPERS3)
+  if (updateRequired && renderingMutex) {
+    updateRequired = false;
+    xSemaphoreTake(renderingMutex, portMAX_DELAY);
+    renderScreen();
+    xSemaphoreGive(renderingMutex);
+  }
+#endif
 }
 
 void XtcReaderChapterSelectionActivity::displayTaskLoop() {

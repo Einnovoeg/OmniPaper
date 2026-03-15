@@ -4,6 +4,25 @@ All notable changes to OmniPaper are documented in this file.
 
 The release tag must match the version in `platformio.ini` exactly, without a leading `v`, so OTA version checks and release asset names stay aligned.
 
+## [0.18.3] - 2026-03-14
+
+### Changed
+
+- Shifted the PaperS3 portrait chrome further down the page and enlarged the overlay font so the top status bar, back chip, and screen titles stay inside the visible safe area instead of colliding at the top edge.
+- Cleaned up the PaperS3 launcher copy by removing redundant tap-instruction text and turning the Reader tile into a direct entry point to the touch-first file browser on PaperS3.
+- Removed the extra `APP` / `MENU` pills from PaperS3 launcher tiles so the front page is less cluttered and icon/title alignment has more room.
+- Reinitialized the Wi-Fi radio more conservatively before PaperS3 scans by cycling through `WIFI_OFF` and back to `WIFI_STA`, which reduces empty scan results after other network modes have been used.
+- Moved the PaperS3 Settings, Time Settings, and Hardware Test screens onto the shared header safe area instead of bespoke top-of-screen title coordinates.
+
+### Fixed
+
+- Made PaperS3 touch-first screens react on touch begin instead of waiting for a short release gesture, which substantially improves responsiveness on the slow-refresh e-paper panel and makes launcher/game taps feel immediate.
+- Fixed the PaperS3 launcher icon rendering bug that was drawing icons in the same color as their own icon boxes, which is why the icons looked missing on-device.
+- Updated the PaperS3 virtual Back touch zone to match the moved header chip so touch-generated navigation lines up with the visible UI again.
+- Removed the remaining PaperS3 background render tasks from the EPUB/XTC reader submenus and chapter selectors, extending the same race-condition fix already applied to the main reader screens.
+- Removed the separate PaperS3 render task from the settings category browser and top-level settings screen, closing another task-vs-touch race that could destabilize touch navigation on-device.
+- Increased PaperS3 footer status typography and lowered the compact overlay line again so the top and bottom status text remain readable on the higher-resolution panel.
+
 ## [0.18.2] - 2026-03-14
 
 ### Changed
