@@ -9,12 +9,12 @@ namespace PaperS3Ui {
 // Shared card chrome for the touch-first PaperS3 dashboards and diagnostics.
 constexpr int kOuterMargin = 24;
 constexpr int kCardGap = 16;
-constexpr int kTopY = 116;
+constexpr int kTopY = 144;
 constexpr int kFooterOffset = 42;
 constexpr int kFooterStatusOffset = 82;
-constexpr int kHeaderHeight = 42;
+constexpr int kHeaderHeight = 46;
 constexpr int kCardInnerPadding = 16;
-constexpr int kListTopY = 158;
+constexpr int kListTopY = 188;
 constexpr int kListRowHeight = 76;
 constexpr int kListRowGap = 14;
 
@@ -75,10 +75,10 @@ inline bool rawTouchToPortrait(const uint16_t rawX, const uint16_t rawY, int& lo
 
 inline Rect backButtonRect(const GfxRenderer& renderer) {
   Rect rect;
-  rect.x = renderer.getScreenWidth() - 156;
-  rect.y = 44;
-  rect.width = 132;
-  rect.height = 58;
+  rect.x = renderer.getScreenWidth() - 152;
+  rect.y = 58;
+  rect.width = 128;
+  rect.height = 56;
   return rect;
 }
 
@@ -110,9 +110,11 @@ inline Rect listRowRect(const GfxRenderer& renderer, const int index) {
 }
 
 inline void drawScreenHeader(GfxRenderer& renderer, const char* title, const char* subtitle = nullptr) {
-  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 44, title, true, EpdFontFamily::BOLD);
+  // The PaperS3 header intentionally sits below the device overlay area so the
+  // title, subtitle, and Back button do not fight for the same top-right space.
+  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 58, title, true, EpdFontFamily::BOLD);
   if (subtitle != nullptr && subtitle[0] != '\0') {
-    renderer.drawCenteredText(NOTOSANS_14_FONT_ID, 84, subtitle);
+    renderer.drawCenteredText(NOTOSANS_14_FONT_ID, 96, subtitle);
   }
 }
 

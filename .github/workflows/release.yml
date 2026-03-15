@@ -44,56 +44,38 @@ jobs:
         run: |
           pio run -e m5papers3_release
 
-      - name: Assemble release bundle
+      - name: Assemble merged release image
         run: |
           rm -rf dist
           mkdir -p dist
 
-          cp .pio/build/m5papers3_release/firmware.bin dist/omnipaper-${{ github.ref_name }}-m5papers3-firmware.bin
-          cp .pio/build/m5papers3_release/bootloader.bin dist/omnipaper-${{ github.ref_name }}-m5papers3-bootloader.bin
-          cp .pio/build/m5papers3_release/partitions.bin dist/omnipaper-${{ github.ref_name }}-m5papers3-partitions.bin
-          cp .pio/build/m5papers3_release/firmware.elf dist/omnipaper-${{ github.ref_name }}-m5papers3-firmware.elf
-          cp .pio/build/m5papers3_release/firmware.map dist/omnipaper-${{ github.ref_name }}-m5papers3-firmware.map
-
-          cp README.md dist/README.md
-          cp LICENSE dist/LICENSE
-          cp CHANGELOG.md dist/CHANGELOG.md
-          cp build/release-notes.md dist/RELEASE_NOTES.md
-          cp DEPENDENCIES.md dist/DEPENDENCIES.md
-          cp CODE_PROVENANCE.md dist/CODE_PROVENANCE.md
-          cp CONTRIBUTORS.md dist/CONTRIBUTORS.md
-          cp THIRD_PARTY_NOTICES.md dist/THIRD_PARTY_NOTICES.md
-          cp LICENSE_COMPLIANCE.md dist/LICENSE_COMPLIANCE.md
-          cp docs/wiki/Flashing-Guide.md dist/FLASHING.md
-          cp build/omnipaper-${{ github.ref_name }}.spdx.json dist/
-
-          printf "release_tag=%s\ncreated_utc=%s\nfirmware_targets=%s\n" \
-            "${{ github.ref_name }}" \
-            "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
-            "m5papers3_release" > dist/BUILD_INFO.txt
-
-          printf "commit=%s\nota_repository=%s\n" \
-            "${{ github.sha }}" \
-            "${{ github.repository }}" >> dist/BUILD_INFO.txt
-
-          (
-            cd dist
-            sha256sum * > SHA256SUMS.txt
-          )
+          BOOT_APP0="$HOME/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin"
+          python3 "$HOME/.platformio/packages/tool-esptoolpy/esptool.py" --chip esp32s3 merge_bin \
+            --flash_mode dio \
+            --flash_freq 80m \
+            --flash_size 16MB \
+            --output "dist/omnipaper-${{ github.ref_name }}-m5papers3.bin" \
+            0x0 .pio/build/m5papers3_release/bootloader.bin \
+            0x8000 .pio/build/m5papers3_release/partitions.bin \
+            0xE000 "$BOOT_APP0" \
+            0x10000 .pio/build/m5papers3_release/firmware.bin
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: OmniPaper-${{ github.ref_name }}
-          path: dist/
+          path: dist/*.bin
 
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
-            gh release upload "${{ github.ref_name }}" dist/* --clobber
-            gh release edit "${{ github.ref_name }}" --title "OmniPaper ${{ github.ref_name }}" --notes-file dist/RELEASE_NOTES.md
+            gh release view "${{ github.ref_name }}" --json assets --jq '.assets[].name' | while read -r asset; do
+              gh release delete-asset "${{ github.ref_name }}" "$asset" --yes
+            done
+            gh release upload "${{ github.ref_name }}" dist/*.bin --clobber
+            gh release edit "${{ github.ref_name }}" --title "OmniPaper ${{ github.ref_name }}" --notes-file build/release-notes.md
           else
-            gh release create "${{ github.ref_name }}" dist/* --title "OmniPaper ${{ github.ref_name }}" --notes-file dist/RELEASE_NOTES.md
+            gh release create "${{ github.ref_name }}" dist/*.bin --title "OmniPaper ${{ github.ref_name }}" --notes-file build/release-notes.md
           fi

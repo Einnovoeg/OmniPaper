@@ -119,10 +119,17 @@ void DashboardActivity::updateWeather() {
   fetching = true;
   needsRender = true;
 
+  // Paint a busy state before the synchronous network requests start so the
+  // PaperS3 doesn't look frozen while TLS and JSON parsing are active.
+  render();
+  needsRender = false;
+  delay(1);
+
   if (WiFi.status() != WL_CONNECTED) {
     snapshot.valid = false;
     snapshot.location = "WiFi disconnected";
     fetching = false;
+    needsRender = true;
     return;
   }
 
@@ -131,6 +138,7 @@ void DashboardActivity::updateWeather() {
     snapshot.valid = false;
     snapshot.location = "Location lookup failed";
     fetching = false;
+    needsRender = true;
     return;
   }
 
@@ -138,12 +146,14 @@ void DashboardActivity::updateWeather() {
     snapshot.valid = false;
     snapshot.location = loc.city;
     fetching = false;
+    needsRender = true;
     return;
   }
 
   snapshot.location = loc.city;
   snapshot.valid = true;
   fetching = false;
+  needsRender = true;
 }
 
 bool DashboardActivity::fetchLocation(LocationInfo& out) {
@@ -348,7 +358,7 @@ void DashboardActivity::renderPaperS3() {
   const auto state = readPaperS3DashboardState();
   const int smallLineStep = renderer.getLineHeight(SMALL_FONT_ID) + 4;
 
-  renderer.drawCenteredText(NOTOSANS_18_FONT_ID, 22, "Dashboard", true, EpdFontFamily::BOLD);
+  PaperS3Ui::drawScreenHeader(renderer, "Dashboard", "PaperS3 status board");
   PaperS3Ui::drawBackButton(renderer);
   PaperS3Ui::drawPrimaryActionButton(renderer, "Refresh");
 

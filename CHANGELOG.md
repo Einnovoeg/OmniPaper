@@ -4,6 +4,23 @@ All notable changes to OmniPaper are documented in this file.
 
 The release tag must match the version in `platformio.ini` exactly, without a leading `v`, so OTA version checks and release asset names stay aligned.
 
+## [0.18.2] - 2026-03-14
+
+### Changed
+
+- Reworked the shared PaperS3 header, list, and overlay spacing so the date/time overlay, back button, titles, and launcher rows no longer collide at the top of the portrait UI.
+- Switched tagged releases to a single merged `omnipaper-<tag>-m5papers3.bin` image instead of publishing a bundle of text files and split flash segments.
+- Made the Poodle PaperS3 layout denser and more explicit by moving the keyboard higher on-screen and labeling the keyboard block directly.
+
+### Fixed
+
+- Removed the remaining PaperS3 background render tasks from the EPUB, TXT, and XTC readers, which were still causing touch/render races and reader resets on-device.
+- Stabilized PaperS3 Wi-Fi network selection by moving its scan/render flow onto the main loop and using a synchronous scan path tuned for the S3 instead of the older async path.
+- Applied the same synchronous PaperS3 scan fix to the standalone Wi-Fi scanner so nearby networks now populate reliably there as well.
+- Stopped Weather from auto-fetching immediately on entry and fixed its failure-state redraw path, preventing the app from feeling hung or crashing as soon as it opens.
+- Fixed the Dashboard weather refresh path so it paints a loading state before blocking network work and redraws properly after failures.
+- Replaced PaperS3 submenu text badges with actual icons and fixed selected-state icon rendering so launcher rows and highlighted tiles remain legible.
+
 ## [0.18.1] - 2026-03-14
 
 ### Added

@@ -49,12 +49,14 @@ void WifiSelectionActivity::onEnter() {
   // Trigger first update to show scanning message
   updateRequired = true;
 
+#if !defined(PLATFORM_M5PAPERS3)
   xTaskCreate(&WifiSelectionActivity::taskTrampoline, "WifiSelectionTask",
               8192,               // Stack size (PaperS3 UI + WiFi stack + keyboard callbacks)
               this,               // Parameters
               1,                  // Priority
               &displayTaskHandle  // Task handle
   );
+#endif
 
   // Start WiFi scan
   startWifiScan();
@@ -62,42 +64,23 @@ void WifiSelectionActivity::onEnter() {
 
 void WifiSelectionActivity::onExit() {
   Activity::onExit();
-
-  Serial.printf("[%lu] [WIFI] [MEM] Free heap at onExit start: %d bytes\n", millis(), ESP.getFreeHeap());
-
-  // Stop any ongoing WiFi scan
-  Serial.printf("[%lu] [WIFI] Deleting WiFi scan...\n", millis());
   WiFi.scanDelete();
-  Serial.printf("[%lu] [WIFI] [MEM] Free heap after scanDelete: %d bytes\n", millis(), ESP.getFreeHeap());
-
-  // Note: We do NOT disconnect WiFi here - the parent activity (CrossPointWebServerActivity)
-  // manages WiFi connection state. We just clean up the scan and task.
-
-  // Acquire mutex before deleting task to ensure task isn't using it
-  // This prevents hangs/crashes if the task holds the mutex when deleted
-  Serial.printf("[%lu] [WIFI] Acquiring rendering mutex before task deletion...\n", millis());
-  xSemaphoreTake(renderingMutex, portMAX_DELAY);
-
-  // Delete the display task (we now hold the mutex, so task is blocked if it needs it)
-  Serial.printf("[%lu] [WIFI] Deleting display task...\n", millis());
-  if (displayTaskHandle) {
-    vTaskDelete(displayTaskHandle);
-    displayTaskHandle = nullptr;
-    Serial.printf("[%lu] [WIFI] Display task deleted\n", millis());
+  if (renderingMutex) {
+    xSemaphoreTake(renderingMutex, portMAX_DELAY);
+    if (displayTaskHandle) {
+      vTaskDelete(displayTaskHandle);
+      displayTaskHandle = nullptr;
+    }
+    vSemaphoreDelete(renderingMutex);
+    renderingMutex = nullptr;
   }
-
-  // Now safe to delete the mutex since we own it
-  Serial.printf("[%lu] [WIFI] Deleting mutex...\n", millis());
-  vSemaphoreDelete(renderingMutex);
-  renderingMutex = nullptr;
-  Serial.printf("[%lu] [WIFI] Mutex deleted\n", millis());
-
-  Serial.printf("[%lu] [WIFI] [MEM] Free heap at onExit end: %d bytes\n", millis(), ESP.getFreeHeap());
 }
 
 void WifiSelectionActivity::startWifiScan() {
   state = WifiSelectionState::SCANNING;
   networks.clear();
+  selectedNetworkIndex = 0;
+  connectionError.clear();
   updateRequired = true;
 
   // Reinitialize STA mode with power save disabled. PaperS3 scan reliability is
@@ -110,20 +93,21 @@ void WifiSelectionActivity::startWifiScan() {
   WiFi.scanDelete();
   delay(150);
 
-  // Start async scan
+  // PaperS3 is more reliable if scan orchestration stays on the foreground
+  // loop. The scanning frame is rendered first so the device still shows
+  // progress before the synchronous scan blocks.
+#if defined(PLATFORM_M5PAPERS3)
+  renderIfNeeded();
+  applyScanResults(WiFi.scanNetworks(false, true));
+#else
   WiFi.scanNetworks(true, true);  // async, include hidden SSIDs
+#endif
 }
 
-void WifiSelectionActivity::processWifiScanResults() {
-  const int16_t scanResult = WiFi.scanComplete();
-
-  if (scanResult == WIFI_SCAN_RUNNING) {
-    // Scan still in progress
-    return;
-  }
-
-  if (scanResult == WIFI_SCAN_FAILED) {
+void WifiSelectionActivity::applyScanResults(const int16_t scanResult) {
+  if (scanResult == WIFI_SCAN_FAILED || scanResult < 0) {
     state = WifiSelectionState::NETWORK_LIST;
+    connectionError = "Scan failed";
     updateRequired = true;
     return;
   }
@@ -176,6 +160,16 @@ void WifiSelectionActivity::processWifiScanResults() {
   updateRequired = true;
 }
 
+void WifiSelectionActivity::processWifiScanResults() {
+  const int16_t scanResult = WiFi.scanComplete();
+
+  if (scanResult == WIFI_SCAN_RUNNING) {
+    return;
+  }
+
+  applyScanResults(scanResult);
+}
+
 void WifiSelectionActivity::selectNetwork(const int index) {
   if (index < 0 || index >= static_cast<int>(networks.size())) {
     return;
@@ -193,8 +187,6 @@ void WifiSelectionActivity::selectNetwork(const int index) {
     // Use saved password - connect directly
     enteredPassword = savedCred->password;
     usedSavedPassword = true;
-    Serial.printf("[%lu] [WiFi] Using saved password for %s, length: %zu\n", millis(), selectedSSID.c_str(),
-                  enteredPassword.size());
     attemptConnection();
     return;
   }
@@ -267,7 +259,6 @@ void WifiSelectionActivity::checkConnectionStatus() {
       updateRequired = true;
     } else {
       // Using saved password or open network - complete immediately
-      Serial.printf("[%lu] [WIFI] Connected with saved/open credentials, completing immediately\n", millis());
       onComplete(true);
     }
     return;
@@ -313,19 +304,24 @@ void WifiSelectionActivity::loop() {
 
   // Check scan progress
   if (state == WifiSelectionState::SCANNING) {
+#if !defined(PLATFORM_M5PAPERS3)
     processWifiScanResults();
+#endif
+    renderIfNeeded();
     return;
   }
 
   // Check connection progress
   if (state == WifiSelectionState::CONNECTING) {
     checkConnectionStatus();
+    renderIfNeeded();
     return;
   }
 
   if (state == WifiSelectionState::PASSWORD_ENTRY) {
     // Reach here once password entry finished in subactivity
     attemptConnection();
+    renderIfNeeded();
     return;
   }
 
@@ -352,10 +348,13 @@ void WifiSelectionActivity::loop() {
       }
       // Complete - parent will start web server
       onComplete(true);
+      return;
     } else if (mappedInput.wasPressed(MappedInputManager::Button::Back)) {
       // Skip saving, complete anyway
       onComplete(true);
+      return;
     }
+    renderIfNeeded();
     return;
   }
 
@@ -394,6 +393,7 @@ void WifiSelectionActivity::loop() {
       state = WifiSelectionState::NETWORK_LIST;
       updateRequired = true;
     }
+    renderIfNeeded();
     return;
   }
 
@@ -476,6 +476,8 @@ void WifiSelectionActivity::loop() {
       }
     }
   }
+
+  renderIfNeeded();
 }
 
 std::string WifiSelectionActivity::getSignalStrengthIndicator(const int32_t rssi) const {
@@ -520,8 +522,26 @@ void WifiSelectionActivity::displayTaskLoop() {
   }
 }
 
+void WifiSelectionActivity::renderIfNeeded() {
+#if !defined(PLATFORM_M5PAPERS3)
+  return;
+#endif
+
+  if (!updateRequired || !renderingMutex || subActivity || state == WifiSelectionState::PASSWORD_ENTRY) {
+    return;
+  }
+
+  updateRequired = false;
+  xSemaphoreTake(renderingMutex, portMAX_DELAY);
+  render();
+  xSemaphoreGive(renderingMutex);
+}
+
 void WifiSelectionActivity::render() const {
   renderer.clearScreen();
+#if defined(PLATFORM_M5PAPERS3)
+  renderer.setOrientation(GfxRenderer::Orientation::Portrait);
+#endif
 
   switch (state) {
     case WifiSelectionState::SCANNING:
@@ -557,7 +577,8 @@ void WifiSelectionActivity::renderNetworkList() const {
   PaperS3Ui::drawBackButton(renderer);
 
   if (networks.empty()) {
-    renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() / 2 - 16, "No networks found");
+    renderer.drawCenteredText(UI_12_FONT_ID, renderer.getScreenHeight() / 2 - 16,
+                              connectionError.empty() ? "No networks found" : connectionError.c_str());
     renderer.drawCenteredText(UI_10_FONT_ID, renderer.getScreenHeight() / 2 + 16, "Tap Rescan to try again");
     PaperS3Ui::drawPrimaryActionButton(const_cast<GfxRenderer&>(renderer), "Rescan");
     PaperS3Ui::drawFooterStatus(const_cast<GfxRenderer&>(renderer), cachedMacAddress.c_str());
@@ -668,6 +689,27 @@ void WifiSelectionActivity::renderNetworkList() const {
 }
 
 void WifiSelectionActivity::renderConnecting() const {
+#if defined(PLATFORM_M5PAPERS3)
+  PaperS3Ui::drawScreenHeader(const_cast<GfxRenderer&>(renderer), "WiFi",
+                              state == WifiSelectionState::SCANNING ? "Scanning nearby networks" : "Connecting");
+  PaperS3Ui::drawBackButton(const_cast<GfxRenderer&>(renderer));
+  if (state == WifiSelectionState::SCANNING) {
+    renderer.drawCenteredText(UI_12_FONT_ID, 320, "Scanning...");
+    if (!connectionError.empty()) {
+      renderer.drawCenteredText(UI_10_FONT_ID, 354, connectionError.c_str());
+    }
+    PaperS3Ui::drawFooterStatus(const_cast<GfxRenderer&>(renderer), cachedMacAddress.c_str());
+    PaperS3Ui::drawFooter(const_cast<GfxRenderer&>(renderer), "Scanning can take a few seconds");
+    return;
+  }
+
+  renderer.drawCenteredText(UI_12_FONT_ID, 296, selectedSSID.c_str(), true, EpdFontFamily::BOLD);
+  renderer.drawCenteredText(UI_10_FONT_ID, 332, "Connecting...");
+  PaperS3Ui::drawFooterStatus(const_cast<GfxRenderer&>(renderer), cachedMacAddress.c_str());
+  PaperS3Ui::drawFooter(const_cast<GfxRenderer&>(renderer), "Please wait for WiFi to authenticate");
+  return;
+#endif
+
   const auto pageHeight = renderer.getScreenHeight();
   const auto height = renderer.getLineHeight(UI_10_FONT_ID);
   const auto top = (pageHeight - height) / 2;
@@ -686,6 +728,18 @@ void WifiSelectionActivity::renderConnecting() const {
 }
 
 void WifiSelectionActivity::renderConnected() const {
+#if defined(PLATFORM_M5PAPERS3)
+  PaperS3Ui::drawScreenHeader(const_cast<GfxRenderer&>(renderer), "WiFi", "Connected");
+  PaperS3Ui::drawBackButton(const_cast<GfxRenderer&>(renderer));
+  PaperS3Ui::drawListRow(const_cast<GfxRenderer&>(renderer), PaperS3Ui::listRowRect(renderer, 0), false, "Network",
+                         selectedSSID.c_str());
+  PaperS3Ui::drawListRow(const_cast<GfxRenderer&>(renderer), PaperS3Ui::listRowRect(renderer, 1), false, "IP Address",
+                         connectedIP.c_str());
+  PaperS3Ui::drawFooterStatus(const_cast<GfxRenderer&>(renderer), cachedMacAddress.c_str());
+  PaperS3Ui::drawFooter(const_cast<GfxRenderer&>(renderer), "Tap Back to continue");
+  return;
+#endif
+
   const auto pageHeight = renderer.getScreenHeight();
   const auto height = renderer.getLineHeight(UI_10_FONT_ID);
   const auto top = (pageHeight - height * 4) / 2;
@@ -707,6 +761,18 @@ void WifiSelectionActivity::renderConnected() const {
 }
 
 void WifiSelectionActivity::renderSavePrompt() const {
+#if defined(PLATFORM_M5PAPERS3)
+  PaperS3Ui::drawScreenHeader(const_cast<GfxRenderer&>(renderer), "Save Password", selectedSSID.c_str());
+  PaperS3Ui::drawBackButton(const_cast<GfxRenderer&>(renderer));
+  PaperS3Ui::drawListRow(const_cast<GfxRenderer&>(renderer), PaperS3Ui::listRowRect(renderer, 0),
+                         savePromptSelection == 0, "Yes", "", "Store credentials on SD card");
+  PaperS3Ui::drawListRow(const_cast<GfxRenderer&>(renderer), PaperS3Ui::listRowRect(renderer, 1),
+                         savePromptSelection == 1, "No", "", "Connect for this session only");
+  PaperS3Ui::drawFooterStatus(const_cast<GfxRenderer&>(renderer), cachedMacAddress.c_str());
+  PaperS3Ui::drawFooter(const_cast<GfxRenderer&>(renderer), "Use touch or buttons to choose");
+  return;
+#endif
+
   const auto pageWidth = renderer.getScreenWidth();
   const auto pageHeight = renderer.getScreenHeight();
   const auto height = renderer.getLineHeight(UI_10_FONT_ID);
@@ -749,6 +815,15 @@ void WifiSelectionActivity::renderSavePrompt() const {
 }
 
 void WifiSelectionActivity::renderConnectionFailed() const {
+#if defined(PLATFORM_M5PAPERS3)
+  PaperS3Ui::drawScreenHeader(const_cast<GfxRenderer&>(renderer), "WiFi", "Connection failed");
+  PaperS3Ui::drawBackButton(const_cast<GfxRenderer&>(renderer));
+  renderer.drawCenteredText(UI_12_FONT_ID, 320, connectionError.c_str());
+  PaperS3Ui::drawFooterStatus(const_cast<GfxRenderer&>(renderer), cachedMacAddress.c_str());
+  PaperS3Ui::drawFooter(const_cast<GfxRenderer&>(renderer), "Tap Back or Confirm to continue");
+  return;
+#endif
+
   const auto pageHeight = renderer.getScreenHeight();
   const auto height = renderer.getLineHeight(UI_10_FONT_ID);
   const auto top = (pageHeight - height * 2) / 2;
@@ -762,6 +837,18 @@ void WifiSelectionActivity::renderConnectionFailed() const {
 }
 
 void WifiSelectionActivity::renderForgetPrompt() const {
+#if defined(PLATFORM_M5PAPERS3)
+  PaperS3Ui::drawScreenHeader(const_cast<GfxRenderer&>(renderer), "Forget Network", selectedSSID.c_str());
+  PaperS3Ui::drawBackButton(const_cast<GfxRenderer&>(renderer));
+  PaperS3Ui::drawListRow(const_cast<GfxRenderer&>(renderer), PaperS3Ui::listRowRect(renderer, 0),
+                         forgetPromptSelection == 0, "Cancel", "", "Keep the saved password");
+  PaperS3Ui::drawListRow(const_cast<GfxRenderer&>(renderer), PaperS3Ui::listRowRect(renderer, 1),
+                         forgetPromptSelection == 1, "Forget", "", "Remove the saved password");
+  PaperS3Ui::drawFooterStatus(const_cast<GfxRenderer&>(renderer), cachedMacAddress.c_str());
+  PaperS3Ui::drawFooter(const_cast<GfxRenderer&>(renderer), "Use touch or buttons to choose");
+  return;
+#endif
+
   const auto pageWidth = renderer.getScreenWidth();
   const auto pageHeight = renderer.getScreenHeight();
   const auto height = renderer.getLineHeight(UI_10_FONT_ID);

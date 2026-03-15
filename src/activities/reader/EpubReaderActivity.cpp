@@ -108,12 +108,14 @@ void EpubReaderActivity::onEnter() {
   updateRequired = true;
   lastOverlayRefreshMs = millis();
 
+#if !defined(PLATFORM_M5PAPERS3)
   xTaskCreate(&EpubReaderActivity::taskTrampoline, "EpubReaderActivityTask",
               8192,               // Stack size
               this,               // Parameters
               1,                  // Priority
               &displayTaskHandle  // Task handle
   );
+#endif
 }
 
 void EpubReaderActivity::onExit() {
@@ -122,14 +124,18 @@ void EpubReaderActivity::onExit() {
   // Reset orientation back to portrait for the rest of the UI
   renderer.setOrientation(GfxRenderer::Orientation::Portrait);
 
-  // Wait until not rendering to delete task to avoid killing mid-instruction to EPD
-  xSemaphoreTake(renderingMutex, portMAX_DELAY);
-  if (displayTaskHandle) {
-    vTaskDelete(displayTaskHandle);
-    displayTaskHandle = nullptr;
+  // PaperS3 renders inline on the main loop to avoid the task-vs-touch races
+  // that caused reader resets on the S3. Legacy boards keep the background
+  // render task because their UI is still button-driven.
+  if (renderingMutex) {
+    xSemaphoreTake(renderingMutex, portMAX_DELAY);
+    if (displayTaskHandle) {
+      vTaskDelete(displayTaskHandle);
+      displayTaskHandle = nullptr;
+    }
+    vSemaphoreDelete(renderingMutex);
+    renderingMutex = nullptr;
   }
-  vSemaphoreDelete(renderingMutex);
-  renderingMutex = nullptr;
   section.reset();
   epub.reset();
 }
@@ -209,6 +215,7 @@ void EpubReaderActivity::loop() {
                                          powerPageTurn || mappedInput.wasReleased(MappedInputManager::Button::Right)));
 
   if (!prevTriggered && !nextTriggered) {
+    renderIfNeeded();
     return;
   }
 
@@ -217,6 +224,7 @@ void EpubReaderActivity::loop() {
     currentSpineIndex = epub->getSpineItemsCount() - 1;
     nextPageNumber = UINT16_MAX;
     updateRequired = true;
+    renderIfNeeded();
     return;
   }
 
@@ -230,12 +238,14 @@ void EpubReaderActivity::loop() {
     section.reset();
     xSemaphoreGive(renderingMutex);
     updateRequired = true;
+    renderIfNeeded();
     return;
   }
 
   // No current section, attempt to rerender the book
   if (!section) {
     updateRequired = true;
+    renderIfNeeded();
     return;
   }
 
@@ -264,6 +274,8 @@ void EpubReaderActivity::loop() {
     }
     updateRequired = true;
   }
+
+  renderIfNeeded();
 }
 
 void EpubReaderActivity::onReaderMenuBack() {
@@ -359,6 +371,19 @@ void EpubReaderActivity::displayTaskLoop() {
     }
     vTaskDelay(10 / portTICK_PERIOD_MS);
   }
+}
+
+void EpubReaderActivity::renderIfNeeded() {
+#if defined(PLATFORM_M5PAPERS3)
+  if (!updateRequired || !renderingMutex) {
+    return;
+  }
+
+  updateRequired = false;
+  xSemaphoreTake(renderingMutex, portMAX_DELAY);
+  renderScreen();
+  xSemaphoreGive(renderingMutex);
+#endif
 }
 
 // TODO: Failure handling

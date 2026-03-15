@@ -26,6 +26,7 @@ class XtcReaderActivity final : public ActivityWithSubactivity {
 
   static void taskTrampoline(void* param);
   [[noreturn]] void displayTaskLoop();
+  void renderIfNeeded();
   void renderScreen();
   void renderPage();
   void saveProgress() const;

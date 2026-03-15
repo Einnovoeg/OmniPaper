@@ -82,12 +82,14 @@ void TxtReaderActivity::onEnter() {
   updateRequired = true;
   lastOverlayRefreshMs = millis();
 
+#if !defined(PLATFORM_M5PAPERS3)
   xTaskCreate(&TxtReaderActivity::taskTrampoline, "TxtReaderActivityTask",
               6144,               // Stack size
               this,               // Parameters
               1,                  // Priority
               &displayTaskHandle  // Task handle
   );
+#endif
 }
 
 void TxtReaderActivity::onExit() {
@@ -96,14 +98,15 @@ void TxtReaderActivity::onExit() {
   // Reset orientation back to portrait for the rest of the UI
   renderer.setOrientation(GfxRenderer::Orientation::Portrait);
 
-  // Wait until not rendering to delete task
-  xSemaphoreTake(renderingMutex, portMAX_DELAY);
-  if (displayTaskHandle) {
-    vTaskDelete(displayTaskHandle);
-    displayTaskHandle = nullptr;
+  if (renderingMutex) {
+    xSemaphoreTake(renderingMutex, portMAX_DELAY);
+    if (displayTaskHandle) {
+      vTaskDelete(displayTaskHandle);
+      displayTaskHandle = nullptr;
+    }
+    vSemaphoreDelete(renderingMutex);
+    renderingMutex = nullptr;
   }
-  vSemaphoreDelete(renderingMutex);
-  renderingMutex = nullptr;
   pageOffsets.clear();
   currentPageLines.clear();
   txt.reset();
@@ -167,6 +170,7 @@ void TxtReaderActivity::loop() {
                                          powerPageTurn || mappedInput.wasReleased(MappedInputManager::Button::Right)));
 
   if (!prevTriggered && !nextTriggered) {
+    renderIfNeeded();
     return;
   }
 
@@ -177,6 +181,8 @@ void TxtReaderActivity::loop() {
     currentPage++;
     updateRequired = true;
   }
+
+  renderIfNeeded();
 }
 
 void TxtReaderActivity::displayTaskLoop() {
@@ -189,6 +195,19 @@ void TxtReaderActivity::displayTaskLoop() {
     }
     vTaskDelay(10 / portTICK_PERIOD_MS);
   }
+}
+
+void TxtReaderActivity::renderIfNeeded() {
+#if defined(PLATFORM_M5PAPERS3)
+  if (!updateRequired || !renderingMutex) {
+    return;
+  }
+
+  updateRequired = false;
+  xSemaphoreTake(renderingMutex, portMAX_DELAY);
+  renderScreen();
+  xSemaphoreGive(renderingMutex);
+#endif
 }
 
 void TxtReaderActivity::initializeReader() {

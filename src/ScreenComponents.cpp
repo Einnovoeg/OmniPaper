@@ -95,7 +95,7 @@ void ScreenComponents::drawDeviceInfoOverlay(const GfxRenderer& renderer, const 
 
   const int screenWidth = renderer.getScreenWidth();
   const int lineHeight = renderer.getLineHeight(fontId);
-  const int topY = renderer.getScreenWidth() >= 520 ? 18 : 6;
+  const int topY = renderer.getScreenWidth() >= 520 ? 10 : 6;
   const int bottomY = renderer.getScreenHeight() - lineHeight - 8;
 
   const bool isBottom = overlayPosition == CrossPointSettings::OVERLAY_BOTTOM ||
@@ -107,6 +107,16 @@ void ScreenComponents::drawDeviceInfoOverlay(const GfxRenderer& renderer, const 
   drawBattery(renderer, 2, y, showBatteryPercentage);
 
   if (!isCorners) {
+    // PaperS3 portrait screens typically reserve the upper-right region for a
+    // Back button. Keep the Wi-Fi label on the left block so the overlay stays
+    // readable instead of colliding with the touch chrome.
+    if (!isBottom && renderer.getScreenWidth() >= 520) {
+      const int batteryBlockWidth = showBatteryPercentage ? 58 : 24;
+      renderer.drawText(fontId, batteryBlockWidth + 10, y, wifiText.c_str());
+      renderer.drawCenteredText(fontId, y, dateTimeText.c_str());
+      return;
+    }
+
     const int rightInset = renderer.getScreenWidth() >= 520 ? 16 : 6;
     const int wifiWidth = renderer.getTextWidth(fontId, wifiText.c_str());
     renderer.drawText(fontId, screenWidth - wifiWidth - rightInset, y, wifiText.c_str());

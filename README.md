@@ -160,7 +160,7 @@ pio run -e m5paper_release
 ## Versioning And Releases
 
 - OmniPaper uses bare semantic versions such as `0.18.0`; the Git tag, `platformio.ini` version, and `CHANGELOG.md` entry must match exactly.
-- Tagged GitHub releases now publish the M5PaperS3 firmware bundle as the primary supported release artifact.
+- Tagged GitHub releases now publish a single merged M5PaperS3 firmware image, `omnipaper-<tag>-m5papers3.bin`, as the primary supported release artifact.
 - Other targets remain buildable from source, but the public release process is centered on the PaperS3.
 - OTA release checks compile the repository slug from CI metadata or the local `origin` remote, so official release builds point at the correct OmniPaper GitHub release feed without committing maintainer-specific identifiers to the repository.
 

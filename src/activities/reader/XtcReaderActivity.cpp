@@ -64,12 +64,14 @@ void XtcReaderActivity::onEnter() {
   // Trigger first update
   updateRequired = true;
 
+#if !defined(PLATFORM_M5PAPERS3)
   xTaskCreate(&XtcReaderActivity::taskTrampoline, "XtcReaderActivityTask",
               4096,               // Stack size (smaller than EPUB since no parsing needed)
               this,               // Parameters
               1,                  // Priority
               &displayTaskHandle  // Task handle
   );
+#endif
 }
 
 void XtcReaderActivity::onExit() {
@@ -77,14 +79,15 @@ void XtcReaderActivity::onExit() {
 
   renderer.setOrientation(GfxRenderer::Orientation::Portrait);
 
-  // Wait until not rendering to delete task
-  xSemaphoreTake(renderingMutex, portMAX_DELAY);
-  if (displayTaskHandle) {
-    vTaskDelete(displayTaskHandle);
-    displayTaskHandle = nullptr;
+  if (renderingMutex) {
+    xSemaphoreTake(renderingMutex, portMAX_DELAY);
+    if (displayTaskHandle) {
+      vTaskDelete(displayTaskHandle);
+      displayTaskHandle = nullptr;
+    }
+    vSemaphoreDelete(renderingMutex);
+    renderingMutex = nullptr;
   }
-  vSemaphoreDelete(renderingMutex);
-  renderingMutex = nullptr;
   xtc.reset();
 }
 
@@ -165,6 +168,7 @@ void XtcReaderActivity::loop() {
                                          powerPageTurn || mappedInput.wasReleased(MappedInputManager::Button::Right)));
 
   if (!prevTriggered && !nextTriggered) {
+    renderIfNeeded();
     return;
   }
 
@@ -172,6 +176,7 @@ void XtcReaderActivity::loop() {
   if (currentPage >= xtc->getPageCount()) {
     currentPage = xtc->getPageCount() - 1;
     updateRequired = true;
+    renderIfNeeded();
     return;
   }
 
@@ -192,6 +197,8 @@ void XtcReaderActivity::loop() {
     }
     updateRequired = true;
   }
+
+  renderIfNeeded();
 }
 
 void XtcReaderActivity::displayTaskLoop() {
@@ -204,6 +211,19 @@ void XtcReaderActivity::displayTaskLoop() {
     }
     vTaskDelay(10 / portTICK_PERIOD_MS);
   }
+}
+
+void XtcReaderActivity::renderIfNeeded() {
+#if defined(PLATFORM_M5PAPERS3)
+  if (!updateRequired || !renderingMutex) {
+    return;
+  }
+
+  updateRequired = false;
+  xSemaphoreTake(renderingMutex, portMAX_DELAY);
+  renderScreen();
+  xSemaphoreGive(renderingMutex);
+#endif
 }
 
 void XtcReaderActivity::renderScreen() {

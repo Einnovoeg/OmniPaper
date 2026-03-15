@@ -46,8 +46,34 @@ void WifiScannerActivity::startScan() {
   WiFi.disconnect(false, true);
   WiFi.scanDelete();
   delay(150);
+#if defined(PLATFORM_M5PAPERS3)
+  scanning = true;
+  needsRender = true;
+  render();
+  needsRender = false;
+
+  const int16_t count = WiFi.scanNetworks(false, true);
+  networks.clear();
+  if (count > 0) {
+    networks.reserve(count);
+    for (int i = 0; i < count; i++) {
+      NetworkEntry entry;
+      entry.ssid = WiFi.SSID(i).c_str();
+      entry.rssi = WiFi.RSSI(i);
+      entry.channel = WiFi.channel(i);
+      entry.open = (WiFi.encryptionType(i) == WIFI_AUTH_OPEN);
+      networks.push_back(entry);
+    }
+  }
+  WiFi.scanDelete();
+  scanning = false;
+  selectionIndex = 0;
+  statusMessage = count < 0 ? "Scan failed" : "";
+  needsRender = true;
+#else
   WiFi.scanNetworks(true, true);
   scanning = true;
+#endif
 }
 
 void WifiScannerActivity::collectResults() {
@@ -217,7 +243,7 @@ void WifiScannerActivity::render() {
     }
 
     if (networks.empty()) {
-      renderer.drawCenteredText(UI_12_FONT_ID, 320, "No networks found");
+      renderer.drawCenteredText(UI_12_FONT_ID, 320, statusMessage.empty() ? "No networks found" : statusMessage.c_str());
       PaperS3Ui::drawPrimaryActionButton(renderer, "Rescan");
       PaperS3Ui::drawFooter(renderer, "Touch Rescan to try again");
       renderer.displayBuffer();

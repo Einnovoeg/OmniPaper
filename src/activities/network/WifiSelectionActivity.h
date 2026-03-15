@@ -79,6 +79,7 @@ class WifiSelectionActivity final : public ActivityWithSubactivity {
   static void taskTrampoline(void* param);
   [[noreturn]] void displayTaskLoop();
   void render() const;
+  void renderIfNeeded();
   void renderNetworkList() const;
   void renderPasswordEntry() const;
   void renderConnecting() const;
@@ -88,6 +89,7 @@ class WifiSelectionActivity final : public ActivityWithSubactivity {
   void renderForgetPrompt() const;
 
   void startWifiScan();
+  void applyScanResults(int16_t scanResult);
   void processWifiScanResults();
   void selectNetwork(int index);
   void attemptConnection();

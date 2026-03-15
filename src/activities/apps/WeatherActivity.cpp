@@ -21,8 +21,9 @@ WeatherActivity::WeatherActivity(GfxRenderer& renderer, MappedInputManager& mapp
 
 void WeatherActivity::onEnter() {
   Activity::onEnter();
-  lastUpdate = 0;
+  lastUpdate = millis();
   snapshot.valid = false;
+  snapshot.fetchedAt = 0;
   snapshot.location = "Tap Refresh to load weather";
   needsRender = true;
 }
@@ -58,7 +59,7 @@ void WeatherActivity::loop() {
     updateWeather();
   }
 
-  if (millis() - lastUpdate > kUpdateIntervalMs) {
+  if (snapshot.fetchedAt != 0 && millis() - lastUpdate > kUpdateIntervalMs) {
     updateWeather();
   }
 
@@ -81,28 +82,34 @@ void WeatherActivity::updateWeather() {
 
   if (WiFi.status() != WL_CONNECTED) {
     snapshot.valid = false;
+    snapshot.fetchedAt = 0;
     snapshot.location = "WiFi disconnected";
     fetching = false;
+    needsRender = true;
     return;
   }
 
   LocationInfo loc;
   if (!fetchLocation(loc)) {
     snapshot.valid = false;
+    snapshot.fetchedAt = 0;
     snapshot.location = "Location lookup failed";
     fetching = false;
+    needsRender = true;
     return;
   }
 
   if (!fetchWeather(loc, snapshot)) {
     snapshot.valid = false;
+    snapshot.fetchedAt = 0;
     snapshot.location = loc.city;
     fetching = false;
+    needsRender = true;
     return;
   }
 
   snapshot.location = loc.city;
-  snapshot.fetchedAt = millis();
+  snapshot.fetchedAt = lastUpdate;
   snapshot.valid = true;
   fetching = false;
   needsRender = true;

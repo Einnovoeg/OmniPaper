@@ -22,13 +22,13 @@ namespace {
 const char* kWordFile = "/games/poodle_words.txt";
 const char* kKeyboardRows[] = {"QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"};
 constexpr int kKeyboardRowCount = 3;
-constexpr int kGridTopY = 124;
-constexpr int kGridCellSize = 70;
-constexpr int kGridGap = 10;
-constexpr int kKeyboardTopY = 622;
+constexpr int kGridTopY = 148;
+constexpr int kGridCellSize = 56;
+constexpr int kGridGap = 12;
+constexpr int kKeyboardTopY = 606;
 constexpr int kKeyboardGap = 8;
-constexpr int kKeyboardRowGap = 12;
-constexpr int kKeyboardHeight = 58;
+constexpr int kKeyboardRowGap = 10;
+constexpr int kKeyboardHeight = 62;
 constexpr int kGameWordLength = 5;
 const char* kBuiltinWords[] = {
     "ABOUT", "ABOVE", "ACORN", "ACTOR", "ADULT", "AGENT", "AGREE", "ALARM", "ALBUM", "ALERT", "ALIEN", "ALIVE", "AMBER",
@@ -456,10 +456,11 @@ void PoodleActivity::render() {
   } else {
     attemptLine = "Attempt " + std::to_string(guesses.size() + 1) + " of 6";
   }
-  renderer.drawCenteredText(NOTOSANS_14_FONT_ID, 100, attemptLine.c_str(), true, EpdFontFamily::BOLD);
+  renderer.drawCenteredText(NOTOSANS_14_FONT_ID, 110, attemptLine.c_str(), true, EpdFontFamily::BOLD);
 
   drawGrid();
   drawLegend();
+  renderer.drawCenteredText(UI_10_FONT_ID, 586, "Keyboard", true, EpdFontFamily::BOLD);
   drawKeyboard();
   drawActionButtons();
 
@@ -518,7 +519,7 @@ void PoodleActivity::drawGrid() {
 }
 
 void PoodleActivity::drawLegend() const {
-  const int top = 576;
+  const int top = 554;
   const int swatchSize = 24;
   const int gap = 18;
   const int groupWidth = 116;

@@ -29,27 +29,16 @@ pio run -e m5papers3_release
 
 ## Release Bundle Contents
 
-The tag workflow packages and publishes:
+The tag workflow packages and publishes exactly one end-user firmware asset:
 
-- `omnipaper-<tag>-m5papers3-firmware.bin`
-- PaperS3 `bootloader.bin`, `partitions.bin`, `firmware.elf`, and `firmware.map`
-- `README.md`
-- `LICENSE`
-- `CHANGELOG.md`
-- `RELEASE_NOTES.md`
-- `DEPENDENCIES.md`
-- `CODE_PROVENANCE.md`
-- `CONTRIBUTORS.md`
-- `THIRD_PARTY_NOTICES.md`
-- `LICENSE_COMPLIANCE.md`
-- `FLASHING.md`
-- `SHA256SUMS.txt`
-- `BUILD_INFO.txt`
-- `omnipaper-<tag>.spdx.json`
+- `omnipaper-<tag>-m5papers3.bin`
+
+That merged image already contains the bootloader, partition table, boot app, and firmware at the correct flash offsets for the M5PaperS3.
+The workflow also generates `build/release-notes.md` from `CHANGELOG.md`; this is the generated `RELEASE_NOTES.md` content used as the GitHub Release body.
 
 ## Notes
 
 - `m5papers3_release` is the published release target.
 - `m5paper` and `lilygo_epd47` remain source-build targets and are not bundled by default in tagged releases.
 - OTA release checks use the repository slug detected at build time from CI or the local `origin` remote, so release builds point at the correct OmniPaper GitHub Releases feed without hardcoding a maintainer identity in source files.
-- The workflow uploads the assembled bundle as a GitHub Actions artifact named `OmniPaper-<tag>` and publishes the same files to the matching GitHub Release.
+- The workflow uploads the merged PaperS3 image as a GitHub Actions artifact named `OmniPaper-<tag>` and publishes the same `.bin` to the matching GitHub Release.

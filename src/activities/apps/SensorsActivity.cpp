@@ -424,7 +424,7 @@ void SensorsActivity::renderPaperS3BuiltIn() {
   const int smallLineStep = renderer.getLineHeight(SMALL_FONT_ID) + 4;
   const std::string uptimeLabel = formatUptime(snapshot.uptimeMs);
 
-  renderer.drawCenteredText(UI_12_FONT_ID, 16, "Sensors (Built-In)");
+  PaperS3Ui::drawScreenHeader(renderer, "Sensors", "Built-in telemetry");
 
   PaperS3Ui::drawCard(renderer, layout.leftX, layout.topY, layout.cardWidth, layout.cardHeight, "Power");
   PaperS3Ui::drawCard(renderer, layout.rightX, layout.topY, layout.cardWidth, layout.cardHeight, "Radio + System");

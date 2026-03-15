@@ -46,7 +46,8 @@ class LauncherActivity final : public Activity {
   void handleMainInput();
   void handleSubmenuInput(const std::vector<SubmenuItem>& items);
 
-  void drawCircle(int cx, int cy, int radius, bool fill) const;
+  void drawCircle(int cx, int cy, int radius, bool fill, bool color = true) const;
   void drawIconSymbol(int cx, int cy, LauncherItemId id, bool selected) const;
+  void drawSubmenuActionIcon(int cx, int cy, LauncherAction action, bool selected) const;
   void drawLabel(int cx, int cy, const char* text, bool selected) const;
 };

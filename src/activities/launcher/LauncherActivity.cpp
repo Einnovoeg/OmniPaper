@@ -765,7 +765,7 @@ void LauncherActivity::renderMainMenu() {
 
 void LauncherActivity::renderSubmenu(const char* title, const std::vector<SubmenuItem>& items) {
 #if defined(PLATFORM_M5PAPERS3)
-  PaperS3Ui::drawScreenHeader(renderer, title, "Touch an option to launch it");
+  PaperS3Ui::drawScreenHeader(renderer, title, "Tap an option to launch it");
   PaperS3Ui::drawBackButton(renderer);
 
   for (size_t i = 0; i < items.size(); i++) {
@@ -785,13 +785,7 @@ void LauncherActivity::renderSubmenu(const char* title, const std::vector<Submen
     renderer.fillRect(iconBoxX, iconBoxY, iconBoxSize, iconBoxSize, selected ? false : true);
     renderer.drawRect(iconBoxX, iconBoxY, iconBoxSize, iconBoxSize, selected ? false : true);
 
-    // Submenu entries use explicit per-action badges so touch-first lists do
-    // not look like repeated generic category rows on the PaperS3.
-    const char* badge = submenuBadge(items[i].action);
-    const int badgeWidth = renderer.getTextWidth(UI_10_FONT_ID, badge);
-    const int badgeX = iconBoxX + (iconBoxSize - badgeWidth) / 2;
-    const int badgeY = iconBoxY + (iconBoxSize - renderer.getLineHeight(UI_10_FONT_ID)) / 2;
-    renderer.drawText(UI_10_FONT_ID, badgeX, badgeY, badge, !selected, EpdFontFamily::BOLD);
+    drawSubmenuActionIcon(iconBoxX + iconBoxSize / 2, iconBoxY + iconBoxSize / 2, items[i].action, selected);
 
     renderer.drawText(NOTOSANS_14_FONT_ID, textX, rect.y + 14, items[i].label, !selected, EpdFontFamily::BOLD);
     const int subtitleWidth = rect.x + rect.width - textX - 18;
@@ -845,17 +839,17 @@ void LauncherActivity::renderSubmenu(const char* title, const std::vector<Submen
   }
 }
 
-void LauncherActivity::drawCircle(int cx, int cy, int radius, bool fill) const {
+void LauncherActivity::drawCircle(int cx, int cy, int radius, bool fill, bool color) const {
   for (int dy = -radius; dy <= radius; dy++) {
     for (int dx = -radius; dx <= radius; dx++) {
       int dist2 = dx * dx + dy * dy;
       if (fill) {
         if (dist2 <= radius * radius) {
-          renderer.drawPixel(cx + dx, cy + dy, true);
+          renderer.drawPixel(cx + dx, cy + dy, color);
         }
       } else {
         if (dist2 <= radius * radius && dist2 >= (radius - 2) * (radius - 2)) {
-          renderer.drawPixel(cx + dx, cy + dy, true);
+          renderer.drawPixel(cx + dx, cy + dy, color);
         }
       }
     }
@@ -880,7 +874,7 @@ void LauncherActivity::drawIconSymbol(int cx, int cy, LauncherItemId id, bool se
       renderer.drawLine(cx - 12, cy, cx + 12, cy, black);
       break;
     case LauncherItemId::Weather:
-      drawCircle(cx, cy, 10, false);
+      drawCircle(cx, cy, 10, false, black);
       renderer.drawLine(cx - 16, cy + 6, cx + 16, cy + 6, black);
       break;
     case LauncherItemId::Network:
@@ -904,7 +898,7 @@ void LauncherActivity::drawIconSymbol(int cx, int cy, LauncherItemId id, bool se
       renderer.drawLine(cx + 2, cy - 10, cx + 2, cy + 10, black);
       break;
     case LauncherItemId::Settings:
-      drawCircle(cx, cy, 12, false);
+      drawCircle(cx, cy, 12, false, black);
       renderer.drawLine(cx, cy - 12, cx, cy + 12, black);
       renderer.drawLine(cx - 12, cy, cx + 12, cy, black);
       break;
@@ -914,6 +908,157 @@ void LauncherActivity::drawIconSymbol(int cx, int cy, LauncherItemId id, bool se
       renderer.drawLine(cx - 10, cy + 4, cx + 10, cy + 4, black);
       break;
     default:
+      break;
+  }
+}
+
+void LauncherActivity::drawSubmenuActionIcon(int cx, int cy, LauncherAction action, bool selected) const {
+  const bool black = !selected;
+  switch (action) {
+    case LauncherAction::SensorsBuiltIn:
+      renderer.drawRect(cx - 11, cy - 11, 22, 22, black);
+      renderer.fillRect(cx - 3, cy - 3, 6, 6, black);
+      break;
+    case LauncherAction::SensorsPeripherals:
+      renderer.drawLine(cx - 10, cy - 8, cx - 2, cy - 8, black);
+      renderer.drawLine(cx - 2, cy - 8, cx - 2, cy + 8, black);
+      renderer.drawLine(cx + 2, cy - 8, cx + 2, cy + 8, black);
+      renderer.drawLine(cx + 2, cy - 8, cx + 10, cy - 8, black);
+      renderer.drawLine(cx + 2, cy + 8, cx + 10, cy + 8, black);
+      break;
+    case LauncherAction::SensorsI2CTools:
+      renderer.drawLine(cx - 12, cy, cx + 12, cy, black);
+      renderer.drawRect(cx - 12, cy - 6, 6, 12, black);
+      renderer.drawRect(cx - 3, cy - 6, 6, 12, black);
+      renderer.drawRect(cx + 6, cy - 6, 6, 12, black);
+      break;
+    case LauncherAction::NetworkWifiStatus:
+    case LauncherAction::SettingsWifi:
+      renderer.drawLine(cx - 10, cy + 6, cx, cy - 4, black);
+      renderer.drawLine(cx, cy - 4, cx + 10, cy + 6, black);
+      renderer.drawLine(cx - 6, cy + 2, cx, cy - 2, black);
+      renderer.drawLine(cx, cy - 2, cx + 6, cy + 2, black);
+      renderer.fillRect(cx - 2, cy + 8, 4, 4, black);
+      break;
+    case LauncherAction::NetworkWifiScan:
+      drawSubmenuActionIcon(cx - 3, cy, LauncherAction::NetworkWifiStatus, selected);
+      drawCircle(cx + 9, cy + 8, 6, false, black);
+      renderer.drawLine(cx + 13, cy + 12, cx + 17, cy + 16, black);
+      break;
+    case LauncherAction::NetworkWifiTests:
+      renderer.drawRect(cx - 12, cy - 12, 24, 24, black);
+      renderer.drawLine(cx - 8, cy, cx - 2, cy + 6, black);
+      renderer.drawLine(cx - 2, cy + 6, cx + 8, cy - 6, black);
+      break;
+    case LauncherAction::NetworkWifiChannels:
+      renderer.fillRect(cx - 11, cy + 2, 4, 10, black);
+      renderer.fillRect(cx - 3, cy - 2, 4, 14, black);
+      renderer.fillRect(cx + 5, cy - 8, 4, 20, black);
+      break;
+    case LauncherAction::NetworkBleScan:
+      renderer.drawLine(cx - 2, cy - 12, cx - 2, cy + 12, black);
+      renderer.drawLine(cx - 2, cy, cx + 8, cy - 8, black);
+      renderer.drawLine(cx - 2, cy, cx + 8, cy + 8, black);
+      renderer.drawLine(cx - 2, cy - 12, cx + 6, cy - 4, black);
+      renderer.drawLine(cx - 2, cy + 12, cx + 6, cy + 4, black);
+      break;
+    case LauncherAction::NetworkWebPortal:
+      renderer.drawRect(cx - 12, cy - 10, 24, 20, black);
+      renderer.drawLine(cx - 12, cy - 4, cx + 12, cy - 4, black);
+      renderer.drawLine(cx - 6, cy + 10, cx - 1, cy + 4, black);
+      renderer.drawLine(cx - 1, cy + 4, cx + 5, cy + 12, black);
+      break;
+    case LauncherAction::NetworkKeyboardHost:
+      renderer.drawRect(cx - 13, cy - 9, 26, 18, black);
+      renderer.drawLine(cx - 8, cy - 1, cx + 8, cy - 1, black);
+      renderer.drawLine(cx - 8, cy + 5, cx + 8, cy + 5, black);
+      renderer.drawLine(cx - 4, cy - 7, cx - 4, cy + 7, black);
+      renderer.drawLine(cx + 4, cy - 7, cx + 4, cy + 7, black);
+      break;
+    case LauncherAction::NetworkTrackpad:
+      renderer.drawRect(cx - 12, cy - 10, 24, 20, black);
+      renderer.drawLine(cx - 2, cy - 10, cx - 2, cy + 10, black);
+      renderer.drawLine(cx + 4, cy - 2, cx + 8, cy + 2, black);
+      renderer.drawLine(cx + 8, cy + 2, cx + 4, cy + 6, black);
+      break;
+    case LauncherAction::NetworkSshClient:
+      renderer.drawRect(cx - 12, cy - 10, 24, 20, black);
+      renderer.drawLine(cx - 8, cy - 3, cx - 2, cy + 3, black);
+      renderer.drawLine(cx - 8, cy + 3, cx - 2, cy - 3, black);
+      renderer.drawLine(cx + 1, cy + 5, cx + 8, cy + 5, black);
+      break;
+    case LauncherAction::GameSudoku:
+      renderer.drawRect(cx - 12, cy - 12, 24, 24, black);
+      renderer.drawLine(cx - 4, cy - 12, cx - 4, cy + 12, black);
+      renderer.drawLine(cx + 4, cy - 12, cx + 4, cy + 12, black);
+      renderer.drawLine(cx - 12, cy - 4, cx + 12, cy - 4, black);
+      renderer.drawLine(cx - 12, cy + 4, cx + 12, cy + 4, black);
+      break;
+    case LauncherAction::GameMinesweeper:
+      renderer.drawLine(cx - 10, cy, cx + 10, cy, black);
+      renderer.drawLine(cx, cy - 10, cx, cy + 10, black);
+      renderer.drawLine(cx - 8, cy - 8, cx + 8, cy + 8, black);
+      renderer.drawLine(cx - 8, cy + 8, cx + 8, cy - 8, black);
+      renderer.fillRect(cx - 3, cy - 3, 6, 6, black);
+      break;
+    case LauncherAction::GameTetris:
+      renderer.drawRect(cx - 12, cy - 6, 8, 8, black);
+      renderer.drawRect(cx - 4, cy - 6, 8, 8, black);
+      renderer.drawRect(cx + 4, cy - 6, 8, 8, black);
+      renderer.drawRect(cx + 4, cy + 2, 8, 8, black);
+      break;
+    case LauncherAction::ImagesViewer:
+      renderer.drawRect(cx - 12, cy - 10, 24, 20, black);
+      renderer.drawLine(cx - 8, cy + 4, cx - 1, cy - 2, black);
+      renderer.drawLine(cx - 1, cy - 2, cx + 8, cy + 6, black);
+      drawCircle(cx + 5, cy - 5, 3, false, black);
+      break;
+    case LauncherAction::ImagesDraw:
+      renderer.drawLine(cx - 11, cy + 9, cx + 8, cy - 10, black);
+      renderer.drawLine(cx - 8, cy + 12, cx + 11, cy - 7, black);
+      renderer.drawLine(cx - 12, cy + 8, cx - 6, cy + 14, black);
+      break;
+    case LauncherAction::ToolsNotes:
+      renderer.drawRect(cx - 11, cy - 12, 22, 24, black);
+      renderer.drawLine(cx - 7, cy - 4, cx + 7, cy - 4, black);
+      renderer.drawLine(cx - 7, cy + 1, cx + 7, cy + 1, black);
+      renderer.drawLine(cx - 7, cy + 6, cx + 5, cy + 6, black);
+      break;
+    case LauncherAction::ToolsFileManager:
+      renderer.drawRect(cx - 12, cy - 6, 24, 16, black);
+      renderer.drawLine(cx - 12, cy - 6, cx - 4, cy - 12, black);
+      renderer.drawLine(cx - 4, cy - 12, cx + 2, cy - 12, black);
+      break;
+    case LauncherAction::ToolsTime:
+      drawCircle(cx, cy, 11, false, black);
+      renderer.drawLine(cx, cy, cx, cy - 6, black);
+      renderer.drawLine(cx, cy, cx + 5, cy + 3, black);
+      break;
+    case LauncherAction::ToolsSleepTimer:
+      drawCircle(cx - 2, cy, 9, false, black);
+      renderer.fillRect(cx + 2, cy - 9, 5, 18, !black);
+      renderer.drawLine(cx + 5, cy - 8, cx + 8, cy - 11, black);
+      renderer.drawLine(cx + 7, cy - 5, cx + 10, cy - 8, black);
+      renderer.drawLine(cx + 8, cy, cx + 12, cy, black);
+      break;
+    case LauncherAction::ToolsOtaUpdate:
+      renderer.drawRect(cx - 12, cy - 10, 24, 20, black);
+      renderer.drawLine(cx, cy - 7, cx, cy + 5, black);
+      renderer.drawLine(cx - 5, cy, cx, cy + 5, black);
+      renderer.drawLine(cx + 5, cy, cx, cy + 5, black);
+      break;
+    case LauncherAction::SettingsHardwareTest:
+      renderer.drawRect(cx - 10, cy - 10, 20, 20, black);
+      renderer.drawLine(cx - 10, cy, cx + 10, cy, black);
+      renderer.drawLine(cx, cy - 10, cx, cy + 10, black);
+      renderer.drawLine(cx - 6, cy - 6, cx + 6, cy + 6, black);
+      break;
+    case LauncherAction::GamePoodle:
+      drawIconSymbol(cx, cy, LauncherItemId::Games, selected);
+      renderer.drawRect(cx - 4, cy - 6, 8, 12, black);
+      break;
+    default:
+      drawIconSymbol(cx, cy, LauncherItemId::Tools, selected);
       break;
   }
 }
